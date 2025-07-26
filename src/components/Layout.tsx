@@ -1,12 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
+import { useLocation } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
+  const location = useLocation();
+  
+  useEffect(() => {
+    console.log('🏗️ Layout: Component mounted/route changed', { pathname: location.pathname });
+    
+    return () => {
+      console.log('🏗️ Layout: Component will unmount', { pathname: location.pathname });
+    };
+  }, [location.pathname]);
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">

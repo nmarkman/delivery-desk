@@ -21,19 +21,32 @@ interface Deliverable {
 }
 
 export default function DeliverablesReport() {
+  console.log('🔄 DeliverablesReport: Component render started');
+  
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [loading, setLoading] = useState(true);
 
+  console.log('🔄 DeliverablesReport: Current state', { 
+    userExists: !!user, 
+    authLoading, 
+    deliverablesCount: deliverables.length,
+    loading 
+  });
+
   useEffect(() => {
+    console.log('🔄 DeliverablesReport: Auth useEffect triggered', { authLoading, userExists: !!user });
     if (!authLoading && !user) {
+      console.log('🚨 DeliverablesReport: No user found, navigating to auth');
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
+    console.log('🔄 DeliverablesReport: Data fetch useEffect triggered', { userExists: !!user });
     if (user) {
+      console.log('✅ DeliverablesReport: User found, fetching deliverables');
       fetchDeliverables();
     }
   }, [user]);
