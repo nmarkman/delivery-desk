@@ -24,15 +24,16 @@
   - [x] 1.4 Test basic API connectivity with a simple endpoint call
   - [x] 1.5 Verify `Act-Database-Name` header is properly included in requests
 
-- [ ] 2.0 Analyze Act! Data Structure & Document Findings
-  - [ ] 2.1 Make test API call to `GET /api/opportunities` and log complete response structure
-  - [ ] 2.1.1 Determine based on `opportunities` data if fetching companies data is required and evaluate relationship between opportunities and companies
-  - [ ] 2.2 Make test API call to `GET /api/tasks` and log complete response structure  
-  - [ ] 2.3 Create `docs/act-api-exploration.md` documenting all response fields and structure in user-friendly format
-  - [ ] 2.4 Identify which Act! opportunity fields map to DeliveryDesk requirements (client name, contact info, retainer amounts, contract dates)
-  - [ ] 2.5 Determine if custom opportunity fields need to be created in Act! for retainer tracking
-  - [ ] 2.6 Research and document custom task types in Act! for deliverable tracking
-  - [ ] 2.7 Assess whether separate accounts API calls are needed or if opportunity data includes company info
+- [x] 2.0 Analyze Act! Data Structure & Document Findings
+  - [x] 2.1 Make test API call to `GET /api/opportunities` and log complete response structure
+  - [x] 2.1.1 Determine based on `opportunities` data if fetching companies data is required and evaluate relationship between opportunities and companies
+  - [x] 2.2 Make test API call to `GET /api/tasks` and log complete response structure (COMPLETE - found 4 activity types: Meeting, Appointment, Call, To-do)  
+  - [x] 2.2.1 Create custom task types in Act! trial account for DeliveryDesk-specific tasks (e.g., "Billing") and test API response
+  - [x] 2.3 Analyze JWT token expiration and implement token refresh strategy in Edge Function
+  - [x] 2.4 Create `docs/act-api-exploration.md` documenting all response fields and structure in user-friendly format
+  - [x] 2.5 Identify which Act! opportunity fields map to DeliveryDesk requirements (client name, contact info, retainer amounts, contract dates)
+  - [x] 2.6 Determine if custom opportunity fields need to be created in Act! for retainer tracking
+  - [x] 2.7 Assess whether separate accounts API calls are needed or if opportunity data includes company info
 
 - [ ] 3.0 Design Enhanced Database Schema
   - [ ] 3.1 Create invoice status enum (draft, invoiced, paid, overdue)
