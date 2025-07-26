@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, Truck, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, FileText, Truck, LogOut, User, Receipt } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import {
   Sidebar,
@@ -25,12 +25,12 @@ const navigation = [
   {
     title: 'Invoice Generator',
     url: '/invoices',
-    icon: FileText,
+    icon: Receipt,
   },
   {
     title: 'Deliverables Report',
     url: '/deliverables',
-    icon: Truck,
+    icon: FileText,
   },
 ];
 
@@ -46,14 +46,14 @@ export function AppSidebar() {
   const getNavClassName = ({ isActive }: { isActive: boolean }) =>
     isActive 
       ? "bg-primary text-primary-foreground font-medium" 
-      : "hover:bg-accent hover:text-accent-foreground";
+      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
   return (
     <Sidebar className={isCollapsed ? "w-14" : "w-64"}>
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-primary to-primary-light text-primary-foreground">
-            <Truck className="h-6 w-6" />
+            <Receipt className="h-6 w-6" />
           </div>
           {!isCollapsed && (
             <div>
