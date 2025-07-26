@@ -82,7 +82,6 @@ export function AppSidebar() {
                       to={item.url} 
                       end 
                       className={getNavClassName}
-                      onClick={() => console.log(`🚀 Navigation: Clicked ${item.title} -> ${item.url}`)}
                     >
                       <item.icon className="h-5 w-5 !text-black" strokeWidth={1.5} />
                       {!isCollapsed && <span className="!text-black font-normal">{item.title}</span>}

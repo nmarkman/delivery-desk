@@ -9,14 +9,6 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  
-  useEffect(() => {
-    console.log('🏗️ Layout: Component mounted/route changed', { pathname: location.pathname });
-    
-    return () => {
-      console.log('🏗️ Layout: Component will unmount', { pathname: location.pathname });
-    };
-  }, [location.pathname]);
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
