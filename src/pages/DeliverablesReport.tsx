@@ -21,36 +21,23 @@ interface Deliverable {
 }
 
 export default function DeliverablesReport() {
-  console.log('🔄 DeliverablesReport: Component render started');
-  
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
 
-  console.log('🔄 DeliverablesReport: Current state', { 
-    userExists: !!user, 
-    authLoading, 
-    deliverablesCount: deliverables.length
-  });
-
   useEffect(() => {
-    console.log('🔄 DeliverablesReport: Auth useEffect triggered', { authLoading, userExists: !!user });
     if (!authLoading && !user) {
-      console.log('🚨 DeliverablesReport: No user found, navigating to auth');
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    console.log('🔄 DeliverablesReport: Data fetch useEffect triggered', { userExists: !!user });
     if (user) {
-      console.log('✅ DeliverablesReport: User found, fetching deliverables');
       fetchDeliverables();
     }
   }, [user]);
 
   const fetchDeliverables = async () => {
-    console.log('📡 DeliverablesReport: fetchDeliverables started');
     try {
       const { data, error } = await supabase
         .from('deliverables')
@@ -61,13 +48,10 @@ export default function DeliverablesReport() {
         .eq('user_id', user?.id)
         .order('due_date', { ascending: true });
 
-      console.log('📡 DeliverablesReport: Data fetched', { error, dataCount: data?.length });
       if (error) throw error;
-      
-      console.log('📡 DeliverablesReport: Setting deliverables state');
       setDeliverables(data || []);
     } catch (error) {
-      console.error('📡 DeliverablesReport: Error fetching deliverables:', error);
+      console.error('Error fetching deliverables:', error);
     }
   };
 
