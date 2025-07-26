@@ -1,5 +1,5 @@
 import { LayoutDashboard, FileText, Truck, LogOut, User, Receipt } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
@@ -37,7 +37,14 @@ const navigation = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const { user, signOut } = useAuth();
+  const location = useLocation();
   const isCollapsed = state === "collapsed";
+
+  // Get current page title based on route
+  const getCurrentPageTitle = () => {
+    const currentNav = navigation.find(nav => nav.url === location.pathname);
+    return currentNav ? currentNav.title : 'Dashboard';
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -58,7 +65,7 @@ export function AppSidebar() {
           {!isCollapsed && (
             <div>
               <h1 className="text-lg font-bold text-foreground">DeliveryDesk</h1>
-              <p className="text-sm text-muted-foreground">Dashboard</p>
+              <p className="text-sm text-muted-foreground">{getCurrentPageTitle()}</p>
             </div>
           )}
         </div>
