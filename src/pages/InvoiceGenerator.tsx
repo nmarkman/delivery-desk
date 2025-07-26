@@ -88,7 +88,7 @@ export default function InvoiceGenerator() {
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
     
     try {
       const invoiceNumber = `INV-${Date.now()}`;
@@ -126,7 +126,7 @@ export default function InvoiceGenerator() {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -140,152 +140,166 @@ export default function InvoiceGenerator() {
     return variants[status as keyof typeof variants] || variants.draft;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Invoice Generator</h1>
-        <p className="text-muted-foreground">Create and manage invoices for your clients</p>
-      </div>
+    <Layout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Invoice Generator</h1>
+          <p className="text-muted-foreground">Create and manage invoices for your clients</p>
+        </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Invoice Creation Form */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Invoice Creation Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Create New Invoice
+              </CardTitle>
+              <CardDescription>Generate a new invoice for a client</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={generateInvoice} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="client">Client</Label>
+                  <Select value={selectedClient} onValueChange={setSelectedClient}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="month-year">Month/Year</Label>
+                  <Input
+                    id="month-year"
+                    type="month"
+                    value={monthYear}
+                    onChange={(e) => setMonthYear(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount ($)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? 'Creating...' : 'Create Invoice'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Invoice Preview */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Invoice Preview
+              </CardTitle>
+              <CardDescription>Preview of your invoice template</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+                <div className="text-center">
+                  <h3 className="text-lg font-bold">INVOICE</h3>
+                  <p className="text-sm text-muted-foreground">DeliveryDesk Services</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="font-medium">To:</p>
+                    <p>{selectedClient ? clients.find(c => c.id === selectedClient)?.name : 'Select Client'}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">Invoice #:</p>
+                    <p>INV-{Date.now().toString().slice(-6)}</p>
+                  </div>
+                </div>
+                
+                <div className="border-t pt-4">
+                  <div className="flex justify-between">
+                    <span>Service Period:</span>
+                    <span>{monthYear || 'Select Month'}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-lg mt-2">
+                    <span>Total:</span>
+                    <span>${amount || '0.00'}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Invoices */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Create New Invoice
-            </CardTitle>
-            <CardDescription>Generate a new invoice for a client</CardDescription>
+            <CardTitle>Recent Invoices</CardTitle>
+            <CardDescription>Manage your existing invoices</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={generateInvoice} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="client">Client</Label>
-                <Select value={selectedClient} onValueChange={setSelectedClient}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {invoices.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No invoices found. Create your first invoice above!
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="month-year">Month/Year</Label>
-                <Input
-                  id="month-year"
-                  type="month"
-                  value={monthYear}
-                  onChange={(e) => setMonthYear(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount ($)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
-                />
-              </div>
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Invoice'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Invoice Preview */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Invoice Preview
-            </CardTitle>
-            <CardDescription>Preview of your invoice template</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
-              <div className="text-center">
-                <h3 className="text-lg font-bold">INVOICE</h3>
-                <p className="text-sm text-muted-foreground">DeliveryDesk Services</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="font-medium">To:</p>
-                  <p>{selectedClient ? clients.find(c => c.id === selectedClient)?.name : 'Select Client'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Invoice #:</p>
-                  <p>INV-{Date.now().toString().slice(-6)}</p>
-                </div>
-              </div>
-              
-              <div className="border-t pt-4">
-                <div className="flex justify-between">
-                  <span>Service Period:</span>
-                  <span>{monthYear || 'Select Month'}</span>
-                </div>
-                <div className="flex justify-between font-bold text-lg mt-2">
-                  <span>Total:</span>
-                  <span>${amount || '0.00'}</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Invoices */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Invoices</CardTitle>
-          <CardDescription>Manage your existing invoices</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {invoices.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No invoices found. Create your first invoice above!
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {invoices.map((invoice) => (
-                <div key={invoice.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h4 className="font-medium">{invoice.invoice_number}</h4>
-                      <Badge className={getStatusBadge(invoice.status)}>
-                        {invoice.status}
-                      </Badge>
+            ) : (
+              <div className="space-y-3">
+                {invoices.map((invoice) => (
+                  <div key={invoice.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h4 className="font-medium">{invoice.invoice_number}</h4>
+                        <Badge className={getStatusBadge(invoice.status)}>
+                          {invoice.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {invoice.clients?.name} • {invoice.month_year} • ${invoice.amount.toFixed(2)}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {invoice.clients?.name} • {invoice.month_year} • ${invoice.amount.toFixed(2)}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        PDF
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
-                      <Download className="h-4 w-4 mr-2" />
-                      PDF
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
   );
 }
