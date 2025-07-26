@@ -46,7 +46,7 @@ export function AppSidebar() {
   const getNavClassName = ({ isActive }: { isActive: boolean }) =>
     isActive 
       ? "bg-primary text-primary-foreground font-medium" 
-      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900";
+      : "!text-black hover:bg-gray-100 hover:!text-black";
 
   return (
     <Sidebar className={isCollapsed ? "w-14" : "w-64"}>
