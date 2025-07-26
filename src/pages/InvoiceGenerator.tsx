@@ -1,0 +1,291 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Layout } from '@/components/Layout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { FileText, Download, Plus } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface Invoice {
+  id: string;
+  invoice_number: string;
+  client_id: string;
+  amount: number;
+  status: string;
+  due_date: string;
+  month_year: string;
+  clients: { name: string };
+}
+
+export default function InvoiceGenerator() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [clients, setClients] = useState<Client[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [selectedClient, setSelectedClient] = useState('');
+  const [amount, setAmount] = useState('');
+  const [monthYear, setMonthYear] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  const fetchData = async () => {
+    try {
+      const [clientsResult, invoicesResult] = await Promise.all([
+        supabase
+          .from('clients')
+          .select('*')
+          .eq('user_id', user?.id),
+        supabase
+          .from('invoices')
+          .select(`
+            *,
+            clients (name)
+          `)
+          .eq('user_id', user?.id)
+          .order('created_at', { ascending: false })
+      ]);
+
+      if (clientsResult.data) setClients(clientsResult.data);
+      if (invoicesResult.data) setInvoices(invoicesResult.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
+
+  const generateInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedClient || !amount || !monthYear) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const invoiceNumber = `INV-${Date.now()}`;
+      
+      const { error } = await supabase
+        .from('invoices')
+        .insert({
+          user_id: user?.id,
+          client_id: selectedClient,
+          invoice_number: invoiceNumber,
+          amount: parseFloat(amount),
+          month_year: monthYear,
+          status: 'draft',
+          invoice_date: new Date().toISOString().split('T')[0],
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Invoice created successfully!",
+      });
+
+      // Reset form
+      setSelectedClient('');
+      setAmount('');
+      setMonthYear('');
+      
+      // Refresh invoices
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create invoice",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      paid: 'bg-success text-success-foreground',
+      pending: 'bg-warning text-warning-foreground',
+      draft: 'bg-muted text-muted-foreground',
+      overdue: 'bg-destructive text-destructive-foreground'
+    };
+    return variants[status as keyof typeof variants] || variants.draft;
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">Invoice Generator</h1>
+        <p className="text-muted-foreground">Create and manage invoices for your clients</p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Invoice Creation Form */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Create New Invoice
+            </CardTitle>
+            <CardDescription>Generate a new invoice for a client</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={generateInvoice} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="client">Client</Label>
+                <Select value={selectedClient} onValueChange={setSelectedClient}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="month-year">Month/Year</Label>
+                <Input
+                  id="month-year"
+                  type="month"
+                  value={monthYear}
+                  onChange={(e) => setMonthYear(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount ($)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  required
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Creating...' : 'Create Invoice'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Invoice Preview */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Invoice Preview
+            </CardTitle>
+            <CardDescription>Preview of your invoice template</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+              <div className="text-center">
+                <h3 className="text-lg font-bold">INVOICE</h3>
+                <p className="text-sm text-muted-foreground">DeliveryDesk Services</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="font-medium">To:</p>
+                  <p>{selectedClient ? clients.find(c => c.id === selectedClient)?.name : 'Select Client'}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Invoice #:</p>
+                  <p>INV-{Date.now().toString().slice(-6)}</p>
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <div className="flex justify-between">
+                  <span>Service Period:</span>
+                  <span>{monthYear || 'Select Month'}</span>
+                </div>
+                <div className="flex justify-between font-bold text-lg mt-2">
+                  <span>Total:</span>
+                  <span>${amount || '0.00'}</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Invoices */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Invoices</CardTitle>
+          <CardDescription>Manage your existing invoices</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {invoices.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No invoices found. Create your first invoice above!
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {invoices.map((invoice) => (
+                <div key={invoice.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h4 className="font-medium">{invoice.invoice_number}</h4>
+                      <Badge className={getStatusBadge(invoice.status)}>
+                        {invoice.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {invoice.clients?.name} • {invoice.month_year} • ${invoice.amount.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm">
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
