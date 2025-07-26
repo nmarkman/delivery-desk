@@ -52,6 +52,7 @@ export default function DeliverablesReport() {
   }, [user]);
 
   const fetchDeliverables = async () => {
+    console.log('📡 DeliverablesReport: fetchDeliverables started');
     try {
       const { data, error } = await supabase
         .from('deliverables')
@@ -62,11 +63,16 @@ export default function DeliverablesReport() {
         .eq('user_id', user?.id)
         .order('due_date', { ascending: true });
 
+      console.log('📡 DeliverablesReport: Data fetched', { error, dataCount: data?.length });
       if (error) throw error;
-      if (data) setDeliverables(data);
+      if (data) {
+        console.log('📡 DeliverablesReport: Setting deliverables state');
+        setDeliverables(data);
+      }
     } catch (error) {
-      console.error('Error fetching deliverables:', error);
+      console.error('📡 DeliverablesReport: Error fetching deliverables:', error);
     } finally {
+      console.log('📡 DeliverablesReport: Setting loading to false');
       setLoading(false);
     }
   };
