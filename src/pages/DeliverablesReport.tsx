@@ -124,7 +124,7 @@ export default function DeliverablesReport() {
           <h1 className="text-3xl font-bold text-foreground">Deliverables Report</h1>
           <p className="text-muted-foreground">Track upcoming deliverables and deadlines</p>
         </div>
-        <Button>
+        <Button type="button">
           <Plus className="h-4 w-4 mr-2" />
           Add Deliverable
         </Button>
