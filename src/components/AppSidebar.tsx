@@ -46,7 +46,7 @@ export function AppSidebar() {
   const getNavClassName = ({ isActive }: { isActive: boolean }) =>
     isActive 
       ? "bg-primary text-primary-foreground font-medium" 
-      : "!text-black hover:bg-gray-100 hover:!text-black";
+      : "!text-black hover:bg-gray-200 hover:!text-black transition-colors duration-200";
 
   return (
     <Sidebar className={isCollapsed ? "w-14" : "w-64"}>
@@ -72,8 +72,8 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} end className={getNavClassName}>
-                      <item.icon className="h-5 w-5" />
-                      {!isCollapsed && <span className="!text-black font-medium">{item.title}</span>}
+                       <item.icon className="h-5 w-5 !text-black" />
+                       {!isCollapsed && <span className="!text-black font-medium">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
