@@ -26,13 +26,11 @@ export default function DeliverablesReport() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
-  const [loading, setLoading] = useState(true);
 
   console.log('🔄 DeliverablesReport: Current state', { 
     userExists: !!user, 
     authLoading, 
-    deliverablesCount: deliverables.length,
-    loading 
+    deliverablesCount: deliverables.length
   });
 
   useEffect(() => {
@@ -66,13 +64,10 @@ export default function DeliverablesReport() {
       console.log('📡 DeliverablesReport: Data fetched', { error, dataCount: data?.length });
       if (error) throw error;
       
-      // Batch state updates to prevent double render
-      console.log('📡 DeliverablesReport: Updating state (batched)');
+      console.log('📡 DeliverablesReport: Setting deliverables state');
       setDeliverables(data || []);
-      setLoading(false);
     } catch (error) {
       console.error('📡 DeliverablesReport: Error fetching deliverables:', error);
-      setLoading(false);
     }
   };
 
@@ -122,7 +117,7 @@ export default function DeliverablesReport() {
     completed: groupedDeliverables.completed.length
   };
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
