@@ -65,14 +65,13 @@ export default function DeliverablesReport() {
 
       console.log('📡 DeliverablesReport: Data fetched', { error, dataCount: data?.length });
       if (error) throw error;
-      if (data) {
-        console.log('📡 DeliverablesReport: Setting deliverables state');
-        setDeliverables(data);
-      }
+      
+      // Batch state updates to prevent double render
+      console.log('📡 DeliverablesReport: Updating state (batched)');
+      setDeliverables(data || []);
+      setLoading(false);
     } catch (error) {
       console.error('📡 DeliverablesReport: Error fetching deliverables:', error);
-    } finally {
-      console.log('📡 DeliverablesReport: Setting loading to false');
       setLoading(false);
     }
   };
