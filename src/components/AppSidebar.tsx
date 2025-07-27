@@ -23,15 +23,15 @@ const navigation = [
     icon: LayoutDashboard,
   },
   {
-    title: 'Invoice Generator',
-    url: '/invoices',
-    icon: Receipt,
-  },
-  {
     title: 'Deliverables Report',
     url: '/deliverables',
     icon: FileText,
   },
+  {
+    title: 'Invoice Generator',
+    url: '/invoices',
+    icon: Receipt,
+  },  
 ];
 
 export function AppSidebar() {
