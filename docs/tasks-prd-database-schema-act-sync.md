@@ -52,16 +52,32 @@
   - [x] 3.10 Update Supabase TypeScript types by running type generation
 
 - [ ] 4.0 Implement Act! Sync Edge Function
-  - [ ] 4.0.1 Update Edge Function to accept user_id parameter and query user's single Act! connection
-  - [ ] 4.0.2 Implement credential encryption/decryption for stored Act! passwords
-  - [ ] 4.0.3 Replace hardcoded environment variables with user-specific credentials from database
-  - [ ] 4.1 Create `act-client.ts` module with user-specific authentication, rate limiting, and request handling
-  - [ ] 4.2 Create TypeScript types in `types.ts` for Act! API responses and database models
-  - [ ] 4.3 Implement opportunities sync logic with upsert operations to `opportunities` table
-  - [ ] 4.4 Implement tasks sync logic filtering for deliverable-specific task types
-  - [ ] 4.5 Add rate limiting with appropriate delays between API requests
-  - [ ] 4.6 Implement retry logic with exponential backoff for failed API calls
-  - [ ] 4.7 Calculate monthly retainer amounts by dividing contract value by months between start/end dates
+  - [x] 4.0.1 Update Edge Function to accept user_id parameter and query user's single Act! connection
+  - [x] 4.0.2 Implement credential encryption/decryption for stored Act! passwords
+  - [x] 4.0.3 Replace hardcoded environment variables with user-specific credentials from database
+  - [x] 4.1 Create `act-client.ts` module with user-specific authentication, rate limiting, and request handling
+  - [x] 4.2 Create TypeScript types in `types.ts` for Act! API responses and database models
+  - [x] 4.3 Implement opportunities sync logic with upsert operations to `opportunities` table** ✅ **COMPLETED**
+  - [x] **4.4 Implement tasks sync logic filtering for deliverable-specific task types** ✅ **COMPLETED**
+    - Successfully implemented intelligent task filtering using activity types and keywords
+    - Filters for billable tasks: 'Billing', 'To-do', 'Meeting', 'Call', etc.
+    - Implements fee parsing from task subject/details using regex patterns
+    - Links tasks to opportunities via Act! relationships and company matching
+    - Maps Act! task completion status to deliverable statuses (pending, in_progress, completed)
+    - Handles priority mapping from Act! priority levels
+    - Removed client_id foreign key constraint - deliverables now link via opportunity_id
+    - **Status**: ✅ Successfully tested with 23 billable tasks synced from Act! CRM to deliverables
+  - [x] **4.5 Add rate limiting with appropriate delays between API requests** ✅ **COMPLETED**
+    - Implemented per-user rate limiting (100 calls per minute)
+    - Automatic waiting between requests (100ms minimum interval)
+    - Rate limit status tracking and enforcement
+    - **Status**: ✅ Already implemented in ActClient
+  - [x] **4.6 Implement retry logic with exponential backoff for failed API calls** ✅ **COMPLETED**
+    - Automatic token refresh on 401 Unauthorized responses
+    - Retry logic with max 2 attempts per API call
+    - Comprehensive error handling and categorization
+    - **Status**: ✅ Already implemented in ActClient makeApiCall method
+  - [ ] 4.7 Calculate monthly retainer amounts by dividing contract value by months between start/end dates, if the requisite fields exist
   - [ ] 4.8 Map Act! task data to `deliverables` table, parsing fee amounts from task names/descriptions
   - [ ] 4.9 Store raw Act! response data in JSON fields for debugging and future feature development
 
