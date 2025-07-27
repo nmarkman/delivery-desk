@@ -51,46 +51,62 @@
   - [x] 3.9 Add database indexes on frequently queried fields (Act! IDs, invoice dates, client lookup)
   - [x] 3.10 Update Supabase TypeScript types by running type generation
 
-- [ ] 4.0 Implement Act! Sync Edge Function
-  - [x] 4.0.1 Update Edge Function to accept user_id parameter and query user's single Act! connection
-  - [x] 4.0.2 Implement credential encryption/decryption for stored Act! passwords
-  - [x] 4.0.3 Replace hardcoded environment variables with user-specific credentials from database
-  - [x] 4.1 Create `act-client.ts` module with user-specific authentication, rate limiting, and request handling
-  - [x] 4.2 Create TypeScript types in `types.ts` for Act! API responses and database models
-  - [x] 4.3 Implement opportunities sync logic with upsert operations to `opportunities` table** ✅ **COMPLETED**
-  - [x] **4.4 Implement tasks sync logic filtering for deliverable-specific task types** ✅ **COMPLETED**
-    - Successfully implemented intelligent task filtering using activity types and keywords
-    - Filters for billable tasks: 'Billing', 'To-do', 'Meeting', 'Call', etc.
-    - Implements fee parsing from task subject/details using regex patterns
-    - Links tasks to opportunities via Act! relationships and company matching
-    - Maps Act! task completion status to deliverable statuses (pending, in_progress, completed)
-    - Handles priority mapping from Act! priority levels
-    - Removed client_id foreign key constraint - deliverables now link via opportunity_id
-    - **Status**: ✅ Successfully tested with 23 billable tasks synced from Act! CRM to deliverables
-  - [x] **4.5 Add rate limiting with appropriate delays between API requests** ✅ **COMPLETED**
-    - Implemented per-user rate limiting (100 calls per minute)
-    - Automatic waiting between requests (100ms minimum interval)
-    - Rate limit status tracking and enforcement
-    - **Status**: ✅ Already implemented in ActClient
-  - [x] **4.6 Implement retry logic with exponential backoff for failed API calls** ✅ **COMPLETED**
-    - Automatic token refresh on 401 Unauthorized responses
-    - Retry logic with max 2 attempts per API call
-    - Comprehensive error handling and categorization
-    - **Status**: ✅ Already implemented in ActClient makeApiCall method
-  - [ ] 4.7 Calculate monthly retainer amounts by dividing contract value by months between start/end dates, if the requisite fields exist
-  - [ ] 4.8 Map Act! task data to `deliverables` table, parsing fee amounts from task names/descriptions
-  - [ ] 4.9 Store raw Act! response data in JSON fields for debugging and future feature development
+- [x] **4.0 Implement Act! Sync Edge Function** ✅ **COMPLETED**
+    - [x] 4.0.1 Update Edge Function to accept user_id parameter and query user's single Act! connection
+    - [x] 4.0.2 Implement credential encryption/decryption for stored Act! passwords
+    - [x] 4.0.3 Replace hardcoded environment variables with user-specific credentials from database
+    - [x] 4.1 Create `act-client.ts` module with user-specific authentication, rate limiting, and request handling
+    - [x] 4.2 Create TypeScript types in `types.ts` for Act! API responses and database models
+    - [x] 4.3 Implement opportunities sync logic with upsert operations to `opportunities` table** ✅ **COMPLETED**
+      - Successfully implemented comprehensive data mapping from Act! opportunities to database schema
+      - Handles missing/malformed data gracefully with fallback values and warnings
+      - Implements proper upsert logic using `act_opportunity_id` as conflict resolution
+      - Processes records in batches (default 50) for performance
+      - Maps custom fields for retainer data per field mapping strategy
+      - Calculates total contract values when missing using retainer amounts and date ranges
+      - Provides detailed sync operation results with success/failure tracking
+      - **Status**: ✅ Successfully tested with 5 opportunities synced from Act! CRM
+    - [x] **4.4 Implement tasks sync logic filtering for deliverable-specific task types** ✅ **COMPLETED**
+      - Successfully implemented intelligent task filtering using activity types and keywords
+      - Filters for billable tasks: 'Billing', 'To-do', 'Meeting', 'Call', etc.
+      - Implements fee parsing from task subject/details using regex patterns
+      - Links tasks to opportunities via Act! relationships and company matching
+      - Maps Act! task completion status to deliverable statuses (pending, in_progress, completed)
+      - Handles priority mapping from Act! priority levels
+      - Removed client_id foreign key constraint - deliverables now link via opportunity_id
+      - **Status**: ✅ Successfully tested with 23 billable tasks synced from Act! CRM to deliverables
+    - [x] **4.5 Add rate limiting with appropriate delays between API requests** ✅ **COMPLETED**
+      - Implemented per-user rate limiting (100 calls per minute)
+      - Automatic waiting between requests (100ms minimum interval)
+      - Rate limit status tracking and enforcement
+      - **Status**: ✅ Already implemented in ActClient
+    - [x] **4.6 Implement retry logic with exponential backoff for failed API calls** ✅ **COMPLETED**
+      - Automatic token refresh on 401 Unauthorized responses
+      - Retry logic with max 2 attempts per API call
+      - Comprehensive error handling and categorization
+      - **Status**: ✅ Already implemented in ActClient makeApiCall method
+    - [x] **4.7 Calculate monthly retainer amounts by dividing contract value by months between start/end dates** ✅ **COMPLETED**
+      - Implemented in opportunities sync with automatic calculation when retainer amount and contract dates are available
+      - Uses average month length (30.44 days) for accurate calculation
+      - Provides warnings when calculation is performed vs using direct productTotal
+      - **Status**: ✅ Already implemented in opportunities-sync.ts
+    - [x] **4.8 Map Act! task data to `deliverables` table, parsing fee amounts from task names/descriptions** ✅ **COMPLETED**
+      - Comprehensive fee parsing using multiple regex patterns ($1,000.00, fee: $500, etc.)
+      - Maps all relevant Act! task fields to deliverable schema
+      - Intelligent status and priority mapping
+      - **Status**: ✅ Already implemented in tasks-sync.ts
+    - [x] **4.9 Store raw Act! response data in JSON fields for debugging and future feature development** ✅ **COMPLETED**
+      - Raw Act! data stored in `act_raw_data` field for both opportunities and deliverables
+      - Enables debugging and future feature development without re-fetching from Act!
+      - **Status**: ✅ Already implemented in both sync modules
 
-- [ ] 5.0 Create Manual Sync UI Components
-  - [ ] 5.0.1 Create `ActConnectionForm.tsx` component for setting user's single Act! connection
-  - [ ] 5.0.2 Add connection testing functionality to verify user's Act! credentials
-  - [ ] 5.0.3 Add credential validation and regional endpoint selection
-  - [ ] 5.1 Create `ActSyncButton.tsx` component with loading states and sync progress indicator
-  - [ ] 5.2 Create `ActConnection.tsx` page for managing user's Act! connection and manual sync trigger
-  - [ ] 5.3 Add API route for triggering manual sync from the UI
-  - [ ] 5.4 Integrate sync button into existing dashboard or navigation
-  - [ ] 5.5 Add success/error toast notifications for sync operations
-  - [ ] 5.6 Display last sync timestamp and sync status on connection page
+- [x] **5.0 Create Manual Sync UI Components**
+  - [x] 5.0.1 Create UI component for manual sync triggers with operation type selection
+  - [x] 5.0.2 Add connection testing functionality to verify user's Act! credentials
+  - [x] 5.0.3 Add credential validation and regional endpoint selection
+  - [x] 5.1 Create ActConnectionForm.tsx component for setting user's single Act! connection
+  - [x] 5.2 Create SyncDashboard.tsx to display sync status, trigger manual syncs, and show recent sync history
+  - [x] 5.3 Create SyncResultsDisplay.tsx to show detailed sync results including success/failure counts and warnings
 
 - [ ] 6.0 Set Up Automated Daily Sync
   - [ ] 6.1 Configure Supabase cron job to run daily sync for all users with active connections

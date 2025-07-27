@@ -5,7 +5,19 @@ import { UserActConnection, ActApiResponse } from './types.ts';
 // Initialize Act! client
 const actClient = new ActClient();
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+};
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   console.log("Edge Function called for Act! API sync with user-specific authentication");
   
   try {
@@ -19,7 +31,7 @@ serve(async (req) => {
         }),
         { 
           status: 400,
-          headers: { "Content-Type": "application/json" }
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
       );
     }
@@ -34,7 +46,7 @@ serve(async (req) => {
         }),
         { 
           status: 404,
-          headers: { "Content-Type": "application/json" }
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
       );
     }
@@ -53,7 +65,7 @@ serve(async (req) => {
         }),
         { 
           status: 500,
-          headers: { "Content-Type": "application/json" }
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
       );
     }
@@ -127,7 +139,7 @@ serve(async (req) => {
       JSON.stringify(responseData),
       { 
         status: 200,
-        headers: { "Content-Type": "application/json" }
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
 
@@ -140,7 +152,7 @@ serve(async (req) => {
       }),
       { 
         status: 500,
-        headers: { "Content-Type": "application/json" }
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
   }

@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, Truck, LogOut, User, Receipt } from 'lucide-react';
+import { LayoutDashboard, FileText, Truck, LogOut, User, Receipt, RefreshCw } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -31,6 +31,11 @@ const navigation = [
     title: 'Invoice Generator',
     url: '/invoices',
     icon: Receipt,
+  },
+  {
+    title: 'Act! CRM Sync',
+    url: '/act-sync',
+    icon: RefreshCw,
   },  
 ];
 
