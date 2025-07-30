@@ -62,10 +62,11 @@ export function mapActOpportunityToDb(
     // Parse custom fields for retainer-specific data
     const customFields = actOpportunity.customFields || {};
     
-    // Look for retainer amount in custom fields (as per field mapping strategy)
+    // Look for retainer amount in custom fields (smart detection across all fields)
     let retainerAmount: number | undefined;
-    const retainerFields = ['retainer_amount', 'retainer_monthly', 'monthly_retainer', 'retainer'];
     
+    // First, try known field names
+    const retainerFields = ['retainer_amount', 'retainer_monthly', 'monthly_retainer', 'retainer'];
     for (const fieldName of retainerFields) {
       if (customFields[fieldName]) {
         const value = customFields[fieldName];
@@ -79,6 +80,37 @@ export function mapActOpportunityToDb(
             retainerAmount = parsed;
             customFieldsUsed.push(fieldName);
             break;
+          }
+        }
+      }
+    }
+    
+    // If not found, scan all opportunity_field_X for numeric values (retainer amounts)
+    if (!retainerAmount) {
+      for (const [fieldName, value] of Object.entries(customFields)) {
+        if (fieldName.startsWith('opportunity_field_') && value) {
+          if (typeof value === 'number') {
+            retainerAmount = value;
+            customFieldsUsed.push(fieldName);
+            break;
+          } else if (typeof value === 'string') {
+            // Check if it's a numeric string (retainer amount) vs date string
+            const cleaned = value.replace(/[^0-9.-]/g, '');
+            const parsed = parseFloat(cleaned);
+            
+            // Consider it a retainer amount if:
+            // 1. It parses to a valid number
+            // 2. It doesn't look like a date (doesn't contain T or multiple dashes)
+            // 3. The parsed value is reasonable for a retainer (> 0 and < 1000000)
+            if (!isNaN(parsed) && 
+                !value.includes('T') && 
+                !value.match(/\d{4}-\d{2}-\d{2}/) && 
+                parsed > 0 && 
+                parsed < 1000000) {
+              retainerAmount = parsed;
+              customFieldsUsed.push(fieldName);
+              break;
+            }
           }
         }
       }
@@ -128,21 +160,41 @@ export function mapActOpportunityToDb(
       }
     }
 
-    // Calculate total contract value
-    // Use productTotal from Act! or fall back to retainer calculation
-    let totalContractValue = actOpportunity.productTotal || 0;
-    
-    // If no productTotal but we have retainer amount and dates, calculate total
-    if (!totalContractValue && retainerAmount && contractStartDate && contractEndDate) {
-      const startDate = new Date(contractStartDate);
-      const endDate = new Date(contractEndDate);
-      const monthsDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44)); // Average month length
+    // If no specific date fields found, scan opportunity_field_X for date values
+    if (!retainerStartDate || !retainerEndDate) {
+      const dateFieldCandidates: string[] = [];
       
-      if (monthsDiff > 0) {
-        totalContractValue = retainerAmount * monthsDiff;
-        warnings.push(`Calculated total contract value (${totalContractValue}) from retainer amount (${retainerAmount}) x months (${monthsDiff})`);
+      for (const [fieldName, value] of Object.entries(customFields)) {
+        if (fieldName.startsWith('opportunity_field_') && value && typeof value === 'string') {
+          // Check if this looks like a date (contains T or matches date pattern)
+          if (value.includes('T') || value.match(/\d{4}-\d{2}-\d{2}/)) {
+            const parsedDate = new Date(value);
+            if (!isNaN(parsedDate.getTime())) {
+              const isoDate = parsedDate.toISOString().split('T')[0];
+              dateFieldCandidates.push(isoDate);
+              customFieldsUsed.push(fieldName);
+            }
+          }
+        }
+      }
+      
+      // Assign dates if we found any (assume first is start, second is end)
+      if (dateFieldCandidates.length >= 1 && !retainerStartDate) {
+        retainerStartDate = dateFieldCandidates[0];
+      }
+      if (dateFieldCandidates.length >= 2 && !retainerEndDate) {
+        retainerEndDate = dateFieldCandidates[1];
+      } else if (dateFieldCandidates.length === 1 && !retainerEndDate) {
+        // If only one date found, use it for both start and end
+        retainerEndDate = dateFieldCandidates[0];
       }
     }
+
+    // Calculate total contract value
+    // Use productTotal from Act! as the primary source
+    let totalContractValue = actOpportunity.productTotal || 0;
+    
+    // Note: retainer_amount now stores monthly amount directly, no calculation needed
 
     // Map status from Act! to our status format
     let status = 'active'; // Default status
@@ -191,7 +243,7 @@ export function mapActOpportunityToDb(
       actual_close_date: actualCloseDate,
       status: status,
       probability: actOpportunity.probability,
-      sync_status: 'completed',
+      sync_status: 'synced',
       sync_error_message: undefined,
       last_synced_at: new Date().toISOString(),
       user_id: connection.user_id

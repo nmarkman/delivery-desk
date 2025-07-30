@@ -340,10 +340,11 @@ export const ACT_ACTIVITY_TYPES = {
 
 export const SYNC_STATUSES = {
   PENDING: 'pending',
-  IN_PROGRESS: 'in_progress',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
-  PARTIAL: 'partial',
+  SYNCED: 'synced',
+  ERROR: 'error',
+  COMPLETED: 'synced', // Map to 'synced' for database compatibility
+  FAILED: 'error',     // Map to 'error' for database compatibility
+  PARTIAL: 'error',    // Map to 'error' for database compatibility
 } as const;
 
 export const CONNECTION_STATUSES = {

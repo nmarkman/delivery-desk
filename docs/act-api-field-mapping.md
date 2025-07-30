@@ -20,7 +20,7 @@
 | DeliveryDesk Requirement | Act! Field | Type | Example | Notes |
 |--------------------------|------------|------|---------|-------|
 | **Total Contract Value** | `productTotal` | Number | `2000.00` | Includes retainer + deliverables |
-| **Retainer Amount** | **CUSTOM FIELD NEEDED** | Number | `500.00` | Monthly retainer amount |
+| **Monthly Retainer Amount** | **CUSTOM FIELD NEEDED** | Number | `500.00` | Monthly retainer amount (not total) |
 | **Retainer Start Date** | **CUSTOM FIELD NEEDED** | Date | `"2025-01-01"` | When retainer billing begins |
 | **Retainer End Date** | **CUSTOM FIELD NEEDED** | Date | `"2025-12-31"` | When retainer billing ends |
 | **Weighted Value** | `weightedTotal` | Number | `1300.00` | Probability-adjusted (optional) |
@@ -47,13 +47,13 @@
 
 Based on analysis, we need to create these retainer-specific custom fields in Act!:
 
-| Custom Field | Purpose | Type | Example Values |
-|--------------|---------|------|----------------|
-| `opportunity_field_1` | Monthly Retainer Amount | Currency | `500.00`, `1000.00`, `0.00` (if no retainer) |
-| `opportunity_field_2` | Retainer Start Date | Date | `"2025-01-01"`, `"2025-06-01"` |
-| `opportunity_field_3` | Retainer End Date | Date | `"2025-12-31"`, `"2026-05-31"` |
-| `opportunity_field_4` | DeliveryDesk Sync Status | Text | `"synced"`, `"pending"`, `"error"` |
-| `opportunity_field_5` | Last Sync Timestamp | Date | `"2025-07-26T19:00:00Z"` |
+| Custom Field | Purpose | Type | Example Values | Notes |
+|--------------|---------|------|----------------|-------|
+| `opportunity_field_1` | Monthly Retainer Amount | Currency | `500.00`, `1000.00`, `0.00` (if no retainer) | **Stores monthly amount directly** |
+| `opportunity_field_2` | Retainer Start Date | Date | `"2025-01-01"`, `"2025-06-01"` | First month of billing |
+| `opportunity_field_3` | Retainer End Date | Date | `"2025-12-31"`, `"2026-05-31"` | Last month of billing |
+| `opportunity_field_4` | DeliveryDesk Sync Status | Text | `"synced"`, `"pending"`, `"error"` | Optional for debugging |
+| `opportunity_field_5` | Last Sync Timestamp | Date | `"2025-07-26T19:00:00Z"` | Optional for tracking |
 
 ### **Optional Enhancement Fields**
 
@@ -70,13 +70,13 @@ Based on analysis, we need to create these retainer-specific custom fields in Ac
 ```javascript
 // Extract retainer information from custom fields
 function extractRetainerInfo(opportunity) {
-  const retainerAmount = parseFloat(opportunity.customFields.opportunity_field_1) || 0;
+  const monthlyRetainerAmount = parseFloat(opportunity.customFields.opportunity_field_1) || 0;
   const retainerStart = opportunity.customFields.opportunity_field_2;
   const retainerEnd = opportunity.customFields.opportunity_field_3;
   
   return {
-    hasRetainer: retainerAmount > 0,
-    monthlyAmount: retainerAmount,
+    hasRetainer: monthlyRetainerAmount > 0,
+    monthlyAmount: monthlyRetainerAmount, // Already monthly amount
     startDate: retainerStart ? new Date(retainerStart) : null,
     endDate: retainerEnd ? new Date(retainerEnd) : null
   };
@@ -95,7 +95,7 @@ function calculateRetainerBillingPeriods(retainerInfo) {
   while (current <= end) {
     periods.push({
       billingDate: new Date(current),
-      amount: retainerInfo.monthlyAmount,
+      amount: retainerInfo.monthlyAmount, // Use monthly amount directly
       description: `Monthly retainer - ${current.toLocaleDateString()}`
     });
     
@@ -143,7 +143,7 @@ function shouldSyncOpportunity(opportunity) {
 | `primary_contact` | `contacts[0].displayName` | Direct | ✅ |
 | `contact_email` | `contacts[0].emailAddress` | Direct | ❌ |
 | `total_contract_value` | `productTotal` | Direct | ✅ |
-| `retainer_amount` | `opportunity_field_1` | Direct (0 if no retainer) | ❌ |
+| `retainer_amount` | `opportunity_field_1` | Direct monthly amount (0 if no retainer) | ❌ |
 | `retainer_start_date` | `opportunity_field_2` | Parse date | ❌ |
 | `retainer_end_date` | `opportunity_field_3` | Parse date | ❌ |
 | `contract_start_date` | `openDate` | Parse date | ✅ |
