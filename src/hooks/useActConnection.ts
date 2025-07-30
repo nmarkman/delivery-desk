@@ -266,12 +266,38 @@ export function useActConnection() {
     }
   }, [toast]);
 
+  // Load sync history for the current user
+  const loadSyncHistory = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data: logs, error } = await supabase
+        .from('integration_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Failed to load sync history:', error);
+        return [];
+      }
+
+      return logs || [];
+    } catch (error) {
+      console.error('Failed to load sync history:', error);
+      return [];
+    }
+  }, []);
+
   return {
     isLoading,
     connectionStatus,
     testConnection,
     saveConnection,
     loadConnectionStatus,
-    triggerSync
+    triggerSync,
+    loadSyncHistory
   };
 } 

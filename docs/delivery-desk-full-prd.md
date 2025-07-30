@@ -157,7 +157,7 @@ The project will be executed iteratively to allow for testing and feedback.  Eac
 
    Using Cursor, refine the Supabase schema: create tables for clients/accounts, deliverables, invoices, payments and integration logs.  Add enumerations for invoice status (draft, invoiced, paid, overdue).  Seed the database with sample data extracted from the current spreadsheets.
 
-3. **Implement Act! Sync (Read‑Only)**
+gi
 
    Develop a Supabase Edge Function (TypeScript) that authenticates with Act! using Basic auth and retrieves opportunities and activities.  Map opportunities to clients and tasks to deliverables.  Schedule the function to run nightly or on-demand.  Store results in the integration logs table.
 

@@ -13,10 +13,11 @@ import { useActConnection } from '@/hooks/useActConnection';
 interface SyncHistoryItem {
   id: string;
   operation_type: string;
-  status: 'success' | 'failed' | 'partial';
-  timestamp: string;
+  operation_status: string;
+  created_at: string;
   records_processed: number;
-  duration_ms: number;
+  response_time_ms: number;
+  user_id: string;
 }
 
 export function SyncDashboard() {
@@ -29,7 +30,8 @@ export function SyncDashboard() {
     isLoading, 
     connectionStatus, 
     loadConnectionStatus, 
-    triggerSync 
+    triggerSync,
+    loadSyncHistory: loadSyncHistoryFromHook
   } = useActConnection();
 
   useEffect(() => {
@@ -38,26 +40,13 @@ export function SyncDashboard() {
   }, [loadConnectionStatus]);
 
   const loadSyncHistory = async () => {
-    // TODO: Implement sync history loading from integration_logs table
-    // For now, using mock data
-    setSyncHistory([
-      {
-        id: '1',
-        operation_type: 'sync',
-        status: 'success',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        records_processed: 28,
-        duration_ms: 3200
-      },
-      {
-        id: '2',
-        operation_type: 'analysis',
-        status: 'success',
-        timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-        records_processed: 25,
-        duration_ms: 1800
-      }
-    ]);
+    try {
+      const logs = await loadSyncHistoryFromHook();
+      setSyncHistory(logs);
+    } catch (error) {
+      console.error('Failed to load sync history:', error);
+      setSyncHistory([]);
+    }
   };
 
   const handleSyncTrigger = async (opType: 'analysis' | 'sync') => {
@@ -215,7 +204,7 @@ export function SyncDashboard() {
                     <div key={item.id} className="flex items-center justify-between p-3 bg-muted/50 rounded">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <Badge variant={item.status === 'success' ? 'default' : 'destructive'}>
+                          <Badge variant={item.operation_status === 'success' ? 'default' : 'destructive'}>
                             {item.operation_type}
                           </Badge>
                           <span className="text-sm font-medium">
@@ -223,7 +212,7 @@ export function SyncDashboard() {
                           </span>
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {formatRelativeTime(item.timestamp)} • {formatDuration(item.duration_ms)}
+                          {formatRelativeTime(item.created_at)} • {formatDuration(item.response_time_ms)}
                         </div>
                       </div>
                     </div>
@@ -275,18 +264,18 @@ export function SyncDashboard() {
                       <div className="flex items-center justify-between">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <Badge variant={item.status === 'success' ? 'default' : 'destructive'}>
+                            <Badge variant={item.operation_status === 'success' ? 'default' : 'destructive'}>
                               {item.operation_type}
                             </Badge>
                             <span className="font-medium">
                               {item.records_processed} records processed
                             </span>
                             <Badge variant="outline">
-                              {item.status}
+                              {item.operation_status}
                             </Badge>
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {new Date(item.timestamp).toLocaleString()} • Duration: {formatDuration(item.duration_ms)}
+                            {new Date(item.created_at).toLocaleString()} • Duration: {formatDuration(item.response_time_ms)}
                           </div>
                         </div>
                       </div>

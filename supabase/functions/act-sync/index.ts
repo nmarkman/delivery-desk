@@ -22,7 +22,7 @@ serve(async (req) => {
   
   try {
     // Parse request body to get user_id and operation parameters
-    const { user_id, operation_type = 'analysis' } = await req.json();
+    const { user_id, operation_type = 'analysis', test_credentials } = await req.json();
     
     if (!user_id) {
       return new Response(
@@ -34,6 +34,83 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
       );
+    }
+
+    // Handle test_connection operation type
+    if (operation_type === 'test_connection') {
+      if (!test_credentials) {
+        return new Response(
+          JSON.stringify({ 
+            error: "test_credentials are required for test_connection operation" 
+          }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+
+      // Create a temporary connection object for testing
+      const tempConnection: UserActConnection = {
+        id: 'temp',
+        user_id: user_id,
+        act_username: test_credentials.act_username,
+        act_password_encrypted: test_credentials.act_password,
+        act_database_name: test_credentials.act_database_name,
+        act_region: test_credentials.act_region,
+        connection_name: 'Test Connection',
+        is_active: true,
+        is_default: false,
+        api_base_url: `https://api${test_credentials.act_region}.act.com/act.web.api`,
+        cached_bearer_token: null,
+        token_expires_at: null,
+        token_last_refreshed_at: null,
+        last_connection_test: null,
+        connection_status: 'untested',
+        connection_error: null,
+        total_api_calls: 0,
+        last_sync_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Test the connection
+      const connectionTest = await actClient.testConnection(tempConnection);
+      
+      if (connectionTest.success) {
+        return new Response(
+          JSON.stringify({
+            message: "Act! connection test successful",
+            user_id: user_id,
+            operation_type: operation_type,
+            authentication: "successful",
+            connection: {
+              database_name: tempConnection.act_database_name,
+              region: tempConnection.act_region,
+              username: tempConnection.act_username,
+              status: 'connected'
+            },
+            api_url: tempConnection.api_base_url
+          }),
+          { 
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      } else {
+        return new Response(
+          JSON.stringify({
+            error: "Failed to authenticate with Act! CRM",
+            details: connectionTest.error,
+            user_id: user_id,
+            authentication: "failed"
+          }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
     }
 
     // Get user's Act! connection using the ActClient
