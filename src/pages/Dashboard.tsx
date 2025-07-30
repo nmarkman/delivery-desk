@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, Users, FileText, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DollarSign, Users, FileText, Clock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 interface Client {
   id: string;
@@ -18,11 +20,25 @@ interface Invoice {
   client_id: string;
 }
 
+interface Opportunity {
+  id: string;
+  company_name: string;
+  name: string;
+  primary_contact: string;
+  retainer_amount: number | null;
+  total_contract_value: number;
+  status: string;
+  contract_start_date: string | null;
+  contract_end_date: string | null;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -32,7 +48,10 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     try {
-      const [clientsResult, invoicesResult] = await Promise.all([
+      setLoading(true);
+      setError(null);
+      
+      const [clientsResult, invoicesResult, opportunitiesResult] = await Promise.all([
         supabase
           .from('clients')
           .select('*')
@@ -40,18 +59,34 @@ export default function Dashboard() {
         supabase
           .from('invoices')
           .select('*')
+          .eq('user_id', user?.id),
+        supabase
+          .from('opportunities')
+          .select('*')
           .eq('user_id', user?.id)
       ]);
 
+      // Check for errors in each result
+      if (clientsResult.error) throw new Error(`Failed to fetch clients: ${clientsResult.error.message}`);
+      if (invoicesResult.error) throw new Error(`Failed to fetch invoices: ${invoicesResult.error.message}`);
+      if (opportunitiesResult.error) throw new Error(`Failed to fetch opportunities: ${opportunitiesResult.error.message}`);
+
       if (clientsResult.data) setClients(clientsResult.data);
       if (invoicesResult.data) setInvoices(invoicesResult.data);
+      if (opportunitiesResult.data) setOpportunities(opportunitiesResult.data);
     } catch (error) {
       console.error('Error fetching data:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
   };
 
+  // Calculate metrics from opportunities data
+  const uniqueClients = new Set(opportunities.map(opp => opp.company_name)).size;
+  const totalOutstanding = opportunities.reduce((sum, opp) => sum + (opp.retainer_amount || 0), 0);
+  
+  // Keep existing invoice logic
   const totalBalance = clients.reduce((sum, client) => sum + (client.outstanding_balance || 0), 0);
   const totalInvoices = invoices.length;
   const pendingInvoices = invoices.filter(inv => inv.status === 'pending').length;
@@ -70,7 +105,27 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading dashboard...</div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+          Loading dashboard...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-4">
+          <div className="text-destructive">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+            <p className="font-medium">Failed to load dashboard</p>
+            <p className="text-sm text-muted-foreground">{error}</p>
+          </div>
+          <Button onClick={fetchData} variant="outline">
+            Try Again
+          </Button>
+        </div>
       </div>
     );
   }
@@ -90,9 +145,9 @@ export default function Dashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalBalance.toFixed(2)}</div>
+            <div className="text-2xl font-bold">${totalOutstanding.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              From {clients.length} clients
+              From {uniqueClients} clients
             </p>
           </CardContent>
         </Card>
@@ -103,7 +158,7 @@ export default function Dashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{clients.length}</div>
+            <div className="text-2xl font-bold">{uniqueClients}</div>
             <p className="text-xs text-muted-foreground">
               Active clients
             </p>
@@ -142,25 +197,28 @@ export default function Dashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Recent Clients</CardTitle>
-            <CardDescription>Your clients and their outstanding balances</CardDescription>
+            <CardDescription>Your clients and their opportunities</CardDescription>
           </CardHeader>
           <CardContent>
-            {clients.length === 0 ? (
+            {opportunities.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground">
-                No clients found. Start by adding your first client!
+                No clients found.{' '}
+                <Link to="/act-sync" className="text-primary hover:underline">
+                  Connect to Act! CRM to see your clients!
+                </Link>
               </div>
             ) : (
               <div className="space-y-4">
-                {clients.slice(0, 5).map((client) => (
-                  <div key={client.id} className="flex items-center justify-between p-3 rounded-lg border">
+                {opportunities.slice(0, 5).map((opportunity) => (
+                  <div key={opportunity.id} className="flex items-center justify-between p-3 rounded-lg border">
                     <div>
-                      <p className="font-medium">{client.name}</p>
+                      <p className="font-medium">{opportunity.company_name}</p>
                       <p className="text-sm text-muted-foreground">
-                        Outstanding: ${(client.outstanding_balance || 0).toFixed(2)}
+                        {opportunity.primary_contact} • {opportunity.name}
                       </p>
                     </div>
-                    <Badge variant={client.outstanding_balance > 0 ? "destructive" : "default"}>
-                      {client.outstanding_balance > 0 ? "Pending" : "Paid"}
+                    <Badge variant={opportunity.status === 'active' ? "default" : "secondary"}>
+                      {opportunity.status}
                     </Badge>
                   </div>
                 ))}
@@ -177,7 +235,10 @@ export default function Dashboard() {
           <CardContent>
             {invoices.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground">
-                No invoices found. Create your first invoice!
+                No invoices found.{' '}
+                <Link to="/invoices" className="text-primary hover:underline">
+                  Create your first invoice!
+                </Link>
               </div>
             ) : (
               <div className="space-y-4">
