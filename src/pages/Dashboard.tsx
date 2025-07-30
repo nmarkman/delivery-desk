@@ -30,6 +30,7 @@ interface Opportunity {
   status: string;
   contract_start_date: string | null;
   contract_end_date: string | null;
+  created_at: string | null;
 }
 
 export default function Dashboard() {
@@ -209,7 +210,10 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="space-y-4">
-                {opportunities.slice(0, 5).map((opportunity) => (
+                {opportunities
+                  .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+                  .slice(0, 8)
+                  .map((opportunity) => (
                   <div key={opportunity.id} className="flex items-center justify-between p-3 rounded-lg border">
                     <div>
                       <p className="font-medium">{opportunity.company_name}</p>
