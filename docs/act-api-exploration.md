@@ -171,11 +171,11 @@
 
 Recommend using these custom fields for enhanced tracking:
 
-1. **`opportunity_field_1`** → `"monthly_retainer_amount"` (stores monthly amount directly)
-2. **`opportunity_field_2`** → `"retainer_start_date"` (first month of billing)
-3. **`opportunity_field_3`** → `"retainer_end_date"` (last month of billing)
-4. **`opportunity_field_4`** → `"deliverydesk_sync_status"` (optional for debugging)
-5. **`opportunity_field_5`** → `"last_sync_timestamp"` (optional for tracking)
+1. **`opportunity_field_2`** → `"monthly_retainer_amount"` (stores monthly amount directly)
+2. **`opportunity_field_3`** → `"retainer_start_date"` (first month of billing)  
+3. **`opportunity_field_4`** → `"retainer_end_date"` (last month of billing)
+4. **`opportunity_field_5`** → `"deliverydesk_sync_status"` (optional for debugging)
+5. **`opportunity_field_6`** → `"last_sync_timestamp"` (optional for tracking)
 
 ### **📊 Data Mapping Strategy**
 
@@ -185,9 +185,9 @@ Recommend using these custom fields for enhanced tracking:
 - `productTotal` → Total contract value
 - `contacts[0].company` → Company name
 - `contacts[0].displayName` → Primary contact
-- `opportunity_field_1` → Monthly retainer amount (stored directly)
-- `opportunity_field_2` → Retainer start date (first month)
-- `opportunity_field_3` → Retainer end date (last month)
+- `opportunity_field_2` → Monthly retainer amount (stored directly)
+- `opportunity_field_3` → Retainer start date (first month)
+- `opportunity_field_4` → Retainer end date (last month)
 
 **Tasks → DeliveryDesk Deliverables:**
 - Filter by `activityTypeName` (custom types only)

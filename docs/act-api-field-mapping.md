@@ -49,19 +49,18 @@ Based on analysis, we need to create these retainer-specific custom fields in Ac
 
 | Custom Field | Purpose | Type | Example Values | Notes |
 |--------------|---------|------|----------------|-------|
-| `opportunity_field_1` | Monthly Retainer Amount | Currency | `500.00`, `1000.00`, `0.00` (if no retainer) | **Stores monthly amount directly** |
-| `opportunity_field_2` | Retainer Start Date | Date | `"2025-01-01"`, `"2025-06-01"` | First month of billing |
-| `opportunity_field_3` | Retainer End Date | Date | `"2025-12-31"`, `"2026-05-31"` | Last month of billing |
-| `opportunity_field_4` | DeliveryDesk Sync Status | Text | `"synced"`, `"pending"`, `"error"` | Optional for debugging |
-| `opportunity_field_5` | Last Sync Timestamp | Date | `"2025-07-26T19:00:00Z"` | Optional for tracking |
+| `opportunity_field_2` | Monthly Retainer Amount | Currency | `500.00`, `1000.00`, `0.00` (if no retainer) | **Stores monthly amount directly** |
+| `opportunity_field_3` | Retainer Start Date | Date | `"2025-01-01"`, `"2025-06-01"` | First month of billing |
+| `opportunity_field_4` | Retainer End Date | Date | `"2025-12-31"`, `"2026-05-31"` | Last month of billing |
+| `opportunity_field_5` | DeliveryDesk Sync Status | Text | `"synced"`, `"pending"`, `"error"` | Optional for debugging |
+| `opportunity_field_6` | Last Sync Timestamp | Date | `"2025-07-26T19:00:00Z"` | Optional for tracking |
 
 ### **Optional Enhancement Fields**
 
 | Custom Field | Purpose | Type | Example Values |
 |--------------|---------|------|----------------|
-| `opportunity_field_6` | Payment Terms | Text | `"Net 30"`, `"Net 15"` |
-| `opportunity_field_7` | Retainer Notes | Text | `"Invoice by 1st of month"`, `"Quarterly billing"` |
-| `opportunity_field_8` | Special Instructions | Text | `"CC accounting@client.com on invoices"` |
+| `opportunity_field_7` | Payment Terms | Text | `"Net 30"`, `"Net 15"` |
+| `opportunity_field_8` | Retainer Notes | Text | `"Invoice by 1st of month"`, `"Quarterly billing"` |
 
 ## 📊 **Data Transformation Logic**
 
@@ -70,9 +69,9 @@ Based on analysis, we need to create these retainer-specific custom fields in Ac
 ```javascript
 // Extract retainer information from custom fields
 function extractRetainerInfo(opportunity) {
-  const monthlyRetainerAmount = parseFloat(opportunity.customFields.opportunity_field_1) || 0;
-  const retainerStart = opportunity.customFields.opportunity_field_2;
-  const retainerEnd = opportunity.customFields.opportunity_field_3;
+  const monthlyRetainerAmount = parseFloat(opportunity.customFields.opportunity_field_2) || 0;
+  const retainerStart = opportunity.customFields.opportunity_field_3;
+  const retainerEnd = opportunity.customFields.opportunity_field_4;
   
   return {
     hasRetainer: monthlyRetainerAmount > 0,
@@ -143,9 +142,9 @@ function shouldSyncOpportunity(opportunity) {
 | `primary_contact` | `contacts[0].displayName` | Direct | ✅ |
 | `contact_email` | `contacts[0].emailAddress` | Direct | ❌ |
 | `total_contract_value` | `productTotal` | Direct | ✅ |
-| `retainer_amount` | `opportunity_field_1` | Direct monthly amount (0 if no retainer) | ❌ |
-| `retainer_start_date` | `opportunity_field_2` | Parse date | ❌ |
-| `retainer_end_date` | `opportunity_field_3` | Parse date | ❌ |
+| `retainer_amount` | `opportunity_field_2` | Direct monthly amount (0 if no retainer) | ❌ |
+| `retainer_start_date` | `opportunity_field_3` | Parse date | ❌ |
+| `retainer_end_date` | `opportunity_field_4` | Parse date | ❌ |
 | `contract_start_date` | `openDate` | Parse date | ✅ |
 | `contract_end_date` | `estimatedCloseDate` | Parse date | ❌ |
 | `status` | `status` | Map: 0→active, 1→completed | ✅ |

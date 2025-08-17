@@ -62,33 +62,50 @@ export function mapActOpportunityToDb(
     // Parse custom fields for retainer-specific data
     const customFields = actOpportunity.customFields || {};
     
-    // Look for retainer amount in custom fields (smart detection across all fields)
+    // Look for retainer amount in custom fields
     let retainerAmount: number | undefined;
     
-    // First, try known field names
-    const retainerFields = ['retainer_amount', 'retainer_monthly', 'monthly_retainer', 'retainer'];
-    for (const fieldName of retainerFields) {
-      if (customFields[fieldName]) {
-        const value = customFields[fieldName];
-        if (typeof value === 'number') {
-          retainerAmount = value;
-          customFieldsUsed.push(fieldName);
-          break;
-        } else if (typeof value === 'string') {
-          const parsed = parseFloat(value.replace(/[^0-9.-]/g, ''));
-          if (!isNaN(parsed)) {
-            retainerAmount = parsed;
+    // First, try the specific assigned field: opportunity_field_2 for monthly retainer amount
+    if (customFields.opportunity_field_2) {
+      const value = customFields.opportunity_field_2;
+      if (typeof value === 'number') {
+        retainerAmount = value;
+        customFieldsUsed.push('opportunity_field_2');
+      } else if (typeof value === 'string') {
+        const parsed = parseFloat(value.replace(/[^0-9.-]/g, ''));
+        if (!isNaN(parsed) && parsed >= 0) {
+          retainerAmount = parsed;
+          customFieldsUsed.push('opportunity_field_2');
+        }
+      }
+    }
+    
+    // Fallback: try known semantic field names
+    if (!retainerAmount) {
+      const retainerFields = ['retainer_amount', 'retainer_monthly', 'monthly_retainer', 'retainer'];
+      for (const fieldName of retainerFields) {
+        if (customFields[fieldName]) {
+          const value = customFields[fieldName];
+          if (typeof value === 'number') {
+            retainerAmount = value;
             customFieldsUsed.push(fieldName);
             break;
+          } else if (typeof value === 'string') {
+            const parsed = parseFloat(value.replace(/[^0-9.-]/g, ''));
+            if (!isNaN(parsed)) {
+              retainerAmount = parsed;
+              customFieldsUsed.push(fieldName);
+              break;
+            }
           }
         }
       }
     }
     
-    // If not found, scan all opportunity_field_X for numeric values (retainer amounts)
+    // Final fallback: scan remaining opportunity_field_X for numeric values (excluding field_2 which is for retainer amount)
     if (!retainerAmount) {
       for (const [fieldName, value] of Object.entries(customFields)) {
-        if (fieldName.startsWith('opportunity_field_') && value) {
+        if (fieldName.startsWith('opportunity_field_') && fieldName !== 'opportunity_field_2' && fieldName !== 'opportunity_field_3' && fieldName !== 'opportunity_field_4' && value) {
           if (typeof value === 'number') {
             retainerAmount = value;
             customFieldsUsed.push(fieldName);
@@ -122,11 +139,35 @@ export function mapActOpportunityToDb(
     let retainerStartDate: string | undefined;
     let retainerEndDate: string | undefined;
 
+    // First, try the specific assigned fields for retainer dates
+    if (customFields.opportunity_field_3) {
+      const dateValue = customFields.opportunity_field_3;
+      if (typeof dateValue === 'string' && dateValue.trim()) {
+        const parsedDate = new Date(dateValue);
+        if (!isNaN(parsedDate.getTime())) {
+          retainerStartDate = parsedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+          customFieldsUsed.push('opportunity_field_3');
+        }
+      }
+    }
+
+    if (customFields.opportunity_field_4) {
+      const dateValue = customFields.opportunity_field_4;
+      if (typeof dateValue === 'string' && dateValue.trim()) {
+        const parsedDate = new Date(dateValue);
+        if (!isNaN(parsedDate.getTime())) {
+          retainerEndDate = parsedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+          customFieldsUsed.push('opportunity_field_4');
+        }
+      }
+    }
+
+    // Fallback: try semantic field names for any missing dates
     const dateFields = {
       contract_start: ['contract_start_date', 'start_date', 'contract_start'],
       contract_end: ['contract_end_date', 'end_date', 'contract_end'],
-      retainer_start: ['retainer_start_date', 'retainer_start'],
-      retainer_end: ['retainer_end_date', 'retainer_end']
+      retainer_start: retainerStartDate ? [] : ['retainer_start_date', 'retainer_start'], // Skip if already found
+      retainer_end: retainerEndDate ? [] : ['retainer_end_date', 'retainer_end'] // Skip if already found
     };
 
     for (const [type, fieldNames] of Object.entries(dateFields)) {
@@ -160,12 +201,17 @@ export function mapActOpportunityToDb(
       }
     }
 
-    // If no specific date fields found, scan opportunity_field_X for date values
+    // Final fallback: scan remaining opportunity_field_X for date values (excluding assigned fields)
     if (!retainerStartDate || !retainerEndDate) {
       const dateFieldCandidates: string[] = [];
       
       for (const [fieldName, value] of Object.entries(customFields)) {
-        if (fieldName.startsWith('opportunity_field_') && value && typeof value === 'string') {
+        // Skip the specifically assigned fields to avoid conflicts
+        if (fieldName.startsWith('opportunity_field_') && 
+            fieldName !== 'opportunity_field_2' && 
+            fieldName !== 'opportunity_field_3' && 
+            fieldName !== 'opportunity_field_4' && 
+            value && typeof value === 'string') {
           // Check if this looks like a date (contains T or matches date pattern)
           if (value.includes('T') || value.match(/\d{4}-\d{2}-\d{2}/)) {
             const parsedDate = new Date(value);

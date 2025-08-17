@@ -141,19 +141,6 @@
   - [x] 5.2 Create SyncDashboard.tsx to display sync status, trigger manual syncs, and show recent sync history
   - [x] 5.3 Create SyncResultsDisplay.tsx to show detailed sync results including success/failure counts and warnings
 
-- [ ] 6.0 Set Up Automated Daily Sync
-  - [ ] 6.1 Configure Supabase cron job to run daily sync for all users with active connections
-  - [ ] 6.2 Create separate scheduled function entry point that calls the main sync logic
-  - [ ] 6.3 Test automated sync execution and verify it runs on schedule
-  - [ ] 6.4 Add logging to track automated sync execution and results
-
-- [ ] 7.0 Implement Error Handling & Logging
-  - [ ] 7.1 Enhance integration_logs table usage throughout sync process
-  - [ ] 7.2 Log all API calls with request/response details (without exposing credentials)
-  - [ ] 7.3 Implement graceful handling of partial sync failures
-  - [ ] 7.4 Add validation for required fields before creating database records
-  - [ ] 7.5 Handle missing or invalid Act! data with appropriate default values and warnings
-  - [ ] 7.6 Log Act! opportunities that don't map to expected DeliveryDesk structure
 
 - [ ] 8.0 Testing & Validation
   - [x] 8.1 Test Act! API authentication with user-specific credentials (trial and production)
@@ -162,10 +149,7 @@
   - [x] 8.4 Test manual sync trigger from UI works correctly
   - [ ] 8.5 Test automated daily sync executes on schedule
   - [ ] 8.6 Validate data integrity and foreign key relationships
-  - [ ] 8.7 Test error scenarios (API failures, invalid data, rate limiting)
-  - [ ] 8.8 Verify RLS policies properly isolate user data
   - [ ] 8.9 Test upsert functionality with changed Act! data
-  - [ ] 8.10 Document any recommended Act! custom fields or task types for Russell to configure
 
 - [x] **9.0 Update Retainer Amount Logic** ✅ **COMPLETED**
   - [x] 9.1 Update database schema to clarify retainer_amount field stores monthly amount
@@ -173,7 +157,7 @@
   - [x] 9.3 Update field mapping documentation to reflect monthly retainer amount storage
   - [x] 9.4 Update Act! custom field recommendations to specify monthly retainer amount
   - [x] 9.5 Test sync with new retainer amount logic
-    - ✅ Successfully tested retainer amount detection from `opportunity_field_3`
+    - ✅ Successfully tested retainer amount detection from `opportunity_field_2`
     - ✅ Smart field detection working across all `opportunity_field_X` fields
     - ✅ Fixed database constraint issues with sync_status values
     - ✅ Deployed updated edge function with improved logic
