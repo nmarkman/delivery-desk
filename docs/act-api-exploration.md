@@ -183,7 +183,7 @@ Recommend using these custom fields for enhanced tracking:
 - `id` → Primary key for sync
 - `name` → Client/project name
 - `productTotal` → Total contract value
-- `contacts[0].company` → Company name
+- `contacts[0].company` → Company name (primary source)
 - `contacts[0].displayName` → Primary contact
 - `opportunity_field_2` → Monthly retainer amount (stored directly)
 - `opportunity_field_3` → Retainer start date (first month)

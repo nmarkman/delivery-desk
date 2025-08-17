@@ -27,12 +27,20 @@ export function mapActOpportunityToDb(
   const missingRequiredFields: string[] = [];
 
   try {
-    // Extract company name from companies array or contactNames
+    // Extract company name from contacts array, companies array, or contactNames
     let companyName = '';
-    if (actOpportunity.companies && actOpportunity.companies.length > 0) {
+    
+    // First priority: Extract from contacts[0].company
+    if (actOpportunity.contacts && actOpportunity.contacts.length > 0 && actOpportunity.contacts[0].company) {
+      companyName = actOpportunity.contacts[0].company;
+    } 
+    // Second priority: Extract from companies array
+    else if (actOpportunity.companies && actOpportunity.companies.length > 0) {
       companyName = actOpportunity.companies[0].name;
-    } else if (actOpportunity.contactNames) {
-      // Try to extract company from contactNames if no companies array
+    } 
+    // Final fallback: Try to extract company from contactNames
+    else if (actOpportunity.contactNames) {
+      // Try to extract company from contactNames if no other sources available
       companyName = actOpportunity.contactNames.split(' - ')[0] || actOpportunity.contactNames;
     }
 

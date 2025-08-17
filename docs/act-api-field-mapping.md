@@ -10,7 +10,7 @@
 | DeliveryDesk Requirement | Act! Field | Type | Example | Notes |
 |--------------------------|------------|------|---------|-------|
 | **Client/Project Name** | `name` | String | `"Small Biz Financial Set up, Annual Retainer (demo)"` | Direct mapping |
-| **Company Name** | `contacts[0].company` | String | `"MeatMarkets Inc (demo)"` | From first contact |
+| **Company Name** | `contacts[0].company` | String | `"UC Berkeley"` | Primary source from first contact |
 | **Primary Contact** | `contacts[0].displayName` | String | `"Chris Yang (demo)"` | From first contact |
 | **Contact Email** | `contacts[0].emailAddress` | String | `"email@company.com"` | Available in contact data |
 | **Unique Identifier** | `id` | GUID | `"1b1b47e3-13ec-44eb-a94b-94babddbdd77"` | Primary sync key |

@@ -7,6 +7,7 @@ export interface ActContact {
   id: string;
   displayName: string;
   emailAddress: string;
+  company: string;
   isInvited: boolean;
 }
 
