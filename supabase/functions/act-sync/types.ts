@@ -20,6 +20,22 @@ export interface ActCustomFields {
   [key: string]: string | number | boolean | null;
 }
 
+export interface ActStageProcess {
+  id: string;
+  name: string;
+  stages: any[];
+  status: string;
+  description: string;
+  stagesCount: number;
+}
+
+export interface ActStage {
+  id: string;
+  name: string;
+  number: number;
+  process: ActStageProcess;
+}
+
 // Opportunity Types
 export interface ActOpportunity {
   id: string;
@@ -28,7 +44,7 @@ export interface ActOpportunity {
   productTotal: number;
   weightedValue?: number;
   probability?: number;
-  stage?: string;
+  stage?: ActStage;
   reason?: string;
   source?: string;
   actualCloseDate?: string;

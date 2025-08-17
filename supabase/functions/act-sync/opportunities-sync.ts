@@ -250,19 +250,11 @@ export function mapActOpportunityToDb(
     
     // Note: retainer_amount now stores monthly amount directly, no calculation needed
 
-    // Map status from Act! to our status format
-    let status = 'active'; // Default status
-    if (actOpportunity.stage && typeof actOpportunity.stage === 'string') {
-      const stageString = actOpportunity.stage.toLowerCase();
-      if (stageString.includes('closed') || stageString.includes('won')) {
-        status = 'closed_won';
-      } else if (stageString.includes('lost') || stageString.includes('dead')) {
-        status = 'closed_lost';
-      } else if (stageString.includes('proposal') || stageString.includes('negotiation')) {
-        status = 'proposal';
-      } else {
-        status = 'active';
-      }
+    // Map status directly from Act! stage.process.name (raw text allowed now)
+    let status = 'Active'; // Default status
+    if (actOpportunity.stage && actOpportunity.stage.process && actOpportunity.stage.process.name) {
+      // Use the stage process name directly as the status
+      status = actOpportunity.stage.process.name;
     }
 
     // Parse actual close date

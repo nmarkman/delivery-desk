@@ -83,9 +83,12 @@ export default function Dashboard() {
     }
   };
 
-  // Calculate metrics from opportunities data
-  const uniqueClients = new Set(opportunities.map(opp => opp.company_name)).size;
-  const totalOutstanding = opportunities.reduce((sum, opp) => sum + (opp.retainer_amount || 0), 0);
+  // Filter out closed opportunities for metrics and display
+  const activeOpportunities = opportunities.filter(opp => opp.status !== 'Closed');
+  
+  // Calculate metrics from active opportunities data only
+  const uniqueClients = new Set(activeOpportunities.map(opp => opp.company_name)).size;
+  const totalOutstanding = activeOpportunities.reduce((sum, opp) => sum + (opp.retainer_amount || 0), 0);
   
   // Keep existing invoice logic
   const totalBalance = clients.reduce((sum, client) => sum + (client.outstanding_balance || 0), 0);
@@ -197,22 +200,21 @@ export default function Dashboard() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Clients</CardTitle>
-            <CardDescription>Your clients and their opportunities</CardDescription>
+            <CardTitle>Active Clients</CardTitle>
+            <CardDescription>Your active clients and their opportunities</CardDescription>
           </CardHeader>
           <CardContent>
-            {opportunities.length === 0 ? (
+            {activeOpportunities.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground">
-                No clients found.{' '}
+                No active clients found.{' '}
                 <Link to="/act-sync" className="text-primary hover:underline">
                   Connect to Act! CRM to see your clients!
                 </Link>
               </div>
             ) : (
-              <div className="space-y-4">
-                {opportunities
+              <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
+                {activeOpportunities
                   .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-                  .slice(0, 8)
                   .map((opportunity) => (
                   <div key={opportunity.id} className="flex items-center justify-between p-3 rounded-lg border">
                     <div>
@@ -221,7 +223,7 @@ export default function Dashboard() {
                         {opportunity.primary_contact} • {opportunity.name}
                       </p>
                     </div>
-                    <Badge variant={opportunity.status === 'active' ? "default" : "secondary"}>
+                    <Badge variant={opportunity.status === 'Project Stage' ? "default" : "secondary"}>
                       {opportunity.status}
                     </Badge>
                   </div>
