@@ -4,10 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { RefreshCw, Settings, BarChart3, History, AlertCircle } from 'lucide-react';
+import { RefreshCw, Settings, BarChart3, History, AlertCircle, Calendar } from 'lucide-react';
 import { ActConnectionForm } from './ActConnectionForm';
 import { SyncTrigger } from './SyncTrigger';
 import { SyncResultsDisplay } from './SyncResultsDisplay';
+import { DailySyncSettings } from './DailySyncSettings';
 import { useActConnection } from '@/hooks/useActConnection';
 
 interface SyncHistoryItem {
@@ -126,7 +127,7 @@ export function SyncDashboard() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Overview
@@ -134,6 +135,10 @@ export function SyncDashboard() {
           <TabsTrigger value="connection" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Connection
+          </TabsTrigger>
+          <TabsTrigger value="daily-sync" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Daily Sync
           </TabsTrigger>
           <TabsTrigger value="results" className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4" />
@@ -226,6 +231,11 @@ export function SyncDashboard() {
         {/* Connection Tab */}
         <TabsContent value="connection">
           <ActConnectionForm onConnectionSaved={handleConnectionSaved} />
+        </TabsContent>
+
+        {/* Daily Sync Tab */}
+        <TabsContent value="daily-sync">
+          <DailySyncSettings />
         </TabsContent>
 
         {/* Results Tab */}

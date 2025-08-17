@@ -1,10 +1,12 @@
 ## Relevant Files
 
 - `supabase/functions/act-sync/index.ts` - Main Edge Function for Act! CRM API synchronization (DEPLOYED)
+- `supabase/functions/daily-sync/index.ts` - **NEW** Edge Function for automated daily sync of all active connections (DEPLOYED)
 - `supabase/functions/act-sync/types.ts` - TypeScript types for Act! API responses and database models  
 - `supabase/functions/act-sync/act-client.ts` - Act! API client with per-user authentication and request handling
-- `supabase/migrations/[timestamp]-enhanced-schema.sql` - Enhanced database schema migration
+- `supabase/migrations/20250817151545_add_daily_sync_settings_fixed.sql` - **NEW** Daily sync database schema migration
 - `src/components/ActSyncButton.tsx` - UI component for manual sync trigger
+- `src/components/DailySyncSettings.tsx` - **NEW** UI component for managing daily sync preferences
 - `src/pages/ActConnection.tsx` - Page for single Act! connection management and testing
 - `src/components/ActConnectionForm.tsx` - Form for setting user's Act! connection credentials
 - `src/lib/act-sync.ts` - Client-side utilities for sync operations
@@ -105,6 +107,36 @@
   - [x] 5.0.1 Create UI component for manual sync triggers with operation type selection
   - [x] 5.0.2 Add connection testing functionality to verify user's Act! credentials
   - [x] 5.0.3 Add credential validation and regional endpoint selection
+
+- [x] **6.0 Implement Daily Automated Sync** ✅ **COMPLETED (Aug 2025)**
+  - [x] **6.1 Database Schema Enhancement** ✅ **COMPLETED**
+    - Added daily sync settings columns to `user_act_connections` table
+    - Added batch operation tracking to `integration_logs` table
+    - Created database functions for batch sync management
+    - **Status**: ✅ Migration `20250817151545_add_daily_sync_settings_fixed.sql` deployed
+  - [x] **6.2 Daily Sync Edge Function** ✅ **COMPLETED**
+    - Created `supabase/functions/daily-sync/index.ts` for batch processing
+    - Implemented fault-tolerant sync processing with error isolation
+    - Added comprehensive batch logging and progress tracking
+    - Rate limiting and sequential processing to respect Act! API limits
+    - **Status**: ✅ Function deployed and active
+  - [x] **6.3 Database Functions** ✅ **COMPLETED**
+    - `get_connections_ready_for_sync()` - Get all active connections ready for daily sync
+    - `update_next_sync_time()` - Schedule next sync time for a connection
+    - `update_daily_sync_status()` - Update connection sync status and error tracking
+    - **Status**: ✅ Functions deployed with correct UUID types
+  - [x] **6.4 Daily Sync UI Controls** ✅ **COMPLETED**
+    - Created `DailySyncSettings.tsx` component for user preferences
+    - Added daily sync tab to SyncDashboard with toggle controls
+    - Configurable sync time and enable/disable functionality
+    - Manual "Run Now" trigger for immediate batch sync
+    - **Status**: ✅ UI components implemented and integrated
+  - [x] **6.5 Batch Processing Features** ✅ **COMPLETED**
+    - Sequential processing with 2-second delays between connections
+    - Individual connection error handling without stopping batch
+    - Comprehensive batch result tracking and reporting
+    - Integration with existing ActClient for authentication and sync operations
+    - **Status**: ✅ Implemented in daily-sync Edge Function
   - [x] 5.1 Create ActConnectionForm.tsx component for setting user's single Act! connection
   - [x] 5.2 Create SyncDashboard.tsx to display sync status, trigger manual syncs, and show recent sync history
   - [x] 5.3 Create SyncResultsDisplay.tsx to show detailed sync results including success/failure counts and warnings

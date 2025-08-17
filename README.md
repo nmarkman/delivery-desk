@@ -8,6 +8,7 @@
 
 ### Key Features
 - **Act! CRM Integration**: Bi-directional API sync for opportunities, companies, contacts, and tasks
+- **Daily Automated Sync**: Scheduled daily synchronization of all active Act! connections
 - **Centralized AR Tracking**: Replaces multiple spreadsheets with unified dashboard
 - **Automated Invoice Generation**: PDF invoices with CRCG branding and itemized billing
 - **Retainer Management**: Automated monthly retainer billing and tracking
@@ -32,12 +33,16 @@
 - [x] **Custom Fields Strategy**: Defined retainer tracking fields for Act! 
 - [x] **Field Mapping Documentation**: Complete Act! → DeliveryDesk data mapping
 - [x] **File Attachment Testing**: Confirmed PDF upload capabilities to Act! tasks
+- [x] **Database Schema**: Complete schema for clients, invoices, deliverables, and sync tracking
+- [x] **Sync Edge Functions**: Manual and automated Act! data synchronization
+- [x] **Daily Automated Sync**: Scheduled daily sync for all active Act! connections
+- [x] **User Authentication**: Supabase Auth with per-user Act! connections
+- [x] **Core UI Components**: SyncDashboard, connection management, and daily sync controls
 
 ### 🔄 Current Tasks
-- [ ] **Database Schema Design**: Supabase tables for clients, invoices, deliverables
-- [ ] **Sync Edge Functions**: Automated Act! data synchronization
-- [ ] **Authentication Setup**: User auth and permissions
-- [ ] **Core UI Components**: Dashboard and invoice generation screens
+- [ ] **Invoice Generation**: PDF invoices with CRCG branding and itemized billing
+- [ ] **Payment Tracking**: Invoice status management and overdue tracking
+- [ ] **Dashboard Analytics**: AR metrics, outstanding invoices, and revenue reporting
 
 ### 📋 Upcoming Phases
 1. **Core Functionality**: Invoice generation, payment tracking, dashboard
@@ -75,6 +80,8 @@ delivery-desk/
 │   ├── components/                 # React components
 │   │   ├── ui/                       # shadcn/ui components
 │   │   ├── AppSidebar.tsx           # Main navigation
+│   │   ├── SyncDashboard.tsx        # Act! sync management interface
+│   │   ├── DailySyncSettings.tsx    # Daily sync configuration
 │   │   └── Layout.tsx               # App layout wrapper
 │   ├── pages/                      # Main application pages
 │   │   ├── Dashboard.tsx            # AR dashboard (main view)
@@ -88,7 +95,8 @@ delivery-desk/
 │   └── lib/                       # Utilities and helpers
 ├── supabase/
 │   ├── functions/                  # Edge Functions
-│   │   └── act-sync/                # Act! CRM sync function
+│   │   ├── act-sync/                # Act! CRM sync function
+│   │   └── daily-sync/              # Daily automated sync batch processor
 │   └── migrations/                 # Database schema changes
 └── public/                        # Static assets
 ```

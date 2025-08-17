@@ -532,6 +532,8 @@ export class ActClient {
     options: {
       batchSize?: number;
       logIntegration?: boolean;
+      batchId?: string;
+      parentLogId?: string;
     } = {}
   ): Promise<ActApiResponse<any>> {
     try {
@@ -589,6 +591,8 @@ export class ActClient {
       logIntegration?: boolean;
       syncOnlyBillable?: boolean;
       filterActivityTypes?: string[];
+      batchId?: string;
+      parentLogId?: string;
     } = {}
   ): Promise<ActApiResponse<any>> {
     try {
