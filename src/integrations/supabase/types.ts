@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -57,7 +57,7 @@ export type Database = {
           act_raw_data: Json | null
           act_series_id: string | null
           act_task_id: string | null
-          client_id: string
+          client_id: string | null
           created_at: string
           description: string | null
           due_date: string
@@ -84,7 +84,7 @@ export type Database = {
           act_raw_data?: Json | null
           act_series_id?: string | null
           act_task_id?: string | null
-          client_id: string
+          client_id?: string | null
           created_at?: string
           description?: string | null
           due_date: string
@@ -111,7 +111,7 @@ export type Database = {
           act_raw_data?: Json | null
           act_series_id?: string | null
           act_task_id?: string | null
-          client_id?: string
+          client_id?: string | null
           created_at?: string
           description?: string | null
           due_date?: string
@@ -133,13 +133,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "deliverables_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "deliverables_opportunity_id_fkey"
             columns: ["opportunity_id"]
@@ -163,6 +156,7 @@ export type Database = {
           http_method: string | null
           http_status_code: number | null
           id: string
+          is_batch_operation: boolean | null
           is_retry: boolean | null
           operation_status: string
           operation_type: string
@@ -194,6 +188,7 @@ export type Database = {
           http_method?: string | null
           http_status_code?: number | null
           id?: string
+          is_batch_operation?: boolean | null
           is_retry?: boolean | null
           operation_status: string
           operation_type: string
@@ -225,6 +220,7 @@ export type Database = {
           http_method?: string | null
           http_status_code?: number | null
           id?: string
+          is_batch_operation?: boolean | null
           is_retry?: boolean | null
           operation_status?: string
           operation_type?: string
@@ -263,12 +259,13 @@ export type Database = {
       invoice_line_items: {
         Row: {
           act_reference: string | null
+          billed_at: string | null
           created_at: string | null
           deliverable_id: string | null
           description: string
           details: string | null
           id: string
-          invoice_id: string
+          invoice_id: string | null
           item_type: string
           line_number: number
           line_total: number | null
@@ -276,18 +273,20 @@ export type Database = {
           quantity: number | null
           service_period_end: string | null
           service_period_start: string | null
+          source: string | null
           unit_rate: number
           updated_at: string | null
           user_id: string
         }
         Insert: {
           act_reference?: string | null
+          billed_at?: string | null
           created_at?: string | null
           deliverable_id?: string | null
           description: string
           details?: string | null
           id?: string
-          invoice_id: string
+          invoice_id?: string | null
           item_type: string
           line_number: number
           line_total?: number | null
@@ -295,18 +294,20 @@ export type Database = {
           quantity?: number | null
           service_period_end?: string | null
           service_period_start?: string | null
+          source?: string | null
           unit_rate?: number
           updated_at?: string | null
           user_id: string
         }
         Update: {
           act_reference?: string | null
+          billed_at?: string | null
           created_at?: string | null
           deliverable_id?: string | null
           description?: string
           details?: string | null
           id?: string
-          invoice_id?: string
+          invoice_id?: string | null
           item_type?: string
           line_number?: number
           line_total?: number | null
@@ -314,6 +315,7 @@ export type Database = {
           quantity?: number | null
           service_period_end?: string | null
           service_period_start?: string | null
+          source?: string | null
           unit_rate?: number
           updated_at?: string | null
           user_id?: string
@@ -585,11 +587,17 @@ export type Database = {
           connection_name: string | null
           connection_status: string | null
           created_at: string | null
+          daily_sync_enabled: boolean | null
+          daily_sync_error: string | null
+          daily_sync_status: string | null
+          daily_sync_time: string | null
           id: string
           is_active: boolean | null
           is_default: boolean | null
           last_connection_test: string | null
+          last_daily_sync_at: string | null
           last_sync_at: string | null
+          next_sync_at: string | null
           token_expires_at: string | null
           token_last_refreshed_at: string | null
           total_api_calls: number | null
@@ -607,11 +615,17 @@ export type Database = {
           connection_name?: string | null
           connection_status?: string | null
           created_at?: string | null
+          daily_sync_enabled?: boolean | null
+          daily_sync_error?: string | null
+          daily_sync_status?: string | null
+          daily_sync_time?: string | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
           last_connection_test?: string | null
+          last_daily_sync_at?: string | null
           last_sync_at?: string | null
+          next_sync_at?: string | null
           token_expires_at?: string | null
           token_last_refreshed_at?: string | null
           total_api_calls?: number | null
@@ -629,11 +643,17 @@ export type Database = {
           connection_name?: string | null
           connection_status?: string | null
           created_at?: string | null
+          daily_sync_enabled?: boolean | null
+          daily_sync_error?: string | null
+          daily_sync_status?: string | null
+          daily_sync_time?: string | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
           last_connection_test?: string | null
+          last_daily_sync_at?: string | null
           last_sync_at?: string | null
+          next_sync_at?: string | null
           token_expires_at?: string | null
           token_last_refreshed_at?: string | null
           total_api_calls?: number | null
@@ -649,17 +669,42 @@ export type Database = {
     Functions: {
       complete_integration_log: {
         Args: {
-          log_id: string
-          status: string
-          http_code?: number
-          response_data?: Json
-          error_msg?: string
           error_details?: Json
-          records_processed?: number
+          error_msg?: string
+          http_code?: number
+          log_id: string
           records_created?: number
-          records_updated?: number
           records_failed?: number
+          records_processed?: number
+          records_updated?: number
+          response_data?: Json
+          status: string
         }
+        Returns: undefined
+      }
+      get_connections_ready_for_sync: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          act_database_name: string
+          act_password_encrypted: string
+          act_region: string
+          act_username: string
+          api_base_url: string
+          cached_bearer_token: string
+          connection_name: string
+          daily_sync_time: string
+          id: string
+          token_expires_at: string
+          token_last_refreshed_at: string
+          user_id: string
+        }[]
+      }
+      update_daily_sync_status: {
+        Args: { connection_id: string; error_message?: string; status: string }
+        Returns: undefined
+      }
+      update_next_sync_time: {
+        Args: { connection_id: string }
         Returns: undefined
       }
       update_overdue_invoices: {

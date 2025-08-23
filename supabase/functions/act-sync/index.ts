@@ -22,7 +22,7 @@ serve(async (req) => {
   
   try {
     // Parse request body to get user_id and operation parameters
-    const { user_id, operation_type = 'analysis', test_credentials } = await req.json();
+    const { user_id, operation_type = 'analysis', test_credentials, test_opportunity_id } = await req.json();
     
     if (!user_id) {
       return new Response(
@@ -147,15 +147,169 @@ serve(async (req) => {
       );
     }
 
-    // Fetch data using the ActClient
-    const [opportunitiesResult, tasksResult] = await Promise.all([
-      operation_type === 'sync' ? 
-        actClient.syncOpportunitiesData(connection, { logIntegration: true }) :
-        actClient.getOpportunities(connection),
-      operation_type === 'sync' ? 
-        actClient.syncTasksData(connection, { logIntegration: true, syncOnlyBillable: true }) :
-        actClient.getTasks(connection)
-    ]);
+    // Handle test_products operation type
+    if (operation_type === 'test_products') {
+      const productsTestResult = await actClient.testProductsApi(connection, test_opportunity_id);
+      
+      return new Response(
+        JSON.stringify({
+          message: "Act! Products API test completed",
+          user_id: user_id,
+          operation_type: operation_type,
+          authentication: "successful",
+          connection: {
+            database_name: connection.act_database_name,
+            region: connection.act_region,
+            username: connection.act_username,
+            status: connection.connection_status
+          },
+          api_url: connection.api_base_url || `https://api${connection.act_region}.act.com`,
+          products_test_result: productsTestResult
+        }, null, 2),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
+
+    // Handle debug_mappings operation type - show opportunity mappings
+    if (operation_type === 'debug_mappings') {
+      try {
+        const { getOpportunityMappings } = await import('./products-sync.ts');
+        const mappings = await getOpportunityMappings(connection.user_id);
+        
+        return new Response(
+          JSON.stringify({
+            message: "Opportunity mappings debug",
+            user_id: user_id,
+            mappings: mappings,
+            mappings_count: Object.keys(mappings).length,
+            test_lookup: mappings['60043007-425e-4fc5-b90c-2b57eea12ebd'] || 'NOT_FOUND'
+          }, null, 2),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+      } catch (error) {
+        return new Response(
+          JSON.stringify({
+            message: "Debug mappings failed",
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }, null, 2),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+          }
+        );
+      }
+    }
+
+    // Handle test_products_sync operation type - directly sync our test product
+    if (operation_type === 'test_products_sync') {
+      const testOpportunityId = test_opportunity_id || '60043007-425e-4fc5-b90c-2b57eea12ebd';
+      
+      try {
+        // Get the specific test product
+        const productsResult = await actClient.getOpportunityProducts(testOpportunityId, connection);
+        
+        if (!productsResult.success || !productsResult.data || productsResult.data.length === 0) {
+          return new Response(
+            JSON.stringify({
+              message: "No products found for test opportunity",
+              user_id: user_id,
+              test_opportunity_id: testOpportunityId,
+              error: productsResult.error || 'No products data'
+            }, null, 2),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 400,
+            }
+          );
+        }
+
+        // Import products sync and test with detailed logging
+        const { syncProducts, mapActProductToDb } = await import('./products-sync.ts');
+        
+        // Test mapping first
+        console.log('=== TESTING PRODUCT MAPPING ===');
+        const testProduct = productsResult.data[0];
+        console.log('Test product:', JSON.stringify(testProduct, null, 2));
+        
+        const mappingResult = mapActProductToDb(testProduct, connection);
+        console.log('Mapping result:', JSON.stringify(mappingResult, null, 2));
+        
+        if (!mappingResult) {
+          return new Response(
+            JSON.stringify({
+              message: "Product mapping failed - product was skipped",
+              user_id: user_id,
+              test_product: testProduct,
+              reason: "Product was filtered out (likely invalid itemNumber date)"
+            }, null, 2),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          );
+        }
+        
+        // Test full sync
+        const syncResult = await syncProducts([testProduct], connection, { 
+          logIntegration: false, // Don't use broken integration logging
+          batchSize: 1 
+        });
+        
+        return new Response(
+          JSON.stringify({
+            message: "Test product sync completed",
+            user_id: user_id,
+            test_opportunity_id: testOpportunityId,
+            test_product: testProduct,
+            mapping_result: mappingResult,
+            sync_result: syncResult
+          }, null, 2),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+        
+      } catch (error) {
+        console.error('Error in test_products_sync:', error);
+        return new Response(
+          JSON.stringify({
+            message: "Test product sync failed",
+            user_id: user_id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined
+          }, null, 2),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+          }
+        );
+      }
+    }
+
+    // Step 1: Fetch/sync opportunities first (required for products sync)
+    console.log('Step 1: Syncing opportunities...');
+    const opportunitiesResult = operation_type === 'sync' ? 
+      await actClient.syncOpportunitiesData(connection, { logIntegration: true }) :
+      await actClient.getOpportunities(connection);
+
+    // Step 2: Fetch/sync products (depends on opportunities being up-to-date)
+    console.log('Step 2: Syncing products...');
+    const productsResult = operation_type === 'sync' ? 
+      await actClient.syncProductsData(connection, { logIntegration: true }) :
+      { success: true, data: { message: 'Products sync skipped in analysis mode' } };
+
+    // Step 3: Fetch/sync tasks (independent of opportunities/products)
+    console.log('Step 3: Syncing tasks...');
+    const tasksResult = operation_type === 'sync' ? 
+      await actClient.syncTasksData(connection, { logIntegration: true, syncOnlyBillable: true }) :
+      await actClient.getTasks(connection);
 
     // Update last sync timestamp
     await actClient.updateLastSync(connection.id);
@@ -178,7 +332,14 @@ serve(async (req) => {
       api_url: connection.api_base_url || `https://api${connection.act_region}.act.com`,
       rate_limit_status: rateLimitStatus,
       opportunities_data: opportunitiesResult,
-      tasks_data: tasksResult
+      products_data: productsResult,
+      tasks_data: tasksResult,
+      sync_sequence: {
+        step_1: "opportunities",
+        step_2: "products", 
+        step_3: "tasks",
+        rationale: "Products sync requires up-to-date opportunity mappings"
+      }
     };
 
     // Log structure analysis for opportunities
@@ -193,6 +354,17 @@ serve(async (req) => {
       console.log("- Contacts Array Length:", firstOpportunity.contacts?.length || 0);
       console.log("- Companies Array Length:", firstOpportunity.companies?.length || 0);
       console.log("- All Top-Level Keys:", Object.keys(firstOpportunity));
+    }
+
+    // Log products sync results
+    if (productsResult.success && productsResult.data) {
+      console.log("Products sync summary:");
+      console.log("- Total Processed:", productsResult.data.total_records_processed || 0);
+      console.log("- Created:", productsResult.data.records_created || 0);
+      console.log("- Updated:", productsResult.data.records_updated || 0);
+      console.log("- Failed:", productsResult.data.records_failed || 0);
+      console.log("- Duration (ms):", productsResult.data.sync_duration_ms || 0);
+      console.log("- Batch ID:", productsResult.data.batch_id || 'N/A');
     }
 
     // Log structure analysis for tasks

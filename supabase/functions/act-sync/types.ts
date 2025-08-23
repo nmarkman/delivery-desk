@@ -130,6 +130,31 @@ export interface ActTask {
   }> | null;
 }
 
+// Product Types - Based on Act! API documentation
+export interface ActProduct {
+  id: string;
+  name: string;
+  cost: number;
+  createDate: string;
+  discount: number;
+  discountPrice: number;
+  editDate: string;
+  itemNumber: string; // Date string that will be parsed to billed_at
+  opportunityID: string;
+  price: number;
+  productID: string; // Separate product template ID
+  quantity: number;
+  type: string;
+  total: number;
+  isQuickbooksProduct: boolean;
+  customFields: Record<string, any>;
+  created: string;
+  edited: string;
+  editedBy: string;
+  recordOwner: string;
+  recordManager: string;
+}
+
 // =================================
 // Database Integration Types
 // =================================
@@ -189,6 +214,28 @@ export interface DbDeliverable {
   updated_at?: string;
 }
 
+export interface DbInvoiceLineItem {
+  id?: string;
+  act_reference?: string; // Act! product ID for upsert matching
+  billed_at?: string; // Parsed from Act! itemNumber field  
+  created_at?: string;
+  deliverable_id?: string;
+  description: string;
+  details?: string;
+  invoice_id?: string; // Nullable - can be assigned later
+  item_type: string;
+  line_number: number;
+  // line_total: Auto-calculated by database as (quantity * unit_rate) - excluded from interface
+  opportunity_id?: string;
+  quantity?: number;
+  service_period_end?: string;
+  service_period_start?: string;
+  source?: string; // 'act_sync' | 'contract_upload' | 'manual'
+  unit_rate?: number;
+  updated_at?: string;
+  user_id: string;
+}
+
 export interface DbIntegrationLog {
   id?: string;
   user_id: string;
@@ -238,6 +285,14 @@ export interface TaskMappingResult {
   mappingWarnings: string[];
   activityTypeMatched: boolean;
   feeAmountParsed: boolean;
+  missingRequiredFields: string[];
+}
+
+export interface ProductMappingResult {
+  dbRecord: DbInvoiceLineItem;
+  mappingWarnings: string[];
+  dateValidationPassed: boolean;
+  opportunityFound: boolean;
   missingRequiredFields: string[];
 }
 
@@ -372,9 +427,16 @@ export const CONNECTION_STATUSES = {
   EXPIRED: 'expired',
 } as const;
 
+export const SOURCE_TYPES = {
+  ACT_SYNC: 'act_sync',
+  CONTRACT_UPLOAD: 'contract_upload', 
+  MANUAL: 'manual',
+} as const;
+
 export const OPERATION_TYPES = {
   SYNC_OPPORTUNITIES: 'sync_opportunities',
   SYNC_TASKS: 'sync_tasks',
+  SYNC_PRODUCTS: 'sync_products',
   SYNC_FULL: 'sync_full',
   TEST_CONNECTION: 'test_connection',
   CREATE_TASK: 'create_task',
@@ -382,10 +444,167 @@ export const OPERATION_TYPES = {
   UPLOAD_ATTACHMENT: 'upload_attachment',
 } as const;
 
+// =================================
+// Date Parsing Utilities
+// =================================
+
+/**
+ * Robust date parser for Act! product itemNumber fields
+ * Handles multiple date formats and returns PostgreSQL-compatible date string or null
+ * If null is returned, the product should NOT be imported to the database
+ */
+export function parseItemNumberDate(itemNumber: string | null | undefined): string | null {
+  if (!itemNumber || typeof itemNumber !== 'string' || itemNumber.trim() === '') {
+    return null; // No date = skip product
+  }
+
+  const cleanInput = itemNumber.trim();
+  let parsedDate: Date | null = null;
+
+  // Format 1: YYYY-MM-DD (ISO format - preferred)
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(cleanInput);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    // Validate the date components match (handles invalid dates like 2024-02-30)
+    if (parsedDate.getFullYear() === parseInt(year) && 
+        parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day)) {
+      return cleanInput; // Already in PostgreSQL format
+    }
+  }
+
+  // Format 2: MM/DD/YYYY (US format)
+  const usMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(cleanInput);
+  if (usMatch) {
+    const [, month, day, year] = usMatch;
+    parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    if (parsedDate.getFullYear() === parseInt(year) && 
+        parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day)) {
+      // Convert to YYYY-MM-DD format
+      const yyyy = year.padStart(4, '0');
+      const mm = month.padStart(2, '0');
+      const dd = day.padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  // Format 3: DD/MM/YYYY (European format)
+  const euMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(cleanInput);
+  if (euMatch) {
+    const [, day, month, year] = euMatch;
+    parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    if (parsedDate.getFullYear() === parseInt(year) && 
+        parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day)) {
+      // Convert to YYYY-MM-DD format
+      const yyyy = year.padStart(4, '0');
+      const mm = month.padStart(2, '0');
+      const dd = day.padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  // Format 4: MM-DD-YYYY (US format with dashes)
+  const usDashMatch = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(cleanInput);
+  if (usDashMatch) {
+    const [, month, day, year] = usDashMatch;
+    parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    if (parsedDate.getFullYear() === parseInt(year) && 
+        parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day)) {
+      const yyyy = year.padStart(4, '0');
+      const mm = month.padStart(2, '0');
+      const dd = day.padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  // Format 5: DD-MM-YYYY (European format with dashes)
+  const euDashMatch = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(cleanInput);
+  if (euDashMatch) {
+    const [, day, month, year] = euDashMatch;
+    parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    if (parsedDate.getFullYear() === parseInt(year) && 
+        parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day)) {
+      const yyyy = year.padStart(4, '0');
+      const mm = month.padStart(2, '0');
+      const dd = day.padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  // Format 6: YYYY/MM/DD (ISO format with slashes)
+  const isoSlashMatch = /^(\d{4})\/(\d{2})\/(\d{2})$/.exec(cleanInput);
+  if (isoSlashMatch) {
+    const [, year, month, day] = isoSlashMatch;
+    parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    if (parsedDate.getFullYear() === parseInt(year) && 
+        parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day)) {
+      const yyyy = year.padStart(4, '0');
+      const mm = month.padStart(2, '0');
+      const dd = day.padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  // No valid date format found
+  console.warn(`Invalid date format in itemNumber: "${cleanInput}". Product will be skipped.`);
+  return null;
+}
+
+/**
+ * Validate that a date string is reasonable for billing purposes
+ * Rejects dates too far in the past or future
+ */
+export function validateBillingDate(dateString: string): boolean {
+  const date = new Date(dateString);
+  const now = new Date();
+  const twoYearsAgo = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate());
+  const twoYearsFromNow = new Date(now.getFullYear() + 2, now.getMonth(), now.getDate());
+  
+  return date >= twoYearsAgo && date <= twoYearsFromNow;
+}
+
+/**
+ * Test function for date parser - demonstrates all supported formats
+ * Remove this function in production
+ */
+export function testDateParser(): void {
+  const testCases = [
+    '2025-09-01',    // YYYY-MM-DD (preferred)
+    '09/01/2025',    // MM/DD/YYYY (US)
+    '01/09/2025',    // DD/MM/YYYY (European)
+    '09-01-2025',    // MM-DD-YYYY (US with dashes)
+    '01-09-2025',    // DD-MM-YYYY (European with dashes)
+    '2025/09/01',    // YYYY/MM/DD (ISO with slashes)
+    '2025-02-30',    // Invalid date
+    'invalid',       // Invalid format
+    '',              // Empty string
+    null,            // Null
+  ];
+
+  console.log('=== DATE PARSER TEST RESULTS ===');
+  testCases.forEach(testCase => {
+    const result = parseItemNumberDate(testCase as any);
+    console.log(`Input: "${testCase}" → Output: ${result}`);
+  });
+}
+
 // Type helpers
 export type ActActivityType = typeof ACT_ACTIVITY_TYPES[keyof typeof ACT_ACTIVITY_TYPES];
 export type SyncStatus = typeof SYNC_STATUSES[keyof typeof SYNC_STATUSES];
 export type ConnectionStatus = typeof CONNECTION_STATUSES[keyof typeof CONNECTION_STATUSES];
+export type SourceType = typeof SOURCE_TYPES[keyof typeof SOURCE_TYPES];
 export type OperationType = typeof OPERATION_TYPES[keyof typeof OPERATION_TYPES];
 
 // =================================
