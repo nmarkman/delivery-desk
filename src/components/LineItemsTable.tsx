@@ -6,7 +6,7 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Trash2, Edit3, Save, X, DollarSign, Calendar, Tag } from 'lucide-react';
+import { Trash2, Edit3, Save, X, DollarSign, Calendar, Tag, Plus } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 
 interface LineItem {
@@ -23,11 +23,28 @@ interface LineItem {
   };
 }
 
+// Act! Product interface for processed line items
+interface ActProduct {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  itemNumber: string;
+  type: string;
+  total: number;
+  opportunityID: string;
+  created?: string;
+  edited?: string;
+}
+
+// Union type for both parsed and processed items
+type DisplayItem = LineItem | ActProduct;
+
 interface LineItemsTableProps {
-  lineItems: LineItem[];
-  onLineItemsChange: (lineItems: LineItem[]) => void;
+  lineItems: DisplayItem[];
+  onLineItemsChange: (lineItems: DisplayItem[]) => void;
   onDelete: (index: number) => void;
-  onEdit: (index: number, item: LineItem) => void;
+  onEdit: (index: number, item: DisplayItem) => void;
   isProcessing: boolean;
 }
 
@@ -39,7 +56,15 @@ export default function LineItemsTable({
   isProcessing
 }: LineItemsTableProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editingItem, setEditingItem] = useState<LineItem | null>(null);
+  const [editingItem, setEditingItem] = useState<DisplayItem | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newItem, setNewItem] = useState<LineItem>({
+    type: 'deliverable',
+    name: '',
+    amount: 0,
+    date: '',
+    original_text: ''
+  });
   const { toast } = useToast();
 
   const handleEdit = (index: number) => {
@@ -72,6 +97,80 @@ export default function LineItemsTable({
     });
   };
 
+  const handleAddItem = () => {
+    if (!newItem.name.trim() || newItem.amount <= 0) {
+      toast({
+        title: "Invalid Item",
+        description: "Please provide a name and amount greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const itemToAdd: LineItem = {
+      ...newItem,
+      original_text: newItem.original_text || `Manually added: ${newItem.name}`
+    };
+
+    const updatedItems = [...lineItems, itemToAdd];
+    onLineItemsChange(updatedItems);
+    
+    // Reset form
+    setNewItem({
+      type: 'deliverable',
+      name: '',
+      amount: 0,
+      date: '',
+      original_text: ''
+    });
+    setShowAddForm(false);
+    
+    toast({
+      title: "Line Item Added",
+      description: "New item has been added successfully",
+    });
+  };
+
+  const handleCancelAdd = () => {
+    setNewItem({
+      type: 'deliverable',
+      name: '',
+      amount: 0,
+      date: '',
+      original_text: ''
+    });
+    setShowAddForm(false);
+  };
+
+  // Helper functions to handle both LineItem and ActProduct types
+  const getItemAmount = (item: DisplayItem): number => {
+    return 'amount' in item ? item.amount : item.total;
+  };
+
+  const getItemName = (item: DisplayItem): string => {
+    return item.name;
+  };
+
+  const getItemType = (item: DisplayItem): string => {
+    if ('amount' in item) {
+      // This is a LineItem
+      return item.type === 'retainer' ? 'retainer' : 'deliverable';
+    } else {
+      // This is an ActProduct
+      return item.type === 'Retainer' ? 'retainer' : 'deliverable';
+    }
+  };
+
+  const getItemDate = (item: DisplayItem): string => {
+    if ('date' in item) return item.date || '';
+    if ('itemNumber' in item) return item.itemNumber;
+    return '';
+  };
+
+  const getItemOriginalText = (item: DisplayItem): string => {
+    return 'original_text' in item ? item.original_text : item.name;
+  };
+
   const getTypeBadgeVariant = (type: string) => {
     return type === 'retainer' ? 'default' : 'secondary';
   };
@@ -87,9 +186,20 @@ export default function LineItemsTable({
     }).format(amount);
   };
 
-  const totalAmount = lineItems.reduce((sum, item) => sum + item.amount, 0);
-  const retainersCount = lineItems.filter(item => item.type === 'retainer').length;
-  const deliverablesCount = lineItems.filter(item => item.type === 'deliverable').length;
+  const formatDateDisplay = (dateString: string) => {
+    // Parse the date string as local date to avoid timezone issues
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day); // month is 0-indexed
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric'
+    });
+  };
+
+  const totalAmount = lineItems.reduce((sum, item) => sum + getItemAmount(item), 0);
+  const retainersCount = lineItems.filter((item: DisplayItem) => getItemType(item) === 'retainer').length;
+  const deliverablesCount = lineItems.filter((item: DisplayItem) => getItemType(item) === 'deliverable').length;
 
   if (lineItems.length === 0) {
     return null;
@@ -103,7 +213,7 @@ export default function LineItemsTable({
           <span>Extracted Line Items</span>
         </CardTitle>
         <CardDescription>
-          Review and edit the extracted line items before creating products
+          Review and optionally edit the extracted billing line items before creating products
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -123,26 +233,117 @@ export default function LineItemsTable({
           </div>
         </div>
 
+        {/* Add Item Button */}
+        <div className="mb-4 flex justify-end">
+          <Button
+            onClick={() => setShowAddForm(true)}
+            variant="outline"
+            disabled={isProcessing || showAddForm}
+            className="flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Line Item</span>
+          </Button>
+        </div>
+
+        {/* Add Item Form */}
+        {showAddForm && (
+          <Card className="mb-4 border-blue-200 bg-blue-50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Add New Line Item</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label htmlFor="new-type">Type</Label>
+                  <Select
+                    value={newItem.type}
+                    onValueChange={(value: 'retainer' | 'deliverable') => 
+                      setNewItem(prev => ({ ...prev, type: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="deliverable">Deliverable</SelectItem>
+                      <SelectItem value="retainer">Retainer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="new-name">Name</Label>
+                  <Input
+                    id="new-name"
+                    value={newItem.name}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Enter item name"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="new-amount">Amount</Label>
+                  <Input
+                    id="new-amount"
+                    type="number"
+                    value={newItem.amount}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="new-date">Date (Optional)</Label>
+                  <Input
+                    id="new-date"
+                    type="date"
+                    value={newItem.date}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, date: e.target.value }))}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-2 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelAdd}
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAddItem}
+                  disabled={isProcessing}
+                >
+                  Add Item
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Line Items Table */}
         <div className="border rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Type</TableHead>
+                <TableHead className="w-24 text-center">Type</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead>Original Text</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {lineItems.map((item, index) => (
                 <TableRow key={index}>
-                  <TableCell>
-                    <Badge variant={getTypeBadgeVariant(item.type)} className="flex items-center space-x-1">
-                      {getTypeIcon(item.type)}
-                      <span className="capitalize">{item.type}</span>
+                  <TableCell className="text-center">
+                    <Badge variant={getTypeBadgeVariant(getItemType(item))} className="flex items-center justify-center space-x-1 mx-auto">
+                      {getTypeIcon(getItemType(item))}
+                      <span className="capitalize">{getItemType(item)}</span>
                     </Badge>
                   </TableCell>
                   
@@ -162,15 +363,15 @@ export default function LineItemsTable({
                     {editingIndex === index ? (
                       <Input
                         type="number"
-                        value={editingItem?.amount || 0}
-                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, amount: parseFloat(e.target.value) || 0 } : null)}
+                        value={editingItem && 'amount' in editingItem ? editingItem.amount : (editingItem && 'total' in editingItem ? editingItem.total : 0)}
+                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, ...('amount' in prev ? { amount: parseFloat(e.target.value) || 0 } : { total: parseFloat(e.target.value) || 0 }) } : null)}
                         className="w-full"
                         min="0"
                         step="0.01"
                       />
                     ) : (
                       <div className="font-semibold text-green-700">
-                        {formatCurrency(item.amount)}
+                        {formatCurrency(getItemAmount(item))}
                       </div>
                     )}
                   </TableCell>
@@ -179,21 +380,15 @@ export default function LineItemsTable({
                     {editingIndex === index ? (
                       <Input
                         type="date"
-                        value={editingItem?.date || ''}
-                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, date: e.target.value } : null)}
+                        value={editingItem && 'date' in editingItem ? editingItem.date || '' : (editingItem && 'itemNumber' in editingItem ? editingItem.itemNumber : '')}
+                        onChange={(e) => setEditingItem(prev => prev ? { ...prev, ...('date' in prev ? { date: e.target.value } : { itemNumber: e.target.value }) } : null)}
                         className="w-full"
                       />
                     ) : (
                       <div className="text-sm text-gray-600">
-                        {item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}
+                        {getItemDate(item) ? formatDateDisplay(getItemDate(item)) : 'N/A'}
                       </div>
                     )}
-                  </TableCell>
-                  
-                  <TableCell>
-                    <div className="text-sm text-gray-600 max-w-xs truncate" title={item.original_text}>
-                      {item.original_text}
-                    </div>
                   </TableCell>
                   
                   <TableCell>

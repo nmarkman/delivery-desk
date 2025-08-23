@@ -153,9 +153,9 @@ Following the established Act! sync patterns for consistency and data integrity.
   - [x] 8.5 Add proper error handling and user feedback ✅
   - [x] 8.6 Implement loading states during processing ✅
 
-- [ ] 9.0 Add Routing and Navigation
-  - [ ] 9.1 Add `/contract-upload` route to App.tsx
-  - [ ] 9.2 Update navigation/sidebar to include contract upload link
+- [x] 9.0 Add Routing and Navigation ✅
+  - [x] 9.1 Add `/contract-upload` route to App.tsx ✅
+  - [x] 9.2 Update navigation/sidebar to include contract upload link ✅
 
 - [ ] 10.0 Testing and Validation
   - [ ] 10.1 Test PDF upload and storage functionality

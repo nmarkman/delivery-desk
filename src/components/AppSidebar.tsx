@@ -33,7 +33,7 @@ const navigation = [
     icon: Receipt,
   },
   {
-    title: 'Contract Upload',
+    title: 'Contract AI Upload',
     url: '/contract-upload',
     icon: Upload,
   },

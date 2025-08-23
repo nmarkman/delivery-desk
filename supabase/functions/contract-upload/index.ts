@@ -1,5 +1,4 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { testOpenAIConnection } from './openai-client.ts';
 import { parseContractPDF } from './pdf-parser.ts';
 import { 
   syncContractProductsToDatabase, 
@@ -24,10 +23,11 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const path = url.pathname.split('/').pop(); // Get the last part of the path
 
-    // Test endpoint for OpenAI connection verification
-    if (path === 'test-openai') {
-      console.log('Testing OpenAI connection...');
-      const result = await testOpenAIConnection();
+    // Test endpoint for Claude connection verification
+    if (path === 'test-claude') {
+      console.log('Testing Claude connection...');
+      const { testClaudeConnection } = await import('./claude-client.ts');
+      const result = await testClaudeConnection();
       
       return new Response(
         JSON.stringify({
@@ -227,13 +227,21 @@ Cost Proposal:
         console.log('Step 1: Creating products in Act! CRM...');
         
         // Convert to Act! product format
-        const actProducts = simulatedLineItems.map(item => ({
-          name: item.name,
-          price: item.amount,
-          quantity: 1,
-          itemNumber: item.date || new Date().toISOString().split('T')[0],
-          type: item.type === 'retainer' ? 'Retainer' : 'Deliverable'
-        }));
+        const actProducts = simulatedLineItems.map(item => {
+          const baseProduct = {
+            name: item.name,
+            price: item.amount,
+            quantity: 1,
+            type: item.type === 'retainer' ? 'Retainer' : 'Deliverable'
+          };
+          
+          // Only add itemNumber for retainers (deliverables get no date)
+          if (item.type === 'retainer' && item.date) {
+            return { ...baseProduct, itemNumber: item.date };
+          }
+          
+          return baseProduct;
+        });
 
         // Create products in Act! CRM
         const actCreationResults: any[] = [];
@@ -340,16 +348,69 @@ Cost Proposal:
     // Main contract upload endpoint for PDF processing
     if (path === 'upload' && req.method === 'POST') {
       try {
-        const formData = await req.formData();
-        const pdfFile = formData.get('pdf') as File;
-        const opportunityId = formData.get('opportunity_id') as string;
-        const userId = formData.get('user_id') as string;
-        
-        if (!pdfFile || !opportunityId || !userId) {
+        // Extract user ID from JWT token
+        const authHeader = req.headers.get('authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
           return new Response(
             JSON.stringify({
               success: false,
-              message: 'Missing required fields: pdf, opportunity_id, user_id',
+              message: 'Missing or invalid authorization header',
+              timestamp: new Date().toISOString()
+            }),
+            {
+              status: 401,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        }
+
+        const token = authHeader.replace('Bearer ', '');
+        
+        // Import Supabase client to verify JWT and get user
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.7');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        
+        if (!supabaseUrl || !supabaseServiceKey) {
+          throw new Error('Missing Supabase environment variables');
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        
+        // Verify JWT and get user
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        
+        if (authError || !user) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'Invalid or expired token',
+              timestamp: new Date().toISOString()
+            }),
+            {
+              status: 401,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        }
+
+        const userId = user.id;
+        
+        const formData = await req.formData();
+        const pdfFile = formData.get('pdf') as File;
+        const opportunityId = formData.get('opportunity_id') as string;
+        
+        if (!pdfFile || !opportunityId) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'Missing required fields: pdf, opportunity_id',
               timestamp: new Date().toISOString()
             }),
             {
@@ -367,8 +428,8 @@ Cost Proposal:
         // Step 1: Convert PDF file to ArrayBuffer for processing
         const pdfBuffer = await pdfFile.arrayBuffer();
         
-        // Step 2: Parse the PDF using OpenAI
-        const parsingResult = await parseContractPDF(pdfBuffer, pdfFile.name);
+        // Step 2: Parse the PDF using Claude
+        const parsingResult = await parseContractPDF(pdfFile, pdfFile.name, userId);
         
         if (!parsingResult.success) {
           return new Response(
@@ -417,51 +478,28 @@ Cost Proposal:
           );
         }
 
-        // Step 4: Create products in Act! CRM first
-        console.log('Creating products in Act! CRM...');
+        // Step 4: Look up Act! opportunity ID from database
+        console.log(`Looking up Act! opportunity ID for internal ID: ${opportunityId}`);
         
-        // Convert parsed line items to Act! product format
-        const actProducts = parsingResult.line_items.map(item => ({
-          name: item.name,
-          price: item.amount,
-          quantity: 1,
-          itemNumber: item.date || new Date().toISOString().split('T')[0],
-          type: item.type === 'retainer' ? 'Retainer' : 'Deliverable'
-        }));
-
-        // Create products in Act! using existing createProductsBatch method
-        const actCreationResult = await actClient.createProductsBatch(
-          opportunityId,
-          parsingResult.line_items,
-          connection
-        );
-
-        if (!actCreationResult.success) {
+        const { data: opportunityData, error: opportunityError } = await supabase
+          .from('opportunities')
+          .select('act_opportunity_id, name, company_name')
+          .eq('id', opportunityId)
+          .single();
+        
+        if (opportunityError || !opportunityData || !opportunityData.act_opportunity_id) {
           return new Response(
             JSON.stringify({
               success: false,
-              message: 'Failed to create products in Act! CRM',
-              pdf_parsing: {
-                success: parsingResult.success,
-                line_items: parsingResult.line_items,
-                total_items: parsingResult.total_items,
-                retainers_count: parsingResult.retainers_count,
-                deliverables_count: parsingResult.deliverables_count,
-                processing_time_ms: parsingResult.processing_time_ms
-              },
-              act_creation: {
-                success: false,
-                error: actCreationResult.error || 'Unknown Act! creation error',
-                full_response: actCreationResult,
-                data: actCreationResult.data
-              },
+              message: 'Failed to find Act! opportunity ID for the selected opportunity',
               opportunity_id: opportunityId,
+              error: opportunityError?.message || 'Opportunity not found or missing Act! ID',
               user_id: userId,
               file_name: pdfFile.name,
               timestamp: new Date().toISOString()
             }),
             {
-              status: 500,
+              status: 400,
               headers: {
                 ...corsHeaders,
                 'Content-Type': 'application/json',
@@ -469,53 +507,18 @@ Cost Proposal:
             }
           );
         }
-
-        console.log(`Successfully created ${actCreationResult.data?.totalCreated || 0} products in Act! CRM`);
-
-        // Step 5: Fetch products from Act! opportunity and sync to database
-        console.log('Fetching products from Act! opportunity for database sync...');
         
-        // Import the existing syncProducts method from act-sync
-        const { syncProducts } = await import('../act-sync/products-sync.ts');
-        
-        // Get the newly created products from Act! opportunity
-        const actProductsResult = await actClient.getOpportunityProducts(opportunityId, connection);
-        
-        if (!actProductsResult.success || !actProductsResult.data) {
-          return new Response(
-            JSON.stringify({
-              success: false,
-              message: 'Failed to fetch products from Act! opportunity',
-              pdf_parsing: { success: parsingResult.success, total_items: parsingResult.total_items },
-              act_creation: { success: true, products_created: actCreationResult.data?.totalCreated || 0 },
-              act_fetch: { success: false, error: actProductsResult.error },
-              opportunity_id: opportunityId,
-              user_id: userId,
-              file_name: pdfFile.name,
-              timestamp: new Date().toISOString()
-            }),
-            {
-              status: 500,
-              headers: {
-                ...corsHeaders,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
-        }
+        const actOpportunityId = opportunityData.act_opportunity_id;
+        console.log(`Found Act! opportunity ID: ${actOpportunityId} for "${opportunityData.name}" (${opportunityData.company_name})`);
 
-        // Sync products to database using existing Act! sync logic
-        const syncResult = await syncProducts(
-          actProductsResult.data,
-          connection,
-          { logIntegration: true, batchSize: 10 }
-        );
-
-        // Step 5: Return comprehensive result
+        // Step 5: Return extracted line items for user review (NO PRODUCT CREATION YET)
+        console.log('PDF parsing completed - returning line items for user review');
+        console.log('Products will be created when user submits the form after reviewing line items');
+        
         return new Response(
           JSON.stringify({
-            success: parsingResult.success && syncResult.success,
-            message: 'Contract upload and processing completed',
+            success: true,
+            message: 'Contract PDF parsed successfully - review line items before creating products',
             pdf_parsing: {
               success: parsingResult.success,
               line_items: parsingResult.line_items,
@@ -526,31 +529,22 @@ Cost Proposal:
               errors: parsingResult.errors,
               warnings: parsingResult.warnings
             },
-            database_sync: {
-              success: syncResult.success,
-              total_items: syncResult.total_records_processed,
-              items_created: syncResult.records_created,
-              items_updated: syncResult.records_updated,
-              items_failed: syncResult.records_failed,
-              errors: syncResult.errors,
-              warnings: syncResult.warnings,
-              sync_duration_ms: syncResult.duration_ms,
-              batch_id: syncResult.batch_id
-            },
             opportunity_id: opportunityId,
             user_id: userId,
             file_name: pdfFile.name,
-            total_processing_time_ms: parsingResult.processing_time_ms + (syncResult.duration_ms || 0),
-            timestamp: new Date().toISOString()
+            total_processing_time_ms: parsingResult.processing_time_ms,
+            timestamp: new Date().toISOString(),
+            note: 'Products will be created when you submit the form after reviewing line items'
           }),
           {
-            status: (parsingResult.success && syncResult.success) ? 200 : 500,
+            status: 200,
             headers: {
               ...corsHeaders,
               'Content-Type': 'application/json',
             },
           }
         );
+
         
       } catch (error) {
         console.error('PDF upload processing failed:', error);
@@ -1006,6 +1000,291 @@ Cost Proposal:
       }
     }
 
+    // Submit reviewed line items for product creation and database sync
+    if (path === 'submit' && req.method === 'POST') {
+      console.log('Processing reviewed line items for product creation...');
+      
+      try {
+        // Extract user ID from JWT token
+        const authHeader = req.headers.get('authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'Missing or invalid authorization header',
+              timestamp: new Date().toISOString()
+            }),
+            {
+              status: 401,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        }
+
+        const token = authHeader.replace('Bearer ', '');
+        
+        // Import Supabase client to verify JWT and get user
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.7');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        
+        if (!supabaseUrl || !supabaseServiceKey) {
+          throw new Error('Missing Supabase environment variables');
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        
+        // Verify JWT and get user
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        
+        if (authError || !user) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'Invalid or expired token',
+              timestamp: new Date().toISOString()
+            }),
+            {
+              status: 401,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        }
+
+        const userId = user.id;
+        
+        const body = await req.json();
+        const { line_items, opportunity_id } = body;
+        
+        if (!line_items || !opportunity_id || !Array.isArray(line_items)) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'Missing required fields: line_items (array), opportunity_id',
+              timestamp: new Date().toISOString()
+            }),
+            {
+              status: 400,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        }
+
+        console.log(`Processing ${line_items.length} reviewed line items for opportunity: ${opportunity_id}`);
+
+        // Get user's Act! connection
+        const { ActClient } = await import('../act-sync/act-client.ts');
+        const actClient = new ActClient();
+        const connection = await actClient.getUserConnection(userId);
+        
+        if (!connection) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'No active Act! connection found for user',
+              opportunity_id: opportunity_id,
+              user_id: userId,
+              timestamp: new Date().toISOString()
+            }),
+            {
+              status: 400,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        }
+
+        // Look up Act! opportunity ID from database
+        console.log(`Looking up Act! opportunity ID for internal ID: ${opportunity_id}`);
+        
+        const { data: opportunityData, error: opportunityError } = await supabase
+          .from('opportunities')
+          .select('act_opportunity_id, name, company_name')
+          .eq('id', opportunity_id)
+          .single();
+        
+        if (opportunityError || !opportunityData || !opportunityData.act_opportunity_id) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'Failed to find Act! opportunity ID for the selected opportunity',
+              opportunity_id: opportunity_id,
+              error: opportunityError?.message || 'Opportunity not found or missing Act! ID',
+              user_id: userId,
+              timestamp: new Date().toISOString()
+            }),
+            {
+              status: 400,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        }
+        
+        const actOpportunityId = opportunityData.act_opportunity_id;
+        console.log(`Found Act! opportunity ID: ${actOpportunityId} for "${opportunityData.name}" (${opportunityData.company_name})`);
+
+        // Step 1: Create products in Act! CRM using the reviewed line items
+        console.log('Step 1: Creating products in Act! CRM...');
+        
+        // Convert reviewed line items to Act! product format
+        const actProducts = line_items.map(item => {
+          const baseProduct = {
+            name: item.name,
+            price: item.amount,
+            quantity: 1,
+            type: item.type === 'retainer' ? 'Retainer' : 'Deliverable'
+          };
+          
+          // Only add itemNumber for retainers (deliverables get no date)
+          if (item.type === 'retainer' && item.date) {
+            return { ...baseProduct, itemNumber: item.date };
+          }
+          
+          return baseProduct;
+        });
+
+        // Create products in Act! CRM
+        const actCreationResults: any[] = [];
+        for (const product of actProducts) {
+          const result = await actClient.createProduct(
+            actOpportunityId, // Use Act! opportunity ID
+            product,
+            connection
+          );
+          actCreationResults.push(result);
+        }
+
+        const successfulCreations = actCreationResults.filter((r: any) => r.success);
+        const failedCreations = actCreationResults.filter((r: any) => !r.success);
+
+        console.log(`Step 2: Fetching products from Act! opportunity...`);
+        
+        // Step 2: Fetch products from Act! opportunity
+        const actProductsResult = await actClient.getOpportunityProducts(
+          actOpportunityId, // Use Act! opportunity ID
+          connection
+        );
+
+        if (!actProductsResult.success || !actProductsResult.data) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: 'Failed to fetch products from Act! opportunity after creation',
+              act_creation: {
+                success: successfulCreations.length > 0,
+                successful_creations: successfulCreations.length,
+                failed_creations: failedCreations.length
+              },
+              act_fetch: {
+                success: false,
+                error: actProductsResult.error
+              },
+              opportunity_id: opportunity_id,
+              user_id: userId,
+              timestamp: new Date().toISOString()
+            }),
+            {
+              status: 500,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        }
+
+        console.log(`Step 3: Syncing products to database...`);
+        
+        // Step 3: Sync products to database using existing Act! sync logic
+        const { syncProducts } = await import('../act-sync/products-sync.ts');
+        const syncResult = await syncProducts(
+          actProductsResult.data,
+          connection,
+          { logIntegration: true, batchSize: 10 }
+        );
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'Line items processed successfully - products created in Act! CRM and synced to database',
+            workflow_steps: {
+              step1_act_creation: {
+                success: successfulCreations.length > 0,
+                total_attempted: actProducts.length,
+                successful_creations: successfulCreations.length,
+                failed_creations: failedCreations.length,
+                failed_details: failedCreations.map(f => ({ error: f.error, data: f.data }))
+              },
+              step2_act_fetch: {
+                success: actProductsResult.success,
+                products_fetched: actProductsResult.data?.length || 0,
+                error: actProductsResult.error
+              },
+              step3_database_sync: {
+                success: syncResult.success,
+                total_records_processed: syncResult.total_records_processed,
+                records_created: syncResult.records_created,
+                records_updated: syncResult.records_updated,
+                records_failed: syncResult.records_failed,
+                batch_id: syncResult.batch_id,
+                duration_ms: syncResult.duration_ms
+              }
+            },
+            processed_data: {
+              line_items_processed: line_items.length,
+              total_value: line_items.reduce((sum, item) => sum + item.amount, 0),
+              retainers_count: line_items.filter(item => item.type === 'retainer').length,
+              deliverables_count: line_items.filter(item => item.type === 'deliverable').length
+            },
+            opportunity_id: opportunity_id,
+            act_opportunity_id: actOpportunityId,
+            user_id: userId,
+            timestamp: new Date().toISOString()
+          }),
+          {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        
+      } catch (error) {
+        console.error('Line items processing failed:', error);
+        
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: 'Line items processing failed',
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+          }),
+          {
+            status: 500,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+    }
+
     // Get contract upload summary endpoint
     if (path === 'summary') {
       console.log('Getting contract upload summary...');
@@ -1076,8 +1355,8 @@ Cost Proposal:
     return new Response(
       JSON.stringify({
         success: false,
-        message: 'Unknown endpoint. Available endpoints: /test-openai, /test-parsing, /test-act-product, /test-act-product-real, /upload, /sync-to-database, /fetch-products, /summary',
-        available_endpoints: ['/test-openai', '/test-parsing', '/test-act-product', '/test-act-product-real', '/upload', '/sync-to-database', '/fetch-products', '/summary'],
+        message: 'Unknown endpoint. Available endpoints: /test-claude, /test-parsing, /test-act-product, /test-act-product-real, /test-complete-workflow, /upload, /submit, /sync-to-database, /fetch-products, /summary',
+        available_endpoints: ['/test-claude', '/test-parsing', '/test-act-product', '/test-act-product-real', '/test-complete-workflow', '/upload', '/submit', '/sync-to-database', '/fetch-products', '/summary'],
         timestamp: new Date().toISOString()
       }),
       {

@@ -251,9 +251,9 @@ function mapContractLineItemToDb(
     // line_total: auto-calculated by database as (quantity * unit_rate)
     
     // Billing information
-    billed_at: lineItem.date || new Date().toISOString().split('T')[0],
-    service_period_start: lineItem.date || new Date().toISOString().split('T')[0],
-    service_period_end: lineItem.date || new Date().toISOString().split('T')[0],
+    billed_at: lineItem.date,
+    service_period_start: lineItem.date,
+    service_period_end: lineItem.date,
     
     // Item classification - use 'fee' for contract upload items to avoid constraint issues
     item_type: lineItem.type === 'deliverable' ? 'fee' : lineItem.type,

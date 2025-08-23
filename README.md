@@ -8,6 +8,7 @@
 
 ### Key Features
 - **Act! CRM Integration**: Bi-directional API sync for opportunities, companies, contacts, and tasks
+- **Contract Upload & Processing**: AI-powered PDF contract parsing with Claude API for automatic line item extraction
 - **Daily Automated Sync**: Scheduled daily synchronization of all active Act! connections
 - **Centralized AR Tracking**: Replaces multiple spreadsheets with unified dashboard
 - **Automated Invoice Generation**: PDF invoices with CRCG branding and itemized billing
@@ -38,11 +39,14 @@
 - [x] **Daily Automated Sync**: Scheduled daily sync for all active Act! connections
 - [x] **User Authentication**: Supabase Auth with per-user Act! connections
 - [x] **Core UI Components**: SyncDashboard, connection management, and daily sync controls
+- [x] **Contract Upload System**: AI-powered PDF parsing with Claude API for automatic line item extraction
+- [x] **Products Pipeline**: Complete Act! CRM product creation and database sync with support for deliverables (null dates) and retainers
 
 ### 🔄 Current Tasks
 - [ ] **Invoice Generation**: PDF invoices with CRCG branding and itemized billing
 - [ ] **Payment Tracking**: Invoice status management and overdue tracking
 - [ ] **Dashboard Analytics**: AR metrics, outstanding invoices, and revenue reporting
+- [ ] **Contract Management**: Contract storage, versioning, and line item editing capabilities
 
 ### 📋 Upcoming Phases
 1. **Core Functionality**: Invoice generation, payment tracking, dashboard
@@ -63,8 +67,10 @@
 ### Key Integrations
 - **Act! CRM API**: `https://apius.act.com/act.web.api`
 - **Authentication**: Basic Auth → Bearer tokens (1-hour expiry)
-- **Data Sync**: Opportunities, tasks, contacts, file attachments
+- **Data Sync**: Opportunities, tasks, contacts, file attachments, products
 - **Custom Fields**: Enhanced retainer tracking in Act! opportunities
+- **Claude API**: AI-powered PDF contract parsing and line item extraction
+- **Supabase Storage**: Contract PDF storage and public URL generation for AI processing
 
 ## 📁 Project Structure
 
@@ -96,6 +102,7 @@ delivery-desk/
 ├── supabase/
 │   ├── functions/                  # Edge Functions
 │   │   ├── act-sync/                # Act! CRM sync function
+│   │   ├── contract-upload/         # Contract PDF processing and AI parsing
 │   │   └── daily-sync/              # Daily automated sync batch processor
 │   └── migrations/                 # Database schema changes
 └── public/                        # Static assets
@@ -163,9 +170,9 @@ Currently using Act! trial account for development:
 This is a private project for CRCG.
 
 ### Current Sprint Focus
-- Complete database schema design based on Act! API field mapping
-- Implement initial sync Edge Functions for opportunities and tasks
-- Build core dashboard components for AR tracking
+- Complete invoice generation system using extracted contract line items
+- Implement payment tracking and overdue management
+- Build comprehensive AR dashboard with contract and invoice analytics
 
 ---
 

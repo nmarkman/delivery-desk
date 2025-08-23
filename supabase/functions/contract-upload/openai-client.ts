@@ -32,13 +32,31 @@ export function validateOpenAIConfig(): { valid: boolean; error?: string } {
 }
 
 /**
+ * OpenAI Vision API content types
+ */
+export interface OpenAITextContent {
+  type: 'text';
+  text: string;
+}
+
+export interface OpenAIImageContent {
+  type: 'image_url';
+  image_url: {
+    url: string;
+    detail?: 'low' | 'high' | 'auto';
+  };
+}
+
+export type OpenAIContent = string | Array<OpenAITextContent | OpenAIImageContent>;
+
+/**
  * OpenAI API request interface
  */
 export interface OpenAIRequest {
   model: string;
   messages: Array<{
     role: 'system' | 'user' | 'assistant';
-    content: string;
+    content: OpenAIContent;
   }>;
   temperature?: number;
   max_tokens?: number;

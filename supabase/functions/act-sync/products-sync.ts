@@ -31,20 +31,21 @@ export function mapActProductToDb(
   let opportunityFound = false; // Will be validated during sync
 
   try {
-    // Step 1: Parse and validate itemNumber date (CRITICAL - skip if invalid)
+    // Step 1: Parse and validate itemNumber date (allow null for deliverables)
     const billedAtDate = parseItemNumberDate(actProduct.itemNumber);
-    if (!billedAtDate) {
-      console.log(`Skipping product ${actProduct.id} - invalid or missing itemNumber date: "${actProduct.itemNumber}"`);
-      return null; // Don't import this product
-    }
-
-    // Additional billing date validation (reasonable range)
-    if (!validateBillingDate(billedAtDate)) {
+    
+    // If we have a date, validate it's in a reasonable range
+    if (billedAtDate && !validateBillingDate(billedAtDate)) {
       console.log(`Skipping product ${actProduct.id} - date outside reasonable billing range: "${billedAtDate}"`);
       return null; // Don't import this product
     }
 
+    // Allow products with null dates (deliverables) - they're valid
     dateValidationPassed = true;
+    
+    if (!billedAtDate) {
+      console.log(`Product ${actProduct.id} has no itemNumber date - treating as deliverable with null billing date`);
+    }
 
     // Step 2: Validate required product fields
     if (!actProduct.name || actProduct.name.trim() === '') {

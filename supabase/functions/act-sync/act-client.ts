@@ -829,13 +829,13 @@ export class ActClient {
         connection,
         {
           method: 'POST',
-          body: {
-            name: productData.name,
-            price: productData.price,
-            quantity: productData.quantity,
-            itemNumber: productData.itemNumber || new Date().toISOString().split('T')[0],
-            type: productData.type || 'Service'
-          }
+                  body: {
+          name: productData.name,
+          price: productData.price,
+          quantity: productData.quantity,
+          ...(productData.itemNumber && { itemNumber: productData.itemNumber }),
+          type: productData.type || 'Service'
+        }
         }
       );
       

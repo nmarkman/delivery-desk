@@ -180,6 +180,70 @@ function shouldSyncOpportunity(opportunity) {
 4. Upsert to DeliveryDesk database
 5. Update `opportunity_field_5` with sync timestamp
 
+## 🆕 **Products Pipeline Integration**
+
+### **Contract Upload → Act! Products Flow**
+
+The products pipeline enables automatic creation of Act! CRM products from uploaded contract PDFs:
+
+| Stage | Process | Act! Integration | Data Flow |
+|-------|---------|------------------|-----------|
+| **1. PDF Upload** | Contract PDF uploaded to Supabase Storage | N/A | PDF → Storage bucket |
+| **2. AI Parsing** | Claude API extracts line items from PDF | N/A | PDF → Structured line items |
+| **3. Product Creation** | Line items converted to Act! product format | `POST /api/opportunities/{id}/products` | Line items → Act! products |
+| **4. Product Sync** | Act! products fetched and synced to database | `GET /api/opportunities/{id}/products` | Act! products → Database |
+| **5. Database Storage** | Products stored in `invoice_line_items` table | N/A | Act! data → DeliveryDesk |
+
+### **Act! Product Creation Strategy**
+
+#### **Retainer Products**
+- **`itemNumber`**: **Included** with date (1st of month)
+- **`type`**: Set to `"Retainer"`
+- **Date Handling**: Explicit date assignment for billing periods
+
+#### **Deliverable Products**  
+- **`itemNumber`**: **Excluded** (no date field sent)
+- **`type`**: Set to `"Deliverable"`
+- **Date Handling**: No date assignment - supports `null` billing dates
+
+### **Database Schema Support**
+
+The `invoice_line_items` table fully supports the products pipeline:
+
+| Field | Retainer | Deliverable | Notes |
+|-------|----------|-------------|-------|
+| `billed_at` | ✅ Date (1st of month) | ✅ `null` | Retainers get dates, deliverables get `null` |
+| `service_period_start` | ✅ Date (1st of month) | ✅ `null` | Service period tracking |
+| `service_period_end` | ✅ Date (1st of month) | ✅ `null` | Service period tracking |
+| `item_type` | ✅ `"retainer"` | ✅ `"fee"` | Type classification |
+| `source` | ✅ `"contract_upload"` | ✅ `"contract_upload"` | Source tracking |
+
+### **Products Sync Validation**
+
+The products sync logic has been updated to support both scenarios:
+
+```typescript
+// Products with dates (retainers) - validate date range
+if (billedAtDate && !validateBillingDate(billedAtDate)) {
+  return null; // Skip invalid dates
+}
+
+// Products without dates (deliverables) - allow null dates
+if (!billedAtDate) {
+  console.log(`Product ${actProduct.id} has no itemNumber date - treating as deliverable`);
+}
+```
+
+### **Error Handling & Edge Cases**
+
+| Scenario | Handling | Result |
+|----------|----------|--------|
+| **Retainer with invalid date** | Date validation fails | Product skipped |
+| **Deliverable with null date** | Date validation passes | Product imported with `null` dates |
+| **Missing required fields** | Field validation fails | Product skipped |
+| **Act! API errors** | API error handling | Product creation fails, logged |
+| **Database sync errors** | Upsert error handling | Product sync fails, logged |
+
 ### **Incremental Sync**
 1. Use `edited` date to find recently modified opportunities
 2. Compare with `last_synced_at` in DeliveryDesk
