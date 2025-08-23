@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import ActSync from "./pages/ActSync";
 import InvoiceGenerator from "./pages/InvoiceGenerator";
 import DeliverablesReport from "./pages/DeliverablesReport";
+import ContractUpload from "./pages/ContractUpload";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/act-sync" element={<ActSync />} />
             <Route path="/invoices" element={<InvoiceGenerator />} />
             <Route path="/deliverables" element={<DeliverablesReport />} />
+            <Route path="/contract-upload" element={<ContractUpload />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

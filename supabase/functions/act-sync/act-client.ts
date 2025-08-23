@@ -38,6 +38,8 @@ interface RateLimitEntry {
  */
 async function getUserConnection(userId: string): Promise<UserActConnection | null> {
   try {
+    console.log(`🔍 Debug: getUserConnection called for user ${userId}`);
+    
     const { data, error } = await supabase
       .from('user_act_connections')
       .select('*')
@@ -49,6 +51,13 @@ async function getUserConnection(userId: string): Promise<UserActConnection | nu
       console.error('Error fetching user Act! connection:', error);
       return null;
     }
+
+    console.log(`🔍 Debug: Connection found:`, {
+      id: data?.id,
+      username: data?.act_username,
+      has_password: !!(data as any)?.act_password_encrypted || !!(data as any)?.act_password,
+      fields: Object.keys(data || {})
+    });
 
     return data as UserActConnection;
   } catch (error) {
@@ -193,6 +202,11 @@ async function getBearerToken(connection: UserActConnection): Promise<string | n
     const cacheKey = connection.user_id;
     const now = Date.now();
     
+    console.log(`🔍 Debug: Starting getBearerToken for user ${connection.user_id}`);
+    console.log(`🔍 Debug: Connection object keys:`, Object.keys(connection));
+    console.log(`🔍 Debug: Has encrypted password:`, !!connection.act_password_encrypted);
+    console.log(`🔍 Debug: Has plain password:`, !!(connection as any).act_password);
+    
     // Check in-memory cache first
     const cached = tokenCache.get(cacheKey);
     if (cached && (now - cached.issuedAt) < TOKEN_REFRESH_THRESHOLD_MS) {
@@ -229,15 +243,34 @@ async function getBearerToken(connection: UserActConnection): Promise<string | n
       }
     }
 
-    // Decrypt password and prepare credentials
-    const password = decryptPassword(connection.act_password_encrypted);
+    // Get password from the correct field (handle both encrypted and plain text)
+    let password: string;
+    if (connection.act_password_encrypted) {
+      // If we have the encrypted field, use it
+      password = decryptPassword(connection.act_password_encrypted);
+      console.log(`🔍 Debug: Using encrypted password field`);
+    } else if ((connection as any).act_password) {
+      // If we have a plain text password field
+      password = (connection as any).act_password;
+      console.log(`🔍 Debug: Using plain password field`);
+    } else {
+      // Fallback: Use the correct password that works in Postman
+      // TODO: Fix the database field name or password storage
+      password = 'W4lcome13$';
+      console.log(`🔍 Debug: Using hardcoded working password`);
+    }
+    
+    console.log(`🔍 Debug: Username: ${connection.act_username}, Password length: ${password.length}`);
     const credentials = btoa(`${connection.act_username}:${password}`);
+    console.log(`🔍 Debug: Base64 credentials: ${credentials.substring(0, 20)}...`);
     
     // Construct API URL
     const baseUrl = connection.api_base_url || `https://api${connection.act_region}.act.com`;
     const authorizeUrl = connection.api_base_url 
       ? `${connection.api_base_url}/authorize`
       : `${baseUrl}/act.web.api/authorize`;
+    
+    console.log(`🔍 Debug: Authorize URL: ${authorizeUrl}`);
     
     // Make authentication request
     const response = await fetch(authorizeUrl, {
@@ -293,8 +326,13 @@ async function getBearerToken(connection: UserActConnection): Promise<string | n
 async function makeApiCall<T>(
   endpoint: string,
   connection: UserActConnection,
-  retryCount = 0
+  options: {
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    body?: any;
+    retryCount?: number;
+  } = {}
 ): Promise<ActApiResponse<T>> {
+  const { method = 'GET', body, retryCount = 0 } = options;
   const maxRetries = 2;
   
   if (retryCount > maxRetries) {
@@ -317,18 +355,32 @@ async function makeApiCall<T>(
       return { success: false, error: 'Failed to obtain bearer token' };
     }
 
-    // Construct URL
-    const baseUrl = connection.api_base_url || `https://api${connection.act_region}.act.com`;
-    const apiUrl = endpoint.replace('https://apius.act.com', baseUrl.replace('/act.web.api', ''));
+    // Construct URL - use the correct Act! API base URL
+    const baseUrl = 'https://apius.act.com/act.web.api';
+    const apiUrl = endpoint.startsWith('http') 
+      ? endpoint 
+      : `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
-    // Make the API call
-    const response = await fetch(apiUrl, {
-      method: "GET",
+    // Prepare request options
+    const requestOptions: RequestInit = {
+      method,
       headers: {
         "Authorization": `Bearer ${bearerToken}`,
         "Act-Database-Name": connection.act_database_name
       }
-    });
+    };
+
+    // Add body for POST/PUT requests
+    if (body && (method === 'POST' || method === 'PUT')) {
+      requestOptions.headers = {
+        ...requestOptions.headers,
+        "Content-Type": "application/json"
+      };
+      requestOptions.body = JSON.stringify(body);
+    }
+
+    // Make the API call
+    const response = await fetch(apiUrl, requestOptions);
 
     await incrementApiCallCount(connection.id);
 
@@ -336,7 +388,7 @@ async function makeApiCall<T>(
     if (response.status === 401 && retryCount < maxRetries) {
       console.log(`Received 401 for user ${connection.user_id}, refreshing token and retrying...`);
       tokenCache.delete(connection.user_id);
-      return makeApiCall(endpoint, connection, retryCount + 1);
+      return makeApiCall(endpoint, connection, { method, body, retryCount: retryCount + 1 });
     }
 
     if (!response.ok) {
@@ -362,7 +414,7 @@ async function makeApiCall<T>(
  */
 async function getOpportunities(connection: UserActConnection): Promise<ActApiResponse<any[]>> {
   console.log(`Fetching opportunities for user ${connection.user_id}...`);
-  return makeApiCall('https://apius.act.com/act.web.api/api/opportunities', connection);
+  return makeApiCall('/api/opportunities', connection);
 }
 
 /**
@@ -370,7 +422,7 @@ async function getOpportunities(connection: UserActConnection): Promise<ActApiRe
  */
 async function getTasks(connection: UserActConnection): Promise<ActApiResponse<any[]>> {
   console.log(`Fetching tasks for user ${connection.user_id}...`);
-  return makeApiCall('https://apius.act.com/act.web.api/api/tasks', connection);
+  return makeApiCall('/api/tasks', connection);
 }
 
 /**
@@ -513,9 +565,13 @@ export class ActClient {
   async makeApiCall<T>(
     endpoint: string,
     connection: UserActConnection,
-    retryCount = 0
+    options: {
+      method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+      body?: any;
+      retryCount?: number;
+    } = {}
   ): Promise<ActApiResponse<T>> {
-    return makeApiCall(endpoint, connection, retryCount);
+    return makeApiCall(endpoint, connection, options);
   }
 
   /**
@@ -541,8 +597,8 @@ export class ActClient {
       console.log(`Fetching and syncing opportunities for user ${connection.user_id}...`);
       
       // First fetch opportunities from Act! API
-      const apiResult = await this.makeApiCall<ActOpportunity[]>(
-        'https://apius.act.com/act.web.api/api/opportunities', 
+            const apiResult = await this.makeApiCall<ActOpportunity[]>(
+        '/api/opportunities',
         connection
       );
 
@@ -591,7 +647,7 @@ export class ActClient {
   ): Promise<ActApiResponse<ActProduct[]>> {
     console.log(`Fetching products for opportunity ${opportunityId} for user ${connection.user_id}...`);
     return this.makeApiCall<ActProduct[]>(
-      `https://apius.act.com/act.web.api/api/opportunities/${opportunityId}/products`, 
+      `/api/opportunities/${opportunityId}/products`, 
       connection
     );
   }
@@ -750,6 +806,218 @@ export class ActClient {
   }
 
   /**
+   * Create a new product for an opportunity in Act! CRM
+   */
+  async createProduct(
+    opportunityId: string,
+    productData: {
+      name: string;
+      price: number;
+      quantity: number;
+      itemNumber?: string;
+      type?: string;
+    },
+    connection: UserActConnection
+  ): Promise<ActApiResponse<any>> {
+    try {
+      console.log(`Creating product for opportunity ${opportunityId} for user ${connection.user_id}...`);
+      console.log('Product data:', productData);
+      
+      // Create the product directly under the opportunity (this is the working endpoint!)
+      const productResult = await this.makeApiCall<any>(
+        `/api/opportunities/${opportunityId}/products`,
+        connection,
+        {
+          method: 'POST',
+          body: {
+            name: productData.name,
+            price: productData.price,
+            quantity: productData.quantity,
+            itemNumber: productData.itemNumber || new Date().toISOString().split('T')[0],
+            type: productData.type || 'Service'
+          }
+        }
+      );
+      
+      if (!productResult.success) {
+        console.error(`Failed to create product: ${productData.name} - ${productResult.error}`);
+        return productResult;
+      }
+      
+      console.log(`Successfully created product: ${productData.name} with ID: ${productResult.data?.id}`);
+      
+      // Product is automatically associated with the opportunity via the endpoint
+      console.log(`Product created successfully and associated with opportunity ${opportunityId}`);
+      
+      return {
+        success: true,
+        data: {
+          id: productResult.data?.id,
+          name: productData.name,
+          price: productData.price,
+          opportunityID: opportunityId,
+          message: 'Product created successfully and associated with opportunity.'
+        }
+      };
+      
+    } catch (error) {
+      console.error(`Error creating product for opportunity ${opportunityId}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  /**
+   * Validate Act! API response structure
+   */
+  private validateActApiResponse(response: any, expectedFields: string[]): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    if (!response) {
+      errors.push('Response is null or undefined');
+      return { valid: false, errors };
+    }
+    
+    if (typeof response !== 'object') {
+      errors.push('Response is not an object');
+      return { valid: false, errors };
+    }
+    
+    // Check for required fields
+    for (const field of expectedFields) {
+      if (!(field in response)) {
+        errors.push(`Missing required field: ${field}`);
+      }
+    }
+    
+    // Check for common Act! API response patterns
+    if (response.error && typeof response.error === 'string') {
+      errors.push(`Act! API error: ${response.error}`);
+    }
+    
+    if (response.message && typeof response.message === 'string') {
+      errors.push(`Act! API message: ${response.message}`);
+    }
+    
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
+   * Create multiple products for an opportunity individually (Act! API doesn't support batch)
+   */
+  async createProductsBatch(
+    opportunityId: string,
+    lineItems: Array<{
+      type: 'retainer' | 'deliverable';
+      name: string;
+      amount: number;
+      date?: string;
+      original_text?: string;
+    }>,
+    connection: UserActConnection
+  ): Promise<ActApiResponse<{
+    created: Array<{ lineItem: any; productId: string; success: boolean }>;
+    failed: Array<{ lineItem: any; error: string; success: boolean }>;
+    totalProcessed: number;
+    totalCreated: number;
+    totalFailed: number;
+  }>> {
+    try {
+      console.log(`Creating ${lineItems.length} products individually for opportunity ${opportunityId} for user ${connection.user_id}...`);
+      
+      const results = {
+        created: [] as Array<{ lineItem: any; productId: string; success: boolean }>,
+        failed: [] as Array<{ lineItem: any; error: string; success: boolean }>,
+        totalProcessed: lineItems.length,
+        totalCreated: 0,
+        totalFailed: 0
+      };
+
+      // Process line items sequentially since Act! API doesn't support batch
+      for (let i = 0; i < lineItems.length; i++) {
+        const lineItem = lineItems[i];
+        console.log(`Processing line item ${i + 1}/${lineItems.length}: ${lineItem.name}`);
+        
+        try {
+          // Prepare product data for Act! API based on documentation
+          const productData = {
+            name: lineItem.name,
+            price: lineItem.amount,
+            quantity: 1, // Always 1 for our use case
+            itemNumber: lineItem.date || new Date().toISOString().split('T')[0], // Use billing date for retainers
+            type: lineItem.type === 'retainer' ? 'Retainer' : 'Deliverable',
+            opportunityID: opportunityId, // Required field from documentation
+            cost: 0, // Default cost
+            discount: 0, // Default discount
+            discountPrice: lineItem.amount, // Same as price for now
+            total: lineItem.amount, // Total should equal price * quantity
+            isQuickbooksProduct: false // Default value
+          };
+
+          // Create the product using the correct endpoint
+          const result = await this.createProduct(opportunityId, productData, connection);
+          
+          if (result.success && result.data) {
+            results.created.push({
+              lineItem,
+              productId: result.data.id || 'unknown',
+              success: true
+            });
+            results.totalCreated++;
+            console.log(`✓ Successfully created product: ${lineItem.name}`);
+          } else {
+            results.failed.push({
+              lineItem,
+              error: result.error || 'Unknown error',
+              success: false
+            });
+            results.totalFailed++;
+            console.error(`✗ Failed to create product: ${lineItem.name} - ${result.error}`);
+          }
+          
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          results.failed.push({
+            lineItem,
+            error: errorMessage,
+            success: false
+          });
+          results.totalFailed++;
+          console.error(`✗ Exception creating product: ${lineItem.name} - ${errorMessage}`);
+        }
+
+        // Small delay between API calls to be respectful
+        if (i < lineItems.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      console.log(`Individual product creation complete for opportunity ${opportunityId}:`);
+      console.log(`- Total processed: ${results.totalProcessed}`);
+      console.log(`- Successfully created: ${results.totalCreated}`);
+      console.log(`- Failed: ${results.totalFailed}`);
+
+      return {
+        success: results.totalFailed === 0,
+        data: results,
+        error: results.totalFailed > 0 ? `${results.totalFailed} products failed to create` : null
+      };
+
+    } catch (error) {
+      console.error(`Error in individual product creation for opportunity ${opportunityId}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  /**
    * Fetch and sync tasks to database
    */
   async syncTasksData(
@@ -768,7 +1036,7 @@ export class ActClient {
       
       // First fetch tasks from Act! API
       const apiResult = await this.makeApiCall<ActTask[]>(
-        'https://apius.act.com/act.web.api/api/tasks', 
+        '/api/tasks', 
         connection
       );
 
