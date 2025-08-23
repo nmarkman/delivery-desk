@@ -43,8 +43,6 @@ Based on PRD: `prd-sync-act-products.md`
     - ✅ Returns PostgreSQL-compatible YYYY-MM-DD format or null (skip product)  
     - ✅ Includes billing date validation (2-year range check)
     - ✅ Comprehensive logging for debugging invalid formats
-  - [ ] 3.7 Add comprehensive error handling for individual product parsing failures
-  - [ ] 3.8 Add validation for required product fields (name, price, quantity) before processing
     - ✅ API test successful: Retrieved 1 product with complete 21-field structure  
     - 🚨 CRITICAL FINDING: When itemNumber contains DateTime object, Act! API returns 500 error
     - ✅ CONFIRMED: Test opportunity 60043007-425e-4fc5-b90c-2b57eea12ebd has DateTime in itemNumber field
@@ -54,13 +52,22 @@ Based on PRD: `prd-sync-act-products.md`
     - 📝 Product: "Consulting Services - PM", $10,000, 1 qty
 
 - [ ] 4.0 Create Products Sync Logic and Mapping
-  - [ ] 4.1 Create `products-sync.ts` module following existing sync architecture pattern
-  - [ ] 4.2 Implement `mapActProductToDb()` function with PRD field mappings (id→act_reference, name→description, etc.)
-  - [ ] 4.3 Add date validation for `itemNumber` field - skip products with invalid/missing dates
-  - [ ] 4.4 Implement `upsertInvoiceLineItem()` function with act_reference-based matching for existing records
-  - [ ] 4.5 Add `syncProducts()` function with batch processing, error handling, and logging integration
-  - [ ] 4.6 Implement filtering to only sync products from active opportunities (check opportunity status)
-  - [ ] 4.7 Add validation to prevent overwriting custom tool-specific values (like manually set invoice_id)
+  - [x] 4.1 Create `products-sync.ts` module following existing sync architecture pattern
+  - [x] 4.2 Implement `mapActProductToDb()` function with PRD field mappings (id→act_reference, name→description, etc.)
+  - [x] 4.3 Add date validation for `itemNumber` field - skip products with invalid/missing dates
+  - [x] 4.4 Implement `upsertInvoiceLineItem()` function with act_reference-based matching for existing records
+  - [x] 4.5 Add `syncProducts()` function with batch processing, error handling, and logging integration
+  - [x] 4.6 Implement filtering to only sync products from active opportunities (check opportunity status)
+    - ✅ Added database query filtering to exclude "Closed Lost" and "Closed Won" opportunities
+    - ✅ Implemented pre-filtering of products before batch processing (more efficient)
+    - ✅ Enhanced logging to show active vs. total opportunity counts  
+    - ✅ Clear messaging when products are skipped due to closed opportunities
+  - [x] 4.7 Add validation to prevent overwriting custom tool-specific values (like manually set invoice_id)
+    - ✅ Added getExistingInvoiceLineItem() to check for existing records before update
+    - ✅ Implemented preserveManualValues() to protect invoice_id, deliverable_id, service periods
+    - ✅ Smart preservation logic based on source field (manual vs act_sync records)
+    - ✅ Enhanced details field preservation (keeps richer manual content)
+    - ✅ Detailed logging when manual values are preserved during sync
 
 - [ ] 5.0 Integrate Products Sync into Edge Function
   - [ ] 5.1 Add `syncProductsData()` method to ActClient class following existing patterns
