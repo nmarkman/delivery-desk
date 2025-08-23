@@ -444,6 +444,162 @@ export const OPERATION_TYPES = {
   UPLOAD_ATTACHMENT: 'upload_attachment',
 } as const;
 
+// =================================
+// Date Parsing Utilities
+// =================================
+
+/**
+ * Robust date parser for Act! product itemNumber fields
+ * Handles multiple date formats and returns PostgreSQL-compatible date string or null
+ * If null is returned, the product should NOT be imported to the database
+ */
+export function parseItemNumberDate(itemNumber: string | null | undefined): string | null {
+  if (!itemNumber || typeof itemNumber !== 'string' || itemNumber.trim() === '') {
+    return null; // No date = skip product
+  }
+
+  const cleanInput = itemNumber.trim();
+  let parsedDate: Date | null = null;
+
+  // Format 1: YYYY-MM-DD (ISO format - preferred)
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(cleanInput);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    // Validate the date components match (handles invalid dates like 2024-02-30)
+    if (parsedDate.getFullYear() === parseInt(year) && 
+        parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day)) {
+      return cleanInput; // Already in PostgreSQL format
+    }
+  }
+
+  // Format 2: MM/DD/YYYY (US format)
+  const usMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(cleanInput);
+  if (usMatch) {
+    const [, month, day, year] = usMatch;
+    parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    if (parsedDate.getFullYear() === parseInt(year) && 
+        parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day)) {
+      // Convert to YYYY-MM-DD format
+      const yyyy = year.padStart(4, '0');
+      const mm = month.padStart(2, '0');
+      const dd = day.padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  // Format 3: DD/MM/YYYY (European format)
+  const euMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(cleanInput);
+  if (euMatch) {
+    const [, day, month, year] = euMatch;
+    parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    if (parsedDate.getFullYear() === parseInt(year) && 
+        parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day)) {
+      // Convert to YYYY-MM-DD format
+      const yyyy = year.padStart(4, '0');
+      const mm = month.padStart(2, '0');
+      const dd = day.padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  // Format 4: MM-DD-YYYY (US format with dashes)
+  const usDashMatch = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(cleanInput);
+  if (usDashMatch) {
+    const [, month, day, year] = usDashMatch;
+    parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    if (parsedDate.getFullYear() === parseInt(year) && 
+        parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day)) {
+      const yyyy = year.padStart(4, '0');
+      const mm = month.padStart(2, '0');
+      const dd = day.padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  // Format 5: DD-MM-YYYY (European format with dashes)
+  const euDashMatch = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(cleanInput);
+  if (euDashMatch) {
+    const [, day, month, year] = euDashMatch;
+    parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    if (parsedDate.getFullYear() === parseInt(year) && 
+        parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day)) {
+      const yyyy = year.padStart(4, '0');
+      const mm = month.padStart(2, '0');
+      const dd = day.padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  // Format 6: YYYY/MM/DD (ISO format with slashes)
+  const isoSlashMatch = /^(\d{4})\/(\d{2})\/(\d{2})$/.exec(cleanInput);
+  if (isoSlashMatch) {
+    const [, year, month, day] = isoSlashMatch;
+    parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    if (parsedDate.getFullYear() === parseInt(year) && 
+        parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day)) {
+      const yyyy = year.padStart(4, '0');
+      const mm = month.padStart(2, '0');
+      const dd = day.padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+  }
+
+  // No valid date format found
+  console.warn(`Invalid date format in itemNumber: "${cleanInput}". Product will be skipped.`);
+  return null;
+}
+
+/**
+ * Validate that a date string is reasonable for billing purposes
+ * Rejects dates too far in the past or future
+ */
+export function validateBillingDate(dateString: string): boolean {
+  const date = new Date(dateString);
+  const now = new Date();
+  const twoYearsAgo = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate());
+  const twoYearsFromNow = new Date(now.getFullYear() + 2, now.getMonth(), now.getDate());
+  
+  return date >= twoYearsAgo && date <= twoYearsFromNow;
+}
+
+/**
+ * Test function for date parser - demonstrates all supported formats
+ * Remove this function in production
+ */
+export function testDateParser(): void {
+  const testCases = [
+    '2025-09-01',    // YYYY-MM-DD (preferred)
+    '09/01/2025',    // MM/DD/YYYY (US)
+    '01/09/2025',    // DD/MM/YYYY (European)
+    '09-01-2025',    // MM-DD-YYYY (US with dashes)
+    '01-09-2025',    // DD-MM-YYYY (European with dashes)
+    '2025/09/01',    // YYYY/MM/DD (ISO with slashes)
+    '2025-02-30',    // Invalid date
+    'invalid',       // Invalid format
+    '',              // Empty string
+    null,            // Null
+  ];
+
+  console.log('=== DATE PARSER TEST RESULTS ===');
+  testCases.forEach(testCase => {
+    const result = parseItemNumberDate(testCase as any);
+    console.log(`Input: "${testCase}" → Output: ${result}`);
+  });
+}
+
 // Type helpers
 export type ActActivityType = typeof ACT_ACTIVITY_TYPES[keyof typeof ACT_ACTIVITY_TYPES];
 export type SyncStatus = typeof SYNC_STATUSES[keyof typeof SYNC_STATUSES];

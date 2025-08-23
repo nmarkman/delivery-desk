@@ -597,6 +597,93 @@ export class ActClient {
   }
 
   /**
+   * Fetch products for all active opportunities from Act! CRM
+   */
+  async getAllOpportunityProducts(
+    connection: UserActConnection
+  ): Promise<ActApiResponse<{opportunityId: string, products: ActProduct[], error?: string}[]>> {
+    console.log(`Fetching products for all active opportunities for user ${connection.user_id}...`);
+    
+    try {
+      // First get all active opportunities
+      const opportunitiesResult = await this.getOpportunities(connection);
+      
+      if (!opportunitiesResult.success || !opportunitiesResult.data) {
+        return {
+          success: false,
+          error: 'Failed to fetch opportunities: ' + (opportunitiesResult.error || 'Unknown error'),
+          data: null
+        };
+      }
+
+      const allResults: {opportunityId: string, products: ActProduct[], error?: string}[] = [];
+      const activeOpportunities = opportunitiesResult.data.filter(opp => opp.stage !== 'Closed Lost' && opp.stage !== 'Closed Won');
+      
+      console.log(`Found ${activeOpportunities.length} active opportunities to check for products`);
+
+      // Fetch products for each active opportunity (with concurrency limit)
+      const BATCH_SIZE = 5; // Process 5 opportunities at a time to avoid rate limits
+      
+      for (let i = 0; i < activeOpportunities.length; i += BATCH_SIZE) {
+        const batch = activeOpportunities.slice(i, i + BATCH_SIZE);
+        
+        const batchPromises = batch.map(async (opportunity) => {
+          try {
+            const productsResult = await this.getOpportunityProducts(opportunity.id, connection);
+            
+            if (productsResult.success && productsResult.data && productsResult.data.length > 0) {
+              return {
+                opportunityId: opportunity.id,
+                products: productsResult.data
+              };
+            } else {
+              return {
+                opportunityId: opportunity.id,
+                products: [],
+                error: productsResult.error || 'No products found'
+              };
+            }
+          } catch (error) {
+            console.warn(`Error fetching products for opportunity ${opportunity.id}:`, error);
+            return {
+              opportunityId: opportunity.id,
+              products: [],
+              error: error instanceof Error ? error.message : 'Unknown error'
+            };
+          }
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        allResults.push(...batchResults);
+        
+        // Small delay between batches to be respectful of API limits
+        if (i + BATCH_SIZE < activeOpportunities.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      const totalProducts = allResults.reduce((sum, result) => sum + result.products.length, 0);
+      const opportunitiesWithProducts = allResults.filter(result => result.products.length > 0).length;
+      
+      console.log(`Product fetch complete: ${totalProducts} products found across ${opportunitiesWithProducts} opportunities`);
+
+      return {
+        success: true,
+        data: allResults,
+        error: null
+      };
+
+    } catch (error) {
+      console.error('Error in getAllOpportunityProducts:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: null
+      };
+    }
+  }
+
+  /**
    * Test products API endpoint and log response structure for validation
    */
   async testProductsApi(
