@@ -33,15 +33,15 @@ const navigation = [
     icon: Receipt,
   },
   {
+    title: 'Contract Upload',
+    url: '/contract-upload',
+    icon: Upload,
+  },
+  {
     title: 'Act! CRM Sync',
     url: '/act-sync',
     icon: RefreshCw,
   },
-  {
-    title: 'Contract Upload',
-    url: '/contract-upload',
-    icon: Upload,
-  },  
 ];
 
 export function AppSidebar() {

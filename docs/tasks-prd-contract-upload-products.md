@@ -156,8 +156,6 @@ Following the established Act! sync patterns for consistency and data integrity.
 - [ ] 9.0 Add Routing and Navigation
   - [ ] 9.1 Add `/contract-upload` route to App.tsx
   - [ ] 9.2 Update navigation/sidebar to include contract upload link
-  - [ ] 9.3 Add breadcrumb navigation for contract upload page
-  - [ ] 9.4 Ensure proper authentication and access control
 
 - [ ] 10.0 Testing and Validation
   - [ ] 10.1 Test PDF upload and storage functionality

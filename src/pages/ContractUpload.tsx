@@ -6,6 +6,7 @@ import { Loader2, FileText, CheckCircle, AlertCircle, Play, RotateCcw } from 'lu
 import { useToast } from '../hooks/use-toast';
 import ContractUploadForm from '../components/ContractUploadForm';
 import LineItemsTable from '../components/LineItemsTable';
+import { Layout } from '../components/Layout';
 
 interface LineItem {
   type: 'retainer' | 'deliverable';
@@ -182,102 +183,104 @@ export default function ContractUpload() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center space-x-2">
-        <FileText className="h-6 w-6" />
-        <h1 className="text-3xl font-bold">Contract Upload</h1>
-      </div>
-      
-      {/* Upload Form */}
-      <ContractUploadForm
-        onFileSelect={handleFileSelect}
-        onOpportunitySelect={handleOpportunitySelect}
-        onUpload={handleUpload}
-        selectedFile={selectedFile}
-        selectedOpportunity={selectedOpportunity}
-        isUploading={uploadState.isUploading}
-        error={uploadState.error}
-      />
-
-      {/* Progress Bar */}
-      {uploadState.isUploading && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Uploading & Parsing PDF...</span>
-                <span>{uploadState.progress}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${uploadState.progress}%` }}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Line Items Table */}
-      {lineItems.length > 0 && (
-        <LineItemsTable
-          lineItems={lineItems}
-          onLineItemsChange={setLineItems}
-          onDelete={handleLineItemDelete}
-          onEdit={handleLineItemEdit}
-          isProcessing={uploadState.isProcessing}
+    <Layout>
+      <div className="space-y-6">
+        <div className="flex items-center space-x-2">
+          <FileText className="h-6 w-6" />
+          <h1 className="text-3xl font-bold">Contract Upload</h1>
+        </div>
+        
+        {/* Upload Form */}
+        <ContractUploadForm
+          onFileSelect={handleFileSelect}
+          onOpportunitySelect={handleOpportunitySelect}
+          onUpload={handleUpload}
+          selectedFile={selectedFile}
+          selectedOpportunity={selectedOpportunity}
+          isUploading={uploadState.isUploading}
+          error={uploadState.error}
         />
-      )}
 
-      {/* Action Buttons */}
-      {lineItems.length > 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex space-x-4">
-              <Button
-                onClick={handleSubmit}
-                disabled={uploadState.isProcessing}
-                className="flex items-center space-x-2"
-                size="lg"
-              >
-                {uploadState.isProcessing ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Creating Products & Syncing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-5 w-5" />
-                    <span>Create Products & Sync to Database</span>
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                onClick={resetForm}
-                variant="outline"
-                disabled={uploadState.isProcessing}
-                size="lg"
-                className="flex items-center space-x-2"
-              >
-                <RotateCcw className="h-5 w-5" />
-                <span>Start Over</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        {/* Progress Bar */}
+        {uploadState.isUploading && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Uploading & Parsing PDF...</span>
+                  <span>{uploadState.progress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadState.progress}%` }}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Success Message */}
-      {uploadState.isComplete && !uploadState.isProcessing && (
-        <Alert className="border-green-200 bg-green-50">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
-            Contract processing completed successfully! Products have been created in Act! CRM and synced to the database.
-          </AlertDescription>
-        </Alert>
-      )}
-    </div>
+        {/* Line Items Table */}
+        {lineItems.length > 0 && (
+          <LineItemsTable
+            lineItems={lineItems}
+            onLineItemsChange={setLineItems}
+            onDelete={handleLineItemDelete}
+            onEdit={handleLineItemEdit}
+            isProcessing={uploadState.isProcessing}
+          />
+        )}
+
+        {/* Action Buttons */}
+        {lineItems.length > 0 && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex space-x-4">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={uploadState.isProcessing}
+                  className="flex items-center space-x-2"
+                  size="lg"
+                >
+                  {uploadState.isProcessing ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>Creating Products & Syncing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-5 w-5" />
+                      <span>Create Products & Sync to Database</span>
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={resetForm}
+                  variant="outline"
+                  disabled={uploadState.isProcessing}
+                  size="lg"
+                  className="flex items-center space-x-2"
+                >
+                  <RotateCcw className="h-5 w-5" />
+                  <span>Start Over</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Success Message */}
+        {uploadState.isComplete && !uploadState.isProcessing && (
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              Contract processing completed successfully! Products have been created in Act! CRM and synced to the database.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+    </Layout>
   );
 }
