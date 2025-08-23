@@ -164,7 +164,6 @@ serve(async (req) => {
             status: connection.connection_status
           },
           api_url: connection.api_base_url || `https://api${connection.act_region}.act.com`,
-          rate_limit_status: rateLimitStatus,
           products_test_result: productsTestResult
         }, null, 2),
         {
