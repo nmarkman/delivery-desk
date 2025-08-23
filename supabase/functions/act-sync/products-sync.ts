@@ -495,19 +495,18 @@ async function logProductsSyncIntegration(
     const logData = {
       user_id: connection.user_id,
       operation_type: 'products_sync',
-      status: results.errors.length === 0 ? SYNC_STATUSES.SYNCED : SYNC_STATUSES.ERROR,
+      operation_status: results.errors.length === 0 ? SYNC_STATUSES.SYNCED : SYNC_STATUSES.ERROR,
       records_processed: results.total_records_processed,
-      records_successful: results.records_created + results.records_updated,
+      records_created: results.records_created,
+      records_updated: results.records_updated,
       records_failed: results.records_failed,
-      records_skipped: skippedCount,
       error_details: results.errors.length > 0 ? JSON.stringify(results.errors) : null,
-      sync_details: JSON.stringify({
-        created: results.records_created,
-        updated: results.records_updated,
-        duration_ms: results.duration_ms,
-        batch_id: results.batch_id
-      }),
+      error_message: results.errors.length > 0 ? results.errors[0].error_message : null,
       act_connection_id: connection.id,
+      entity_type: 'invoice_line_items',
+      started_at: results.started_at,
+      completed_at: results.completed_at,
+      response_time_ms: results.duration_ms || null,
       created_at: new Date().toISOString()
     };
 
