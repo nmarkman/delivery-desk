@@ -4,6 +4,7 @@ import {
   ActApiResponse, 
   ActOpportunity, 
   ActTask,
+  ActProduct,
   ActActivityType,
   ConnectionStatus,
   ACT_ACTIVITY_TYPES,
@@ -579,6 +580,86 @@ export class ActClient {
    */
   async getTasks(connection: UserActConnection): Promise<ActApiResponse<any[]>> {
     return getTasks(connection);
+  }
+
+  /**
+   * Fetch products for a specific opportunity from Act! CRM
+   */
+  async getOpportunityProducts(
+    opportunityId: string, 
+    connection: UserActConnection
+  ): Promise<ActApiResponse<ActProduct[]>> {
+    console.log(`Fetching products for opportunity ${opportunityId} for user ${connection.user_id}...`);
+    return this.makeApiCall<ActProduct[]>(
+      `https://apius.act.com/act.web.api/api/opportunities/${opportunityId}/products`, 
+      connection
+    );
+  }
+
+  /**
+   * Test products API endpoint and log response structure for validation
+   */
+  async testProductsApi(
+    connection: UserActConnection,
+    testOpportunityId?: string
+  ): Promise<ActApiResponse<any>> {
+    try {
+      // First get opportunities to find one with products
+      let opportunityId = testOpportunityId;
+      
+      if (!opportunityId) {
+        console.log("Getting opportunities to find one for products testing...");
+        const oppsResult = await this.getOpportunities(connection);
+        
+        if (!oppsResult.success || !oppsResult.data || oppsResult.data.length === 0) {
+          return { success: false, error: "No opportunities found for products testing" };
+        }
+        
+        // Use the first opportunity
+        opportunityId = oppsResult.data[0].id;
+        console.log(`Using opportunity ${opportunityId} for products API testing`);
+      }
+
+      // Test the products API call
+      const productsResult = await this.getOpportunityProducts(opportunityId, connection);
+      
+      if (productsResult.success && productsResult.data) {
+        console.log("=== PRODUCTS API RESPONSE ANALYSIS ===");
+        console.log(`Found ${productsResult.data.length} products for opportunity ${opportunityId}`);
+        
+        if (productsResult.data.length > 0) {
+          const firstProduct = productsResult.data[0];
+          console.log("Sample product structure:");
+          console.log("- ID:", firstProduct.id);
+          console.log("- Name:", firstProduct.name);
+          console.log("- Item Number:", firstProduct.itemNumber);
+          console.log("- Quantity:", firstProduct.quantity);
+          console.log("- Price:", firstProduct.price);
+          console.log("- Total:", firstProduct.total);
+          console.log("- Opportunity ID:", firstProduct.opportunityID);
+          console.log("- All Top-Level Keys:", Object.keys(firstProduct));
+          
+          return {
+            success: true,
+            data: {
+              productsCount: productsResult.data.length,
+              sampleProduct: firstProduct,
+              allProductKeys: Object.keys(firstProduct)
+            }
+          };
+        } else {
+          console.log("No products found for this opportunity");
+          return { success: true, data: { productsCount: 0, message: "No products found" } };
+        }
+      } else {
+        console.error("Products API call failed:", productsResult.error);
+        return productsResult;
+      }
+      
+    } catch (error) {
+      console.error("Error in products API test:", error);
+      return { success: false, error: error.message };
+    }
   }
 
   /**

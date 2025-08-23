@@ -27,18 +27,18 @@ Based on PRD: `prd-sync-act-products.md`
   - [x] 1.5 Apply database migration using Supabase MCP tool
   - [x] 1.6 Update Supabase TypeScript types by regenerating types after schema changes
 
-- [ ] 2.0 Add TypeScript Types for Act! Products
+- [x] 2.0 Add TypeScript Types for Act! Products
   - [x] 2.1 Create `ActProduct` interface in types.ts with fields: id, name, quantity, price, itemNumber, opportunityID
   - [x] 2.2 Create `DbInvoiceLineItem` interface matching updated database schema including billed_at and source fields
   - [x] 2.3 Create `ProductMappingResult` interface for validation results, warnings, and missing fields tracking
   - [x] 2.4 Add products-related constants and enums (product sync status, source types)
 
 - [ ] 3.0 Implement Act! Products API Integration  
-  - [ ] 3.1 Add `getOpportunityProducts(opportunityId: string)` method to ActClient for fetching products by opportunity ID
+  - [x] 3.1 Add `getOpportunityProducts(opportunityId: string)` method to ActClient for fetching products by opportunity ID
   - [ ] 3.2 Add `getAllOpportunityProducts(connection)` method to fetch products for all active opportunities
   - [ ] 3.3 Implement proper error handling for products API calls with retry logic
   - [ ] 3.4 Add rate limiting compliance for products API endpoints
-  - [ ] 3.5 Test products API endpoint structure and document expected response format
+  - [x] 3.5 Test products API endpoint structure and document expected response format
 
 - [ ] 4.0 Create Products Sync Logic and Mapping
   - [ ] 4.1 Create `products-sync.ts` module following existing sync architecture pattern

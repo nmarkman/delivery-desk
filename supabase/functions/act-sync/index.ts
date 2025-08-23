@@ -147,6 +147,58 @@ serve(async (req) => {
       );
     }
 
+    // Handle test_products operation type
+    if (operation_type === 'test_products') {
+      const productsTestResult = await actClient.testProductsApi(connection);
+      
+      return new Response(
+        JSON.stringify({
+          message: "Act! Products API test completed",
+          user_id: user_id,
+          operation_type: operation_type,
+          authentication: "successful",
+          connection: {
+            database_name: connection.act_database_name,
+            region: connection.act_region,
+            username: connection.act_username,
+            status: connection.connection_status
+          },
+          products_test_result: productsTestResult
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    }
+
+    // Handle test_products operation type
+    if (operation_type === 'test_products') {
+      const productsTestResult = await actClient.testProductsApi(connection);
+      
+      return new Response(
+        JSON.stringify({
+          message: "Act! Products API test completed",
+          user_id: user_id,
+          operation_type: operation_type,
+          authentication: "successful",
+          connection: {
+            database_name: connection.act_database_name,
+            region: connection.act_region,
+            username: connection.act_username,
+            status: connection.connection_status
+          },
+          api_url: connection.api_base_url || `https://api${connection.act_region}.act.com`,
+          rate_limit_status: rateLimitStatus,
+          products_test_result: productsTestResult
+        }, null, 2),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
+
     // Fetch data using the ActClient
     const [opportunitiesResult, tasksResult] = await Promise.all([
       operation_type === 'sync' ? 

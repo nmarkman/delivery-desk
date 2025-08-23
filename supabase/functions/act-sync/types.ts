@@ -130,21 +130,29 @@ export interface ActTask {
   }> | null;
 }
 
-// Product Types
+// Product Types - Based on Act! API documentation
 export interface ActProduct {
   id: string;
   name: string;
-  quantity: number;
-  price: number;
+  cost: number;
+  createDate: string;
+  discount: number;
+  discountPrice: number;
+  editDate: string;
   itemNumber: string; // Date string that will be parsed to billed_at
   opportunityID: string;
-  // Additional fields that may be present in Act! products
-  description?: string;
-  unitOfMeasure?: string;
-  discount?: number;
-  taxable?: boolean;
-  created?: string;
-  edited?: string;
+  price: number;
+  productID: string; // Separate product template ID
+  quantity: number;
+  type: string;
+  total: number;
+  isQuickbooksProduct: boolean;
+  customFields: Record<string, any>;
+  created: string;
+  edited: string;
+  editedBy: string;
+  recordOwner: string;
+  recordManager: string;
 }
 
 // =================================
