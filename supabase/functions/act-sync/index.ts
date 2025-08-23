@@ -173,6 +173,39 @@ serve(async (req) => {
       );
     }
 
+    // Handle debug_mappings operation type - show opportunity mappings
+    if (operation_type === 'debug_mappings') {
+      try {
+        const { getOpportunityMappings } = await import('./products-sync.ts');
+        const mappings = await getOpportunityMappings(connection.user_id);
+        
+        return new Response(
+          JSON.stringify({
+            message: "Opportunity mappings debug",
+            user_id: user_id,
+            mappings: mappings,
+            mappings_count: Object.keys(mappings).length,
+            test_lookup: mappings['60043007-425e-4fc5-b90c-2b57eea12ebd'] || 'NOT_FOUND'
+          }, null, 2),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+      } catch (error) {
+        return new Response(
+          JSON.stringify({
+            message: "Debug mappings failed",
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }, null, 2),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+          }
+        );
+      }
+    }
+
     // Handle test_products_sync operation type - directly sync our test product
     if (operation_type === 'test_products_sync') {
       const testOpportunityId = test_opportunity_id || '60043007-425e-4fc5-b90c-2b57eea12ebd';

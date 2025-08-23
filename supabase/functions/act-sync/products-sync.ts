@@ -260,7 +260,7 @@ export async function syncProducts(
  * Get mapping of Act! opportunity IDs to Supabase opportunity UUIDs
  * Only includes active opportunities (excludes "Closed" status)
  */
-async function getOpportunityMappings(userId: string): Promise<Record<string, string>> {
+export async function getOpportunityMappings(userId: string): Promise<Record<string, string>> {
   try {
     const { data, error } = await supabase
       .from('opportunities')
