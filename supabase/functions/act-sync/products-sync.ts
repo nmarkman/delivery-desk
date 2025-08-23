@@ -65,17 +65,17 @@ export function mapActProductToDb(
       return null; // Don't import this product
     }
 
-    // Step 3: Calculate line total
-    const lineTotal = (actProduct.price || 0) * (actProduct.quantity || 1);
+    // Step 3: Calculate line total for validation (database will auto-calculate)
+    const calculatedTotal = (actProduct.price || 0) * (actProduct.quantity || 1);
     
     // Check if calculated total matches Act! total (with small tolerance for rounding)
     const actTotal = actProduct.total || 0;
-    const totalDifference = Math.abs(lineTotal - actTotal);
+    const totalDifference = Math.abs(calculatedTotal - actTotal);
     if (totalDifference > 0.01) {
-      warnings.push(`Calculated total (${lineTotal}) differs from Act! total (${actTotal})`);
+      warnings.push(`Calculated total (${calculatedTotal}) differs from Act! total (${actTotal})`);
     }
 
-    // Step 4: Create database record
+    // Step 4: Create database record (line_total is auto-calculated by database)
     const dbRecord: DbInvoiceLineItem = {
       // Act! reference for upsert matching
       act_reference: actProduct.id,
@@ -84,7 +84,7 @@ export function mapActProductToDb(
       description: actProduct.name.trim(),
       quantity: actProduct.quantity,
       unit_rate: actProduct.price,
-      line_total: lineTotal,
+      // line_total: auto-calculated by database as (quantity * unit_rate)
       
       // Parsed date from itemNumber
       billed_at: billedAtDate,
@@ -111,7 +111,7 @@ export function mapActProductToDb(
     };
 
     // Log successful mapping
-    console.log(`Successfully mapped product ${actProduct.id}: "${actProduct.name}" - $${actProduct.price} x ${actProduct.quantity} = $${lineTotal}`);
+    console.log(`Successfully mapped product ${actProduct.id}: "${actProduct.name}" - $${actProduct.price} x ${actProduct.quantity} = $${calculatedTotal}`);
 
     return {
       dbRecord,

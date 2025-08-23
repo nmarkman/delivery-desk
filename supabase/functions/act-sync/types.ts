@@ -225,7 +225,7 @@ export interface DbInvoiceLineItem {
   invoice_id?: string; // Nullable - can be assigned later
   item_type: string;
   line_number: number;
-  line_total?: number;
+  // line_total: Auto-calculated by database as (quantity * unit_rate) - excluded from interface
   opportunity_id?: string;
   quantity?: number;
   service_period_end?: string;
