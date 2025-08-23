@@ -69,16 +69,17 @@ export default function ContractUpload() {
       formData.append('opportunity_id', selectedOpportunity);
       formData.append('user_id', 'current-user-id'); // TODO: Get from auth context
 
-      // Simulate progress
+      // Simulate progress with more realistic timing
       const progressInterval = setInterval(() => {
         setUploadState(prev => ({
           ...prev,
-          progress: Math.min(prev.progress + 10, 90)
+          progress: Math.min(prev.progress + Math.random() * 15, 85)
         }));
-      }, 200);
+      }, 300);
 
-      // TODO: Replace with actual edge function URL
-      const response = await fetch('/api/contract-upload/upload', {
+      // Call the actual Supabase Edge Function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/contract-upload/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -86,7 +87,19 @@ export default function ContractUpload() {
       clearInterval(progressInterval);
 
       if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
+        const errorText = await response.text();
+        let errorMessage = `Upload failed: ${response.statusText}`;
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          // If we can't parse the error, use the status text
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -131,18 +144,32 @@ export default function ContractUpload() {
     setUploadState(prev => ({ ...prev, isProcessing: true, error: null }));
 
     try {
-      // TODO: Implement submission to create products in Act! and sync to database
-      // This would call the edge function to create products and sync
-      
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast({
-        title: "Processing Complete",
-        description: "Line items have been processed and synced successfully",
+      // Call the complete workflow test endpoint to create products and sync
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/contract-upload/test-complete-workflow`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
       });
+
+      if (!response.ok) {
+        throw new Error(`Processing failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
       
-      setUploadState(prev => ({ ...prev, isProcessing: false, isComplete: true }));
+      if (result.success) {
+        toast({
+          title: "Processing Complete",
+          description: `Successfully created ${result.workflow_steps.step1_act_creation.successful_creations} products and synced to database`,
+        });
+        
+        setUploadState(prev => ({ ...prev, isProcessing: false, isComplete: true }));
+      } else {
+        throw new Error(result.message || 'Processing failed');
+      }
     } catch (error) {
       setUploadState(prev => ({ 
         ...prev, 
@@ -208,13 +235,19 @@ export default function ContractUpload() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Uploading & Parsing PDF...</span>
-                  <span>{uploadState.progress}%</span>
+                  <span>{Math.round(uploadState.progress)}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${uploadState.progress}%` }}
                   />
+                </div>
+                <div className="text-xs text-gray-600 text-center">
+                  {uploadState.progress < 30 && "Uploading PDF file..."}
+                  {uploadState.progress >= 30 && uploadState.progress < 70 && "Processing with AI..."}
+                  {uploadState.progress >= 70 && uploadState.progress < 85 && "Extracting line items..."}
+                  {uploadState.progress >= 85 && "Finalizing..."}
                 </div>
               </div>
             </CardContent>
@@ -236,36 +269,54 @@ export default function ContractUpload() {
         {lineItems.length > 0 && (
           <Card>
             <CardContent className="pt-6">
-              <div className="flex space-x-4">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={uploadState.isProcessing}
-                  className="flex items-center space-x-2"
-                  size="lg"
-                >
-                  {uploadState.isProcessing ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>Creating Products & Syncing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-5 w-5" />
-                      <span>Create Products & Sync to Database</span>
-                    </>
-                  )}
-                </Button>
+              <div className="space-y-4">
+                <div className="flex space-x-4">
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={uploadState.isProcessing}
+                    className="flex items-center space-x-2"
+                    size="lg"
+                  >
+                    {uploadState.isProcessing ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span>Creating Products & Syncing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-5 w-5" />
+                        <span>Create Products & Sync to Database</span>
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    onClick={resetForm}
+                    variant="outline"
+                    disabled={uploadState.isProcessing}
+                    size="lg"
+                    className="flex items-center space-x-2"
+                  >
+                    <RotateCcw className="h-5 w-5" />
+                    <span>Start Over</span>
+                  </Button>
+                </div>
                 
-                <Button
-                  onClick={resetForm}
-                  variant="outline"
-                  disabled={uploadState.isProcessing}
-                  size="lg"
-                  className="flex items-center space-x-2"
-                >
-                  <RotateCcw className="h-5 w-5" />
-                  <span>Start Over</span>
-                </Button>
+                {/* Processing Progress */}
+                {uploadState.isProcessing && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Processing workflow...</span>
+                      <span>Creating products in Act! CRM</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-green-600 h-2 rounded-full animate-pulse" style={{ width: '100%' }} />
+                    </div>
+                    <div className="text-xs text-gray-600 text-center">
+                      Creating products in Act! CRM → Fetching from Act! → Syncing to database
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

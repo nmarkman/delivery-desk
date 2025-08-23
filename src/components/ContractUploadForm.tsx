@@ -43,28 +43,53 @@ export default function ContractUploadForm({
     const loadOpportunities = async () => {
       setIsLoadingOpportunities(true);
       try {
-        // TODO: Replace with actual Supabase client call
-        // const { data, error } = await supabase
-        //   .from('opportunities')
-        //   .select('id, name, client_name, value')
-        //   .eq('is_active', true)
-        //   .order('created_at', { ascending: false });
+        // Import Supabase client dynamically
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseAnonKey) {
+          throw new Error('Missing Supabase environment variables');
+        }
 
-        // Mock data for now
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        const { data, error } = await supabase
+          .from('opportunities')
+          .select('id, name, client_name, value')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          setOpportunities(data);
+        } else {
+          // Fallback to mock data if no opportunities found
+          const mockOpportunities: Opportunity[] = [
+            { id: '2a3b11a5-fe50-4c6b-8aad-15bf864b75f0', name: 'Website Development Project', client_name: 'ABC Corp', value: 25000 },
+            { id: 'opportunity-2', name: 'Marketing Campaign', client_name: 'XYZ Inc', value: 15000 },
+            { id: 'opportunity-3', name: 'Consulting Services', client_name: 'DEF Ltd', value: 8000 },
+          ];
+          setOpportunities(mockOpportunities);
+        }
+      } catch (error) {
+        console.error('Failed to load opportunities:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load opportunities from database",
+          variant: "destructive",
+        });
+        
+        // Fallback to mock data on error
         const mockOpportunities: Opportunity[] = [
           { id: '2a3b11a5-fe50-4c6b-8aad-15bf864b75f0', name: 'Website Development Project', client_name: 'ABC Corp', value: 25000 },
           { id: 'opportunity-2', name: 'Marketing Campaign', client_name: 'XYZ Inc', value: 15000 },
           { id: 'opportunity-3', name: 'Consulting Services', client_name: 'DEF Ltd', value: 8000 },
         ];
-        
         setOpportunities(mockOpportunities);
-      } catch (error) {
-        console.error('Failed to load opportunities:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load opportunities",
-          variant: "destructive",
-        });
       } finally {
         setIsLoadingOpportunities(false);
       }
