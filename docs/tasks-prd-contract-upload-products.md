@@ -7,8 +7,10 @@ Based on PRD: `prd-contract-upload-products.md`
 - `supabase/functions/contract-upload/` - New edge function for PDF processing and AI parsing
 - `supabase/functions/contract-upload/index.ts` - Main contract upload processing logic
 - `supabase/functions/contract-upload/pdf-parser.ts` - PDF text extraction and AI prompting
+- `supabase/functions/contract-upload/openai-client.ts` - OpenAI API integration and client utilities
 - `supabase/functions/contract-upload/product-creator.ts` - Act! product creation and database sync
 - `supabase/functions/contract-upload/types.ts` - TypeScript interfaces for contract processing
+- `supabase/functions/contract-upload/README.md` - Documentation for environment setup and usage
 - `src/pages/ContractUpload.tsx` - New React page for contract upload UI
 - `src/components/ContractUploadForm.tsx` - Form component for file upload and opportunity selection
 - `src/components/LineItemsTable.tsx` - Editable table for reviewing parsed line items
@@ -26,28 +28,28 @@ Based on PRD: `prd-contract-upload-products.md`
 
 ## Tasks
 
-- [ ] 1.0 Set Up Infrastructure and Storage
-  - [ ] 1.1 Create Supabase Storage bucket for contract PDFs
-  - [ ] 1.2 Configure storage policies for authenticated users
-  - [ ] 1.3 Set up OpenAI API integration in Supabase Edge Functions
-  - [ ] 1.4 Create new edge function directory structure for contract-upload
-  - [ ] 1.5 Configure environment variables for OpenAI API key
+- [x] 1.0 Set Up Infrastructure and Storage
+  - [x] 1.1 Create Supabase Storage bucket for contract PDFs
+  - [x] 1.2 Configure storage policies for authenticated users
+  - [x] 1.3 Set up OpenAI API integration in Supabase Edge Functions
+  - [x] 1.4 Create new edge function directory structure for contract-upload
+  - [x] 1.5 Configure environment variables for OpenAI API key
 
-- [ ] 2.0 Create TypeScript Types and Interfaces
-  - [ ] 2.1 Create `ContractUploadRequest` interface for edge function input
-  - [ ] 2.2 Create `ParsedLineItem` interface for AI-extracted data
-  - [ ] 2.3 Create `ContractProcessingResult` interface for parsing results
-  - [ ] 2.4 Create `ProductCreationRequest` interface for Act! API calls
-  - [ ] 2.5 Create `ContractUploadResponse` interface for edge function output
+- [x] 2.0 Create TypeScript Types and Interfaces
+  - [x] 2.1 Create `ContractUploadRequest` interface for edge function input
+  - [x] 2.2 Create `ParsedLineItem` interface for AI-extracted data
+  - [x] 2.3 Create `ContractProcessingResult` interface for parsing results
+  - [x] 2.4 Create `ProductCreationRequest` interface for Act! API calls
+  - [x] 2.5 Create `ContractUploadResponse` interface for edge function output
 
-- [ ] 3.0 Implement PDF Processing and AI Parsing
-  - [ ] 3.1 Create PDF text extraction function using PDF.js or similar
-  - [ ] 3.2 Implement "Cost Proposal" section detection logic
-  - [ ] 3.3 Design OpenAI prompt for line item extraction with retainer/deliverable classification
-  - [ ] 3.4 Implement retainer date calculation logic (1st of each month)
-  - [ ] 3.5 Create retainer expansion logic (one product per month)
-  - [ ] 3.6 Add validation for extracted line items (required fields, amount formats)
-  - [ ] 3.7 Implement error handling for PDF processing failures
+- [x] 3.0 Implement PDF Processing and AI Parsing (Simplified Approach)
+  - [x] 3.1 Implement direct PDF processing using OpenAI GPT-4o (no text extraction needed)
+  - [x] 3.2 Design OpenAI prompt for comprehensive contract analysis
+  - [x] 3.3 Implement retainer/deliverable classification with AI
+  - [x] 3.4 Implement retainer date calculation logic (1st of each month)
+  - [x] 3.5 Create retainer expansion logic (one product per month)
+  - [x] 3.6 Add validation for extracted line items (required fields, amount formats)
+  - [x] 3.7 Implement error handling and deduplication for PDF processing
 
 - [ ] 4.0 Extend Act! Integration for Product Creation
   - [ ] 4.1 Add `createProduct(opportunityId, productData)` method to ActClient
