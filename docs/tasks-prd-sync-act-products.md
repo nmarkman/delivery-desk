@@ -39,6 +39,9 @@ Based on PRD: `prd-sync-act-products.md`
   - [ ] 3.3 Implement proper error handling for products API calls with retry logic
   - [ ] 3.4 Add rate limiting compliance for products API endpoints
   - [x] 3.5 Test products API endpoint structure and document expected response format
+    - ✅ API test successful: Retrieved 1 product with complete 21-field structure
+    - 🚨 CRITICAL: itemNumber field is NULL in real data (not date string as expected)
+    - Available date fields: createDate, editDate, created, edited
 
 - [ ] 4.0 Create Products Sync Logic and Mapping
   - [ ] 4.1 Create `products-sync.ts` module following existing sync architecture pattern

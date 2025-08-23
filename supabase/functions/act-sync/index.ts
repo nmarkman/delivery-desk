@@ -22,7 +22,7 @@ serve(async (req) => {
   
   try {
     // Parse request body to get user_id and operation parameters
-    const { user_id, operation_type = 'analysis', test_credentials } = await req.json();
+    const { user_id, operation_type = 'analysis', test_credentials, test_opportunity_id } = await req.json();
     
     if (!user_id) {
       return new Response(
@@ -149,32 +149,7 @@ serve(async (req) => {
 
     // Handle test_products operation type
     if (operation_type === 'test_products') {
-      const productsTestResult = await actClient.testProductsApi(connection);
-      
-      return new Response(
-        JSON.stringify({
-          message: "Act! Products API test completed",
-          user_id: user_id,
-          operation_type: operation_type,
-          authentication: "successful",
-          connection: {
-            database_name: connection.act_database_name,
-            region: connection.act_region,
-            username: connection.act_username,
-            status: connection.connection_status
-          },
-          products_test_result: productsTestResult
-        }),
-        { 
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
-    }
-
-    // Handle test_products operation type
-    if (operation_type === 'test_products') {
-      const productsTestResult = await actClient.testProductsApi(connection);
+      const productsTestResult = await actClient.testProductsApi(connection, test_opportunity_id);
       
       return new Response(
         JSON.stringify({
