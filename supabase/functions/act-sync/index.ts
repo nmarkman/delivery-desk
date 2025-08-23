@@ -173,15 +173,23 @@ serve(async (req) => {
       );
     }
 
-    // Fetch data using the ActClient
-    const [opportunitiesResult, tasksResult] = await Promise.all([
-      operation_type === 'sync' ? 
-        actClient.syncOpportunitiesData(connection, { logIntegration: true }) :
-        actClient.getOpportunities(connection),
-      operation_type === 'sync' ? 
-        actClient.syncTasksData(connection, { logIntegration: true, syncOnlyBillable: true }) :
-        actClient.getTasks(connection)
-    ]);
+    // Step 1: Fetch/sync opportunities first (required for products sync)
+    console.log('Step 1: Syncing opportunities...');
+    const opportunitiesResult = operation_type === 'sync' ? 
+      await actClient.syncOpportunitiesData(connection, { logIntegration: true }) :
+      await actClient.getOpportunities(connection);
+
+    // Step 2: Fetch/sync products (depends on opportunities being up-to-date)
+    console.log('Step 2: Syncing products...');
+    const productsResult = operation_type === 'sync' ? 
+      await actClient.syncProductsData(connection, { logIntegration: true }) :
+      { success: true, data: { message: 'Products sync skipped in analysis mode' } };
+
+    // Step 3: Fetch/sync tasks (independent of opportunities/products)
+    console.log('Step 3: Syncing tasks...');
+    const tasksResult = operation_type === 'sync' ? 
+      await actClient.syncTasksData(connection, { logIntegration: true, syncOnlyBillable: true }) :
+      await actClient.getTasks(connection);
 
     // Update last sync timestamp
     await actClient.updateLastSync(connection.id);
@@ -204,7 +212,14 @@ serve(async (req) => {
       api_url: connection.api_base_url || `https://api${connection.act_region}.act.com`,
       rate_limit_status: rateLimitStatus,
       opportunities_data: opportunitiesResult,
-      tasks_data: tasksResult
+      products_data: productsResult,
+      tasks_data: tasksResult,
+      sync_sequence: {
+        step_1: "opportunities",
+        step_2: "products", 
+        step_3: "tasks",
+        rationale: "Products sync requires up-to-date opportunity mappings"
+      }
     };
 
     // Log structure analysis for opportunities
@@ -219,6 +234,17 @@ serve(async (req) => {
       console.log("- Contacts Array Length:", firstOpportunity.contacts?.length || 0);
       console.log("- Companies Array Length:", firstOpportunity.companies?.length || 0);
       console.log("- All Top-Level Keys:", Object.keys(firstOpportunity));
+    }
+
+    // Log products sync results
+    if (productsResult.success && productsResult.data) {
+      console.log("Products sync summary:");
+      console.log("- Total Processed:", productsResult.data.total_records_processed || 0);
+      console.log("- Created:", productsResult.data.records_created || 0);
+      console.log("- Updated:", productsResult.data.records_updated || 0);
+      console.log("- Failed:", productsResult.data.records_failed || 0);
+      console.log("- Duration (ms):", productsResult.data.sync_duration_ms || 0);
+      console.log("- Batch ID:", productsResult.data.batch_id || 'N/A');
     }
 
     // Log structure analysis for tasks

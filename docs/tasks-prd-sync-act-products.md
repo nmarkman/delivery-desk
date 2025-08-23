@@ -51,7 +51,7 @@ Based on PRD: `prd-sync-act-products.md`
     - 🎯 SUCCESS: Retrieved product with itemNumber "2025-09-01" in YYYY-MM-DD format
     - 📝 Product: "Consulting Services - PM", $10,000, 1 qty
 
-- [ ] 4.0 Create Products Sync Logic and Mapping
+- [x] 4.0 Create Products Sync Logic and Mapping
   - [x] 4.1 Create `products-sync.ts` module following existing sync architecture pattern
   - [x] 4.2 Implement `mapActProductToDb()` function with PRD field mappings (id→act_reference, name→description, etc.)
   - [x] 4.3 Add date validation for `itemNumber` field - skip products with invalid/missing dates
@@ -69,12 +69,21 @@ Based on PRD: `prd-sync-act-products.md`
     - ✅ Enhanced details field preservation (keeps richer manual content)
     - ✅ Detailed logging when manual values are preserved during sync
 
-- [ ] 5.0 Integrate Products Sync into Edge Function
-  - [ ] 5.1 Add `syncProductsData()` method to ActClient class following existing patterns
-  - [ ] 5.2 Update main act-sync edge function index.ts to include products sync in parallel with opportunities/tasks
-  - [ ] 5.3 Add products sync results to response data structure
-  - [ ] 5.4 Update integration logging to include products sync operations and statistics
-  - [ ] 5.5 Add products sync to operation_type options ('sync_products', 'analysis_products')
+- [x] 5.0 Integrate Products Sync into Edge Function
+  - [x] 5.1 Add `syncProductsData()` method to ActClient class following existing patterns
+  - [x] 5.2 Update main act-sync edge function index.ts to include products sync in **sequential order** with opportunities/tasks  
+    - ✅ CRITICAL FIX: Products sync runs AFTER opportunities sync to prevent race conditions
+    - ✅ Sequential execution: Step 1→Opportunities, Step 2→Products, Step 3→Tasks
+    - ✅ Prevents race condition where new opportunities with products might not be available for products sync
+  - [x] 5.3 Add products sync results to response data structure
+    - ✅ Added products_data field to main response with full sync statistics  
+    - ✅ Added sync_sequence field explaining the execution order and rationale
+  - [x] 5.4 Update integration logging to include products sync operations and statistics
+    - ✅ Added comprehensive products sync summary logging (processed, created, updated, failed, duration)
+    - ✅ Products sync automatically logs to integration_logs table via logIntegration: true
+  - [x] 5.5 Add products sync to operation_type options ('sync_products', 'analysis_products')
+    - ✅ Products sync runs automatically when operation_type === 'sync'
+    - ✅ Products sync skips gracefully in analysis mode with informative message
 
 - [ ] 6.0 Test and Validate Products Sync Implementation
   - [ ] 6.1 Test products API endpoint with real Act! connection to understand data structure

@@ -802,6 +802,86 @@ export class ActClient {
   }
 
   /**
+   * Fetch and sync products to database
+   */
+  async syncProductsData(
+    connection: UserActConnection,
+    options: {
+      batchSize?: number;
+      logIntegration?: boolean;
+      skipProductsWithoutDates?: boolean;
+      batchId?: string;
+      parentLogId?: string;
+    } = {}
+  ): Promise<ActApiResponse<any>> {
+    try {
+      console.log(`Fetching and syncing products for user ${connection.user_id}...`);
+      
+      // Step 1: Fetch all products from active opportunities
+      const apiResult = await this.getAllOpportunityProducts(connection);
+      
+      if (!apiResult.success || !apiResult.data) {
+        console.warn('No products data received from Act! API');
+        return {
+          success: false,
+          error: apiResult.error || 'No products data received',
+          data: null,
+          statusCode: apiResult.statusCode
+        };
+      }
+
+      // Step 2: Flatten products from all opportunities
+      const allProducts: ActProduct[] = [];
+      apiResult.data.forEach(result => {
+        if (result.products && result.products.length > 0) {
+          allProducts.push(...result.products);
+        }
+      });
+
+      console.log(`Found ${allProducts.length} total products across ${apiResult.data.length} opportunities`);
+
+      if (allProducts.length === 0) {
+        console.log('No products found to sync');
+        return {
+          success: true,
+          data: {
+            message: 'No products found to sync',
+            total_records_processed: 0,
+            records_created: 0,
+            records_updated: 0,
+            records_failed: 0
+          },
+          statusCode: 200
+        };
+      }
+
+      // Step 3: Import products-sync module and sync to database
+      const { syncProducts } = await import('./products-sync.ts');
+      const syncResult = await syncProducts(allProducts, connection, options);
+
+      console.log(`Products sync completed: ${syncResult.records_created} created, ${syncResult.records_updated} updated, ${syncResult.records_failed} failed`);
+
+      return {
+        success: syncResult.success,
+        data: {
+          message: `Products sync completed successfully`,
+          total_records_processed: syncResult.total_records_processed,
+          records_created: syncResult.records_created,
+          records_updated: syncResult.records_updated,
+          records_failed: syncResult.records_failed,
+          sync_duration_ms: syncResult.duration_ms,
+          batch_id: syncResult.batch_id
+        },
+        statusCode: syncResult.success ? 200 : 500
+      };
+
+    } catch (error) {
+      console.error(`Error in syncProductsData for user ${connection.user_id}:`, error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Update last sync timestamp for connection
    */
   async updateLastSync(connectionId: string): Promise<void> {
