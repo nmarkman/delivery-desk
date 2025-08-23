@@ -130,6 +130,23 @@ export interface ActTask {
   }> | null;
 }
 
+// Product Types
+export interface ActProduct {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  itemNumber: string; // Date string that will be parsed to billed_at
+  opportunityID: string;
+  // Additional fields that may be present in Act! products
+  description?: string;
+  unitOfMeasure?: string;
+  discount?: number;
+  taxable?: boolean;
+  created?: string;
+  edited?: string;
+}
+
 // =================================
 // Database Integration Types
 // =================================
@@ -189,6 +206,28 @@ export interface DbDeliverable {
   updated_at?: string;
 }
 
+export interface DbInvoiceLineItem {
+  id?: string;
+  act_reference?: string; // Act! product ID for upsert matching
+  billed_at?: string; // Parsed from Act! itemNumber field  
+  created_at?: string;
+  deliverable_id?: string;
+  description: string;
+  details?: string;
+  invoice_id?: string; // Nullable - can be assigned later
+  item_type: string;
+  line_number: number;
+  line_total?: number;
+  opportunity_id?: string;
+  quantity?: number;
+  service_period_end?: string;
+  service_period_start?: string;
+  source?: string; // 'act_sync' | 'contract_upload' | 'manual'
+  unit_rate?: number;
+  updated_at?: string;
+  user_id: string;
+}
+
 export interface DbIntegrationLog {
   id?: string;
   user_id: string;
@@ -238,6 +277,14 @@ export interface TaskMappingResult {
   mappingWarnings: string[];
   activityTypeMatched: boolean;
   feeAmountParsed: boolean;
+  missingRequiredFields: string[];
+}
+
+export interface ProductMappingResult {
+  dbRecord: DbInvoiceLineItem;
+  mappingWarnings: string[];
+  dateValidationPassed: boolean;
+  opportunityFound: boolean;
   missingRequiredFields: string[];
 }
 
@@ -372,9 +419,16 @@ export const CONNECTION_STATUSES = {
   EXPIRED: 'expired',
 } as const;
 
+export const SOURCE_TYPES = {
+  ACT_SYNC: 'act_sync',
+  CONTRACT_UPLOAD: 'contract_upload', 
+  MANUAL: 'manual',
+} as const;
+
 export const OPERATION_TYPES = {
   SYNC_OPPORTUNITIES: 'sync_opportunities',
   SYNC_TASKS: 'sync_tasks',
+  SYNC_PRODUCTS: 'sync_products',
   SYNC_FULL: 'sync_full',
   TEST_CONNECTION: 'test_connection',
   CREATE_TASK: 'create_task',
@@ -386,6 +440,7 @@ export const OPERATION_TYPES = {
 export type ActActivityType = typeof ACT_ACTIVITY_TYPES[keyof typeof ACT_ACTIVITY_TYPES];
 export type SyncStatus = typeof SYNC_STATUSES[keyof typeof SYNC_STATUSES];
 export type ConnectionStatus = typeof CONNECTION_STATUSES[keyof typeof CONNECTION_STATUSES];
+export type SourceType = typeof SOURCE_TYPES[keyof typeof SOURCE_TYPES];
 export type OperationType = typeof OPERATION_TYPES[keyof typeof OPERATION_TYPES];
 
 // =================================

@@ -19,7 +19,7 @@ Based on PRD: `prd-sync-act-products.md`
 
 ## Tasks
 
-- [ ] 1.0 Update Database Schema for Act! Products Sync
+- [x] 1.0 Update Database Schema for Act! Products Sync
   - [x] 1.1 Add `billed_at` DATE field to invoice_line_items table (parsed from Act! itemNumber)
   - [x] 1.2 Add `source` TEXT field to differentiate Act! vs tool-created records ('act_sync' | 'contract_upload' | 'manual')
   - [x] 1.3 Make `invoice_id` field nullable in invoice_line_items table (change from required to optional)
@@ -28,10 +28,10 @@ Based on PRD: `prd-sync-act-products.md`
   - [x] 1.6 Update Supabase TypeScript types by regenerating types after schema changes
 
 - [ ] 2.0 Add TypeScript Types for Act! Products
-  - [ ] 2.1 Create `ActProduct` interface in types.ts with fields: id, name, quantity, price, itemNumber, opportunityID
-  - [ ] 2.2 Create `DbInvoiceLineItem` interface matching updated database schema including billed_at and source fields
-  - [ ] 2.3 Create `ProductMappingResult` interface for validation results, warnings, and missing fields tracking
-  - [ ] 2.4 Add products-related constants and enums (product sync status, source types)
+  - [x] 2.1 Create `ActProduct` interface in types.ts with fields: id, name, quantity, price, itemNumber, opportunityID
+  - [x] 2.2 Create `DbInvoiceLineItem` interface matching updated database schema including billed_at and source fields
+  - [x] 2.3 Create `ProductMappingResult` interface for validation results, warnings, and missing fields tracking
+  - [x] 2.4 Add products-related constants and enums (product sync status, source types)
 
 - [ ] 3.0 Implement Act! Products API Integration  
   - [ ] 3.1 Add `getOpportunityProducts(opportunityId: string)` method to ActClient for fetching products by opportunity ID
