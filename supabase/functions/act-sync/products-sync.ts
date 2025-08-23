@@ -258,16 +258,16 @@ export async function syncProducts(
 
 /**
  * Get mapping of Act! opportunity IDs to Supabase opportunity UUIDs
- * Only includes active opportunities (excludes "Closed Lost" and "Closed Won")
+ * Only includes active opportunities (excludes "Closed" status)
  */
 async function getOpportunityMappings(userId: string): Promise<Record<string, string>> {
   try {
     const { data, error } = await supabase
       .from('opportunities')
-      .select('id, act_reference, stage')
+      .select('id, act_opportunity_id, status')
       .eq('user_id', userId)
-      .not('act_reference', 'is', null)
-      .not('stage', 'in', '("Closed Lost","Closed Won")'); // Only active opportunities
+      .not('act_opportunity_id', 'is', null)
+      .not('status', 'in', '("Closed Lost","Closed Won","Closed")'); // Only active opportunities
 
     if (error) {
       console.error('Error fetching opportunity mappings:', error);
@@ -276,8 +276,9 @@ async function getOpportunityMappings(userId: string): Promise<Record<string, st
 
     const mappings: Record<string, string> = {};
     data.forEach(opp => {
-      if (opp.act_reference) {
-        mappings[opp.act_reference] = opp.id;
+      if (opp.act_opportunity_id) {
+        // Convert UUID to string for the mapping key
+        mappings[opp.act_opportunity_id.toString()] = opp.id;
       }
     });
 
