@@ -173,6 +173,93 @@ serve(async (req) => {
       );
     }
 
+    // Handle test_products_sync operation type - directly sync our test product
+    if (operation_type === 'test_products_sync') {
+      const testOpportunityId = test_opportunity_id || '60043007-425e-4fc5-b90c-2b57eea12ebd';
+      
+      try {
+        // Get the specific test product
+        const productsResult = await actClient.getOpportunityProducts(testOpportunityId, connection);
+        
+        if (!productsResult.success || !productsResult.data || productsResult.data.length === 0) {
+          return new Response(
+            JSON.stringify({
+              message: "No products found for test opportunity",
+              user_id: user_id,
+              test_opportunity_id: testOpportunityId,
+              error: productsResult.error || 'No products data'
+            }, null, 2),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 400,
+            }
+          );
+        }
+
+        // Import products sync and test with detailed logging
+        const { syncProducts, mapActProductToDb } = await import('./products-sync.ts');
+        
+        // Test mapping first
+        console.log('=== TESTING PRODUCT MAPPING ===');
+        const testProduct = productsResult.data[0];
+        console.log('Test product:', JSON.stringify(testProduct, null, 2));
+        
+        const mappingResult = mapActProductToDb(testProduct, connection);
+        console.log('Mapping result:', JSON.stringify(mappingResult, null, 2));
+        
+        if (!mappingResult) {
+          return new Response(
+            JSON.stringify({
+              message: "Product mapping failed - product was skipped",
+              user_id: user_id,
+              test_product: testProduct,
+              reason: "Product was filtered out (likely invalid itemNumber date)"
+            }, null, 2),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          );
+        }
+        
+        // Test full sync
+        const syncResult = await syncProducts([testProduct], connection, { 
+          logIntegration: false, // Don't use broken integration logging
+          batchSize: 1 
+        });
+        
+        return new Response(
+          JSON.stringify({
+            message: "Test product sync completed",
+            user_id: user_id,
+            test_opportunity_id: testOpportunityId,
+            test_product: testProduct,
+            mapping_result: mappingResult,
+            sync_result: syncResult
+          }, null, 2),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+        
+      } catch (error) {
+        console.error('Error in test_products_sync:', error);
+        return new Response(
+          JSON.stringify({
+            message: "Test product sync failed",
+            user_id: user_id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined
+          }, null, 2),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+          }
+        );
+      }
+    }
+
     // Step 1: Fetch/sync opportunities first (required for products sync)
     console.log('Step 1: Syncing opportunities...');
     const opportunitiesResult = operation_type === 'sync' ? 
