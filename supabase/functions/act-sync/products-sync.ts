@@ -95,8 +95,8 @@ export function mapActProductToDb(
       // Act! opportunity mapping (will be resolved during sync)
       opportunity_id: actProduct.opportunityID, // Temporary - will be mapped to UUID
       
-      // Line item specifics
-      item_type: 'deliverable', // Products from Act! are billable deliverables
+      // Line item specifics  
+      item_type: 'fee', // Products from Act! are billable fees/work items
       line_number: 1, // Will be set during database insert
       
       // Optional fields
