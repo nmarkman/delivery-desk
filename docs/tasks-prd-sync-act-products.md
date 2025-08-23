@@ -1,0 +1,66 @@
+# Task List: Sync Act! Products into DeliveryDesk
+
+Based on PRD: `prd-sync-act-products.md`
+
+## Relevant Files
+
+- `supabase/migrations/add_products_sync_schema.sql` - Database migration to add missing fields to invoice_line_items table and create indexes
+- `supabase/functions/act-sync/types.ts` - Add TypeScript interfaces for Act! Products and database operations
+- `supabase/functions/act-sync/products-sync.ts` - Main products synchronization logic with mapping and upsert functions
+- `supabase/functions/act-sync/act-client.ts` - Extend ActClient class with products API methods
+- `supabase/functions/act-sync/index.ts` - Integrate products sync into main edge function
+- `src/integrations/supabase/types.ts` - Updated TypeScript types after database schema changes
+
+### Notes
+
+- Database migrations will be applied using the Supabase MCP tool as preferred by the user
+- Products sync will be integrated into the existing act-sync edge function architecture
+- Testing will be done through the existing edge function endpoint
+
+## Tasks
+
+- [ ] 1.0 Update Database Schema for Act! Products Sync
+  - [x] 1.1 Add `billed_at` DATE field to invoice_line_items table (parsed from Act! itemNumber)
+  - [x] 1.2 Add `source` TEXT field to differentiate Act! vs tool-created records ('act_sync' | 'contract_upload' | 'manual')
+  - [x] 1.3 Make `invoice_id` field nullable in invoice_line_items table (change from required to optional)
+  - [x] 1.4 Add database index on `act_reference` field for improved upsert performance
+  - [x] 1.5 Apply database migration using Supabase MCP tool
+  - [x] 1.6 Update Supabase TypeScript types by regenerating types after schema changes
+
+- [ ] 2.0 Add TypeScript Types for Act! Products
+  - [ ] 2.1 Create `ActProduct` interface in types.ts with fields: id, name, quantity, price, itemNumber, opportunityID
+  - [ ] 2.2 Create `DbInvoiceLineItem` interface matching updated database schema including billed_at and source fields
+  - [ ] 2.3 Create `ProductMappingResult` interface for validation results, warnings, and missing fields tracking
+  - [ ] 2.4 Add products-related constants and enums (product sync status, source types)
+
+- [ ] 3.0 Implement Act! Products API Integration  
+  - [ ] 3.1 Add `getOpportunityProducts(opportunityId: string)` method to ActClient for fetching products by opportunity ID
+  - [ ] 3.2 Add `getAllOpportunityProducts(connection)` method to fetch products for all active opportunities
+  - [ ] 3.3 Implement proper error handling for products API calls with retry logic
+  - [ ] 3.4 Add rate limiting compliance for products API endpoints
+  - [ ] 3.5 Test products API endpoint structure and document expected response format
+
+- [ ] 4.0 Create Products Sync Logic and Mapping
+  - [ ] 4.1 Create `products-sync.ts` module following existing sync architecture pattern
+  - [ ] 4.2 Implement `mapActProductToDb()` function with PRD field mappings (id→act_reference, name→description, etc.)
+  - [ ] 4.3 Add date validation for `itemNumber` field - skip products with invalid/missing dates
+  - [ ] 4.4 Implement `upsertInvoiceLineItem()` function with act_reference-based matching for existing records
+  - [ ] 4.5 Add `syncProducts()` function with batch processing, error handling, and logging integration
+  - [ ] 4.6 Implement filtering to only sync products from active opportunities (check opportunity status)
+  - [ ] 4.7 Add validation to prevent overwriting custom tool-specific values (like manually set invoice_id)
+
+- [ ] 5.0 Integrate Products Sync into Edge Function
+  - [ ] 5.1 Add `syncProductsData()` method to ActClient class following existing patterns
+  - [ ] 5.2 Update main act-sync edge function index.ts to include products sync in parallel with opportunities/tasks
+  - [ ] 5.3 Add products sync results to response data structure
+  - [ ] 5.4 Update integration logging to include products sync operations and statistics
+  - [ ] 5.5 Add products sync to operation_type options ('sync_products', 'analysis_products')
+
+- [ ] 6.0 Test and Validate Products Sync Implementation
+  - [ ] 6.1 Test products API endpoint with real Act! connection to understand data structure
+  - [ ] 6.2 Test products sync with sample data to verify field mappings work correctly
+  - [ ] 6.3 Verify no duplicate act_reference entries are created during multiple sync runs
+  - [ ] 6.4 Test that only products from active opportunities are synced (inactive ones filtered out)
+  - [ ] 6.5 Verify itemNumber date validation correctly skips invalid records
+  - [ ] 6.6 Test that existing invoice_id values are not overwritten during sync
+  - [ ] 6.7 Validate that sync results show proper success/failure counts and error messages
