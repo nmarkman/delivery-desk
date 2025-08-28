@@ -303,7 +303,7 @@ serve(async (req) => {
     console.log('Step 2: Syncing products...');
     const productsResult = operation_type === 'sync' ? 
       await actClient.syncProductsData(connection, { logIntegration: true }) :
-      { success: true, data: { message: 'Products sync skipped in analysis mode' } };
+      await actClient.syncProductsData(connection, { logIntegration: false }); // Always sync products, but skip logging for analysis mode
 
     // Step 3: Fetch/sync tasks (independent of opportunities/products)
     console.log('Step 3: Syncing tasks...');

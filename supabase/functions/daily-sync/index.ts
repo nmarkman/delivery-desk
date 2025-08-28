@@ -30,6 +30,7 @@ interface DailySyncResult {
     status: 'success' | 'failed';
     error?: string;
     opportunitiesCount?: number;
+    productsCount?: number;
     tasksCount?: number;
     duration?: number;
   }>;
@@ -153,6 +154,7 @@ async function syncSingleConnection(
   status: 'success' | 'failed';
   error?: string;
   opportunitiesCount?: number;
+  productsCount?: number;
   tasksCount?: number;
   duration: number;
 }> {
@@ -171,22 +173,40 @@ async function syncSingleConnection(
       throw new Error(`Connection test failed: ${connectionTest.error}`);
     }
 
-    // Sync opportunities and tasks
-    const [opportunitiesResult, tasksResult] = await Promise.all([
-      actClient.syncOpportunitiesData(connection, { 
-        logIntegration: true,
-        batchId,
-        parentLogId 
-      }),
-      actClient.syncTasksData(connection, { 
-        logIntegration: true,
-        syncOnlyBillable: true,
-        batchId,
-        parentLogId 
-      })
-    ]);
+    // Step 1: Sync opportunities first (required for products sync)
+    console.log(`Starting opportunities sync for connection ${connection.id}...`);
+    const opportunitiesResult = await actClient.syncOpportunitiesData(connection, { 
+      logIntegration: true,
+      batchId,
+      parentLogId 
+    });
 
-    // Check if both syncs were successful
+    if (!opportunitiesResult.success) {
+      throw new Error(`Opportunities sync failed: ${opportunitiesResult.error}`);
+    }
+
+    // Step 2: Sync products (depends on opportunities being up-to-date)
+    console.log(`Starting products sync for connection ${connection.id}...`);
+    const productsResult = await actClient.syncProductsData(connection, { 
+      logIntegration: true,
+      batchId,
+      parentLogId 
+    });
+
+    if (!productsResult.success) {
+      console.warn(`Products sync failed for connection ${connection.id}: ${productsResult.error}`);
+    }
+
+    // Step 3: Sync tasks (independent of opportunities/products)
+    console.log(`Starting tasks sync for connection ${connection.id}...`);
+    const tasksResult = await actClient.syncTasksData(connection, { 
+      logIntegration: true,
+      syncOnlyBillable: true,
+      batchId,
+      parentLogId 
+    });
+
+    // Check if any critical syncs failed (opportunities and tasks are critical, products sync failure is non-fatal)
     const hasErrors = !opportunitiesResult.success || !tasksResult.success;
     
     if (hasErrors) {
@@ -215,6 +235,7 @@ async function syncSingleConnection(
     return {
       status: 'success',
       opportunitiesCount: opportunitiesResult.data?.sync_result?.recordsCreated || 0,
+      productsCount: productsResult.data?.records_created || 0,
       tasksCount: tasksResult.data?.sync_result?.recordsCreated || 0,
       duration
     };
@@ -310,6 +331,7 @@ serve(async (req) => {
         status: syncResult.status,
         error: syncResult.error,
         opportunitiesCount: syncResult.opportunitiesCount,
+        productsCount: syncResult.productsCount,
         tasksCount: syncResult.tasksCount,
         duration: syncResult.duration
       });

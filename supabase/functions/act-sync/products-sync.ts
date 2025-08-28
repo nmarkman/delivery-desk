@@ -36,38 +36,45 @@ export function mapActProductToDb(
     
     // If we have a date, validate it's in a reasonable range
     if (billedAtDate && !validateBillingDate(billedAtDate)) {
-      console.log(`Skipping product ${actProduct.id} - date outside reasonable billing range: "${billedAtDate}"`);
-      return null; // Don't import this product
+      console.warn(`Product ${actProduct.id} "${actProduct.name}" has date outside reasonable billing range: "${billedAtDate}" - proceeding with null date instead`);
+      // Don't skip the product, just clear the invalid date
     }
 
-    // Allow products with null dates (deliverables) - they're valid
+    // Always allow products regardless of date - null dates are valid for deliverables
     dateValidationPassed = true;
     
     if (!billedAtDate) {
-      console.log(`Product ${actProduct.id} has no itemNumber date - treating as deliverable with null billing date`);
+      console.log(`Product ${actProduct.id} "${actProduct.name}" has no itemNumber date - treating as deliverable with null billing date`);
+    } else if (validateBillingDate(billedAtDate)) {
+      console.log(`Product ${actProduct.id} "${actProduct.name}" has valid billing date: ${billedAtDate}`);
     }
 
-    // Step 2: Validate required product fields
-    if (!actProduct.name || actProduct.name.trim() === '') {
-      missingRequiredFields.push('name');
+    // Step 2: Validate and handle required product fields with fallbacks
+    let productName = actProduct.name;
+    if (!productName || productName.trim() === '') {
+      productName = `Product ${actProduct.id}`; // Fallback name
+      warnings.push('Product name was missing, using fallback name');
     }
 
-    if (typeof actProduct.price !== 'number' || actProduct.price < 0) {
-      missingRequiredFields.push('price (must be valid number >= 0)');
+    let productPrice = actProduct.price;
+    if (typeof productPrice !== 'number' || productPrice < 0) {
+      productPrice = 0; // Allow $0 products (some deliverables may be no-cost)
+      warnings.push('Product price was missing or invalid, set to $0');
     }
 
-    if (typeof actProduct.quantity !== 'number' || actProduct.quantity <= 0) {
-      missingRequiredFields.push('quantity (must be number > 0)');
+    let productQuantity = actProduct.quantity;
+    if (typeof productQuantity !== 'number' || productQuantity <= 0) {
+      productQuantity = 1; // Default quantity to 1
+      warnings.push('Product quantity was missing or invalid, set to 1');
     }
 
-    // Skip products with missing required fields
-    if (missingRequiredFields.length > 0) {
-      console.log(`Skipping product ${actProduct.id} - missing required fields:`, missingRequiredFields);
-      return null; // Don't import this product
+    // Log products with fallback values applied
+    if (warnings.length > 0) {
+      console.log(`Product ${actProduct.id} required field corrections:`, warnings);
     }
 
     // Step 3: Calculate line total for validation (database will auto-calculate)
-    const calculatedTotal = (actProduct.price || 0) * (actProduct.quantity || 1);
+    const calculatedTotal = productPrice * productQuantity;
     
     // Check if calculated total matches Act! total (with small tolerance for rounding)
     const actTotal = actProduct.total || 0;
@@ -81,14 +88,14 @@ export function mapActProductToDb(
       // Act! reference for upsert matching
       act_reference: actProduct.id,
       
-      // Core product information
-      description: actProduct.name.trim(),
-      quantity: actProduct.quantity,
-      unit_rate: actProduct.price,
+      // Core product information (use corrected values)
+      description: productName.trim(),
+      quantity: productQuantity,
+      unit_rate: productPrice,
       // line_total: auto-calculated by database as (quantity * unit_rate)
       
-      // Parsed date from itemNumber
-      billed_at: billedAtDate,
+      // Parsed date from itemNumber (use null for invalid dates)
+      billed_at: (billedAtDate && validateBillingDate(billedAtDate)) ? billedAtDate : null,
       
       // Source tracking
       source: SOURCE_TYPES.ACT_SYNC,
@@ -111,8 +118,8 @@ export function mapActProductToDb(
       updated_at: new Date().toISOString()
     };
 
-    // Log successful mapping
-    console.log(`Successfully mapped product ${actProduct.id}: "${actProduct.name}" - $${actProduct.price} x ${actProduct.quantity} = $${calculatedTotal}`);
+    // Log successful mapping with details
+    console.log(`✅ Successfully mapped product ${actProduct.id}: "${productName}" - $${productPrice} x ${productQuantity} = $${calculatedTotal} | Date: ${dbRecord.billed_at || 'null'} | Opp: ${actProduct.opportunityID}`);
 
     return {
       dbRecord,
@@ -182,7 +189,7 @@ export async function syncProducts(
     const filteredProducts = actProducts.filter(product => {
       const isFromActiveOpportunity = activeOpportunityIds.has(product.opportunityID);
       if (!isFromActiveOpportunity) {
-        console.log(`Pre-filtering: Skipping product ${product.id} "${product.name}" - from closed/inactive opportunity ${product.opportunityID}`);
+        console.log(`⏭️ SKIP (Closed Opp): Product ${product.id} "${product.name}" - $${product.price} x ${product.quantity} - from closed/inactive opportunity ${product.opportunityID}`);
         skippedCount++;
         results.total_records_processed++;
       }
@@ -238,7 +245,8 @@ export async function syncProducts(
       ? Math.round((successCount / results.total_records_processed) * 100) 
       : 0;
 
-    console.log(`Products sync completed: ${successCount}/${results.total_records_processed} successful (${successRate}%), ${skippedCount} skipped, ${results.records_failed} failed`);
+    console.log(`🏁 Products sync completed: ${successCount}/${results.total_records_processed} successful (${successRate}%), ${skippedCount} skipped, ${results.records_failed} failed`);
+    console.log(`📊 Breakdown - Created: ${results.records_created}, Updated: ${results.records_updated}, Skipped: ${skippedCount}, Failed: ${results.records_failed}`);
     
     return results;
 
@@ -276,7 +284,7 @@ export async function getOpportunityMappings(userId: string): Promise<Record<str
     }
 
     const mappings: Record<string, string> = {};
-    data.forEach(opp => {
+    data.forEach((opp: any) => {
       if (opp.act_opportunity_id) {
         // Convert UUID to string for the mapping key
         mappings[opp.act_opportunity_id.toString()] = opp.id;
@@ -318,7 +326,7 @@ async function processSingleProduct(
     const supabaseOpportunityId = opportunityMappings[actOpportunityId];
     
     if (!supabaseOpportunityId) {
-      console.warn(`No active opportunity mapping found for Act! opportunity ${actOpportunityId} (may be closed), skipping product ${actProduct.id}: "${actProduct.name}"`);
+      console.warn(`⏭️ SKIP (No Mapping): Product ${actProduct.id} "${actProduct.name}" - $${actProduct.price} - No active opportunity mapping found for Act! opportunity ${actOpportunityId} (may be closed or not synced)`);
       return { success: true, skipped: true };
     }
 
