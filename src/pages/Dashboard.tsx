@@ -65,6 +65,7 @@ export default function Dashboard() {
           .from('opportunities')
           .select('*')
           .eq('user_id', user?.id)
+          .or('actual_close_date.is.null,actual_close_date.gt.' + new Date().toISOString().split('T')[0])
       ]);
 
       // Check for errors in each result
@@ -83,8 +84,8 @@ export default function Dashboard() {
     }
   };
 
-  // Filter out closed opportunities for metrics and display
-  const activeOpportunities = opportunities.filter(opp => opp.status !== 'Closed');
+  // Opportunities are already filtered at database level for active ones (actual_close_date null or future)
+  const activeOpportunities = opportunities;
   
   // Calculate metrics from active opportunities data only
   const uniqueClients = new Set(activeOpportunities.map(opp => opp.company_name)).size;

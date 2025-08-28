@@ -170,5 +170,3 @@
     - ✅ Added intelligent retainer amount detection across all opportunity_field_X
     - ✅ Added smart date field detection with fallback logic
     - ✅ Successfully extracted retainer data from user's Act! configuration
-  - [ ] 9.6 Update UI components to display monthly retainer amounts correctly
-  - [ ] 9.7 Verify invoice generation uses monthly retainer amounts properly
