@@ -32,19 +32,19 @@
   - [x] 2.3 Implement infinite scroll functionality for opportunity loading
   - [x] 2.4 Add mobile responsiveness to stack columns vertically on small screens
   - [x] 2.5 Sort opportunities by company name ascending as default
-- [ ] 3.0 Opportunity Card Component Development
+- [x] 3.0 Opportunity Card Component Development
   - [x] 3.1 Create `src/components/OpportunityCard.tsx` with expandable/collapsible functionality
   - [x] 3.2 Design card header with opportunity info (company name, contact, project name, status badge)
   - [x] 3.3 Add billing status indicator to show when billing details are missing vs. present
   - [x] 3.4 Implement expand/collapse animation using existing shadcn/ui patterns
   - [x] 3.5 Add "Manage Billing" button/link to open billing details modal
 - [ ] 4.0 Line Item Display and Due Date Management
-  - [ ] 4.1 Create line items table within OpportunityCard showing description, type badge, due date, status
-  - [ ] 4.2 Implement item type badges (Deliverable/Retainer) using existing contract upload badge styling
-  - [ ] 4.3 Add due date display with empty state for unassigned deliverable due dates
-  - [ ] 4.4 Create inline due date picker/editor for deliverable items only (retainer dates remain read-only)
-  - [ ] 4.5 Implement optimistic updates for due date changes using React Query
-  - [ ] 4.6 Add visual highlighting for deliverables that need due date assignment
+  - [x] 4.1 Create line items table within OpportunityCard showing description, type badge, due date, status
+  - [x] 4.2 Implement item type badges (Deliverable/Retainer) using existing contract upload badge styling
+  - [x] 4.3 Add due date display with empty state for unassigned deliverable due dates
+  - [x] 4.4 Create inline due date picker/editor for deliverable items only (retainer dates remain read-only)
+  - [x] 4.5 Implement optimistic updates for due date changes using React Query
+  - [x] 4.6 Add visual highlighting for deliverables that need due date assignment
 - [ ] 5.0 Billing Information Management System
   - [ ] 5.1 Create `src/components/BillingDetailsModal.tsx` with Organization and Bill To sections
   - [ ] 5.2 Design form fields for organization (name, address, contact name, contact email)
