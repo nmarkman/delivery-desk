@@ -184,6 +184,9 @@ export interface DbOpportunity {
   user_id: string;
   created_at?: string;
   updated_at?: string;
+  // Soft delete columns
+  act_last_seen_at?: string;
+  act_deleted_at?: string;
 }
 
 export interface DbDeliverable {
@@ -234,6 +237,9 @@ export interface DbInvoiceLineItem {
   unit_rate?: number;
   updated_at?: string;
   user_id: string;
+  // Soft delete columns
+  act_last_seen_at?: string;
+  act_deleted_at?: string;
 }
 
 export interface DbIntegrationLog {

@@ -61,6 +61,7 @@ export default function ContractUploadForm({
           .from('opportunities')
           .select('id, name, company_name, total_contract_value')
           .or('actual_close_date.is.null,actual_close_date.gt.' + new Date().toISOString().split('T')[0])
+          .is('act_deleted_at', null) // Exclude soft-deleted opportunities
           .order('created_at', { ascending: false });
         
         console.log('Query result (active filter):', { data, error });

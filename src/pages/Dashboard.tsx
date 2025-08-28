@@ -66,6 +66,7 @@ export default function Dashboard() {
           .select('*')
           .eq('user_id', user?.id)
           .or('actual_close_date.is.null,actual_close_date.gt.' + new Date().toISOString().split('T')[0])
+          .is('act_deleted_at', null) // Exclude soft-deleted opportunities
       ]);
 
       // Check for errors in each result
