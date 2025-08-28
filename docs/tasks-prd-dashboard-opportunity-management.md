@@ -21,17 +21,17 @@
 
 ## Tasks
 
-- [ ] 1.0 Database Schema Setup
+- [x] 1.0 Database Schema Setup
   - [x] 1.1 Create Supabase migration file for `opportunity_billing_info` table with all required fields (id, opportunity_id, organization fields, bill_to fields, payment_terms, po_number, user_id, timestamps)
   - [x] 1.2 Run migration and verify table creation in Supabase dashboard
   - [x] 1.3 Update TypeScript types by regenerating `src/integrations/supabase/types.ts`
   - [x] 1.4 Add RLS (Row Level Security) policies for the new table to ensure user data isolation
 - [ ] 2.0 Dashboard Layout Restructure  
-  - [ ] 2.1 Update `src/pages/Dashboard.tsx` to implement two-column CSS Grid layout
-  - [ ] 2.2 Replace existing opportunity cards section with new grid container
-  - [ ] 2.3 Implement infinite scroll functionality for opportunity loading
-  - [ ] 2.4 Add mobile responsiveness to stack columns vertically on small screens
-  - [ ] 2.5 Sort opportunities by company name ascending as default
+  - [x] 2.1 Update `src/pages/Dashboard.tsx` to implement two-column CSS Grid layout
+  - [x] 2.2 Replace existing opportunity cards section with new grid container
+  - [x] 2.3 Implement infinite scroll functionality for opportunity loading
+  - [x] 2.4 Add mobile responsiveness to stack columns vertically on small screens
+  - [x] 2.5 Sort opportunities by company name ascending as default
 - [ ] 3.0 Opportunity Card Component Development
   - [ ] 3.1 Create `src/components/OpportunityCard.tsx` with expandable/collapsible functionality
   - [ ] 3.2 Design card header with opportunity info (company name, contact, project name, status badge)

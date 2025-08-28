@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Users, FileText, Clock, AlertCircle } from 'lucide-react';
+import { DollarSign, Users, FileText, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -40,19 +40,66 @@ export default function Dashboard() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Infinite scroll state
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const OPPORTUNITIES_PER_PAGE = 10;
 
-  useEffect(() => {
-    if (user) {
-      fetchData();
+  const fetchOpportunities = useCallback(async (pageNum: number = 0, reset: boolean = false) => {
+    try {
+      if (reset) {
+        setLoading(true);
+        setError(null);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const from = pageNum * OPPORTUNITIES_PER_PAGE;
+      const to = from + OPPORTUNITIES_PER_PAGE - 1;
+
+      const opportunitiesResult = await supabase
+        .from('opportunities')
+        .select('*')
+        .eq('user_id', user?.id)
+        .or('actual_close_date.is.null,actual_close_date.gt.' + new Date().toISOString().split('T')[0])
+        .is('act_deleted_at', null)
+        .order('company_name', { ascending: true })
+        .range(from, to);
+
+      if (opportunitiesResult.error) {
+        throw new Error(`Failed to fetch opportunities: ${opportunitiesResult.error.message}`);
+      }
+
+      const newOpportunities = opportunitiesResult.data || [];
+      
+      if (reset) {
+        setOpportunities(newOpportunities);
+      } else {
+        setOpportunities(prev => [...prev, ...newOpportunities]);
+      }
+      
+      // Check if we have more data
+      setHasMore(newOpportunities.length === OPPORTUNITIES_PER_PAGE);
+      setPage(pageNum);
+    } catch (error) {
+      console.error('Error fetching opportunities:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load opportunities');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
-  }, [user]);
+  }, [user?.id, OPPORTUNITIES_PER_PAGE]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const [clientsResult, invoicesResult, opportunitiesResult] = await Promise.all([
+      const [clientsResult, invoicesResult] = await Promise.all([
         supabase
           .from('clients')
           .select('*')
@@ -60,30 +107,51 @@ export default function Dashboard() {
         supabase
           .from('invoices')
           .select('*')
-          .eq('user_id', user?.id),
-        supabase
-          .from('opportunities')
-          .select('*')
           .eq('user_id', user?.id)
-          .or('actual_close_date.is.null,actual_close_date.gt.' + new Date().toISOString().split('T')[0])
-          .is('act_deleted_at', null) // Exclude soft-deleted opportunities
       ]);
 
-      // Check for errors in each result
+      // Check for errors
       if (clientsResult.error) throw new Error(`Failed to fetch clients: ${clientsResult.error.message}`);
       if (invoicesResult.error) throw new Error(`Failed to fetch invoices: ${invoicesResult.error.message}`);
-      if (opportunitiesResult.error) throw new Error(`Failed to fetch opportunities: ${opportunitiesResult.error.message}`);
 
       if (clientsResult.data) setClients(clientsResult.data);
       if (invoicesResult.data) setInvoices(invoicesResult.data);
-      if (opportunitiesResult.data) setOpportunities(opportunitiesResult.data);
+      
+      // Fetch first page of opportunities
+      await fetchOpportunities(0, true);
     } catch (error) {
       console.error('Error fetching data:', error);
       setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
-    } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  // Infinite scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!scrollRef.current || loadingMore || !hasMore) return;
+
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      
+      // Load more when user scrolls to within 100px of bottom
+      if (scrollTop + clientHeight >= scrollHeight - 100) {
+        setLoadingMore(true);
+        fetchOpportunities(page + 1, false);
+      }
+    };
+
+    const scrollElement = scrollRef.current;
+    if (scrollElement) {
+      scrollElement.addEventListener('scroll', handleScroll);
+      return () => scrollElement.removeEventListener('scroll', handleScroll);
+    }
+  }, [loadingMore, hasMore, page, fetchOpportunities]);
 
   // Opportunities are already filtered at database level for active ones (actual_close_date null or future)
   const activeOpportunities = opportunities;
@@ -198,76 +266,133 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Clients Overview */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Active Clients</CardTitle>
-            <CardDescription>Your active clients and their opportunities</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {activeOpportunities.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                No active clients found.{' '}
+      {/* Opportunities Grid - Two Column Layout */}
+      <div>
+        <div className="mb-4">
+          <h2 className="text-2xl font-semibold">Opportunities</h2>
+          <p className="text-muted-foreground">Manage your active opportunities and their details</p>
+        </div>
+        
+        {activeOpportunities.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8 text-muted-foreground">
+                No active opportunities found.{' '}
                 <Link to="/act-sync" className="text-primary hover:underline">
-                  Connect to Act! CRM to see your clients!
+                  Connect to Act! CRM to see your opportunities!
                 </Link>
               </div>
-            ) : (
-              <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
-                {activeOpportunities
-                  .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-                  .map((opportunity) => (
-                  <div key={opportunity.id} className="flex items-center justify-between p-3 rounded-lg border">
-                    <div>
-                      <p className="font-medium">{opportunity.company_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {opportunity.primary_contact} • {opportunity.name}
-                      </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div 
+            ref={scrollRef}
+            className="max-h-[800px] overflow-y-auto pr-2"
+          >
+            <div className="grid gap-6 md:grid-cols-2 grid-cols-1">
+              {activeOpportunities.map((opportunity) => (
+                <Card key={opportunity.id} className="w-full">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg">{opportunity.company_name}</CardTitle>
+                        <CardDescription className="mt-1">
+                          {opportunity.primary_contact} • {opportunity.name}
+                        </CardDescription>
+                      </div>
+                      <Badge variant={opportunity.status === 'Project Stage' ? "default" : "secondary"}>
+                        {opportunity.status}
+                      </Badge>
                     </div>
-                    <Badge variant={opportunity.status === 'Project Stage' ? "default" : "secondary"}>
-                      {opportunity.status}
-                    </Badge>
-                  </div>
-                ))}
+                  </CardHeader>
+                  
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      {/* Contract Details */}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Contract Value:</span>
+                        <span className="font-medium">${opportunity.total_contract_value.toLocaleString()}</span>
+                      </div>
+                      
+                      {opportunity.retainer_amount && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Retainer:</span>
+                          <span className="font-medium">${opportunity.retainer_amount.toLocaleString()}</span>
+                        </div>
+                      )}
+                      
+                      {/* Placeholder for Line Items - will be added in future tasks */}
+                      <div className="pt-2 border-t">
+                        <div className="text-sm text-muted-foreground mb-2">Line Items:</div>
+                        <div className="text-xs text-muted-foreground italic">
+                          Line item management coming soon...
+                        </div>
+                      </div>
+                      
+                      {/* Placeholder for Billing Status - will be added in future tasks */}
+                      <div className="pt-2 border-t">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Billing Details:</span>
+                          <span className="text-xs text-orange-600">Not configured</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            {/* Loading indicator for infinite scroll */}
+            {loadingMore && (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <span className="text-muted-foreground">Loading more opportunities...</span>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Invoices</CardTitle>
-            <CardDescription>Latest invoice activity</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {invoices.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                No invoices found.{' '}
-                <Link to="/invoices" className="text-primary hover:underline">
-                  Create your first invoice!
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {invoices.slice(0, 5).map((invoice) => (
-                  <div key={invoice.id} className="flex items-center justify-between p-3 rounded-lg border">
-                    <div>
-                      <p className="font-medium">Invoice #{invoice.id.slice(0, 8)}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Amount: ${invoice.amount.toFixed(2)}
-                      </p>
-                    </div>
-                    <Badge className={getStatusBadge(invoice.status)}>
-                      {invoice.status}
-                    </Badge>
-                  </div>
-                ))}
+            
+            {/* End of data indicator */}
+            {!hasMore && activeOpportunities.length > 0 && (
+              <div className="text-center py-6 text-muted-foreground text-sm">
+                No more opportunities to load
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </div>
+      
+      {/* Recent Invoices - Moved to bottom */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Invoices</CardTitle>
+          <CardDescription>Latest invoice activity</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {invoices.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground">
+              No invoices found.{' '}
+              <Link to="/invoices" className="text-primary hover:underline">
+                Create your first invoice!
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {invoices.slice(0, 6).map((invoice) => (
+                <div key={invoice.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <p className="font-medium">Invoice #{invoice.id.slice(0, 8)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Amount: ${invoice.amount.toFixed(2)}
+                    </p>
+                  </div>
+                  <Badge className={getStatusBadge(invoice.status)}>
+                    {invoice.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
