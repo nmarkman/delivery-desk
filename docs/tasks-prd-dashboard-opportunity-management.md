@@ -2,22 +2,59 @@
 
 ## Relevant Files
 
-- `src/pages/Dashboard.tsx` - Main dashboard component that needs major updates for two-column layout and opportunity management
-- `src/components/OpportunityCard.tsx` - New component for expandable opportunity cards with line item display, expand/collapse functionality, and billing status indicators
-- `src/components/OpportunityFilter.tsx` - New filter component similar to contract upload filter
-- `src/components/LineItemsTable.tsx` - Existing component that may need updates for new opportunity context
-- `src/components/BillingDetailsModal.tsx` - New modal component for managing billing information
-- `src/hooks/useOpportunityBilling.ts` - New custom hook for managing billing information CRUD operations
-- `src/hooks/useDueDateUpdate.ts` - New custom hook for updating due dates with Act! CRM sync
-- `supabase/migrations/20250828204357_add_opportunity_billing_info_table.sql` - Database migration for new billing information table with RLS policies and indexes
-- `supabase/functions/act-sync/products-sync.ts` - Extend existing sync to handle due date updates
-- `src/integrations/supabase/types.ts` - Will be auto-updated after migration but relevant for TypeScript types
+### Completed Files
+- `src/pages/Dashboard.tsx` - ✅ Two-column layout with infinite scroll implemented
+- `src/components/OpportunityCard.tsx` - ✅ Expandable cards with full line item management
+- `src/hooks/useLineItems.ts` - ✅ React Query hook with optimistic updates
+- `src/components/LineItemsTestPanel.tsx` - ✅ Test component for API integration
+- `supabase/migrations/20250828204357_add_opportunity_billing_info_table.sql` - ✅ Database migration applied
+- `src/integrations/supabase/types.ts` - ✅ Auto-updated with new table types
+
+### Files To Create  
+- `src/components/BillingDetailsModal.tsx` - Modal for managing billing information
+- `src/hooks/useOpportunityBilling.ts` - CRUD hook for billing information
+- `src/components/OpportunityFilter.tsx` - Filter component similar to contract upload
+- `src/hooks/useDueDateUpdate.ts` - Hook for Act! CRM sync integration
+- `supabase/functions/act-sync/products-sync.ts` - Extend for due date updates
+
+### Legacy Files (Reference Only)
+- `src/components/LineItemsTable.tsx` - Existing component, may reference for patterns
 
 ### Notes
 
 - Unit tests should be placed alongside components (e.g., `OpportunityCard.test.tsx`)
 - The existing `LineItemsTable.tsx` component may be reused but might need props updates
 - Database types will auto-generate after migration, no manual editing needed
+
+## Current Implementation State (Last Updated: 2025-01-15)
+
+### Completed Infrastructure
+- ✅ Database: `opportunity_billing_info` table with RLS policies 
+- ✅ Dashboard: Two-column responsive grid with infinite scroll
+- ✅ OpportunityCard: Expandable component with full line item management
+- ✅ Line Items: React Query hook with optimistic updates
+- ✅ Due Date Management: Inline editor for deliverables only
+
+### Key Implementation Details
+- **Field Mapping**: Line item types stored in `details` field ("retainer"/"deliverable"), not `item_type` (contains "fee")
+- **Date Terminology**: Uses "Billing Date" label (not "Due Date") 
+- **React Query**: Implemented in `useLineItems.ts` with optimistic updates
+- **Visual System**: Orange highlighting for deliverables needing billing dates
+- **Type Safety**: LineItem interface defined in OpportunityCard and useLineItems hook
+
+### Files Created/Modified
+- ✅ `src/components/OpportunityCard.tsx` - Complete with line item management
+- ✅ `src/hooks/useLineItems.ts` - React Query hook for optimistic updates  
+- ✅ `src/components/LineItemsTestPanel.tsx` - Testing infrastructure
+- ✅ `src/pages/Dashboard.tsx` - Updated with two-column grid
+- ✅ Migration: `supabase/migrations/20250828204357_add_opportunity_billing_info_table.sql`
+- 🔄 `src/integrations/supabase/types.ts` - Auto-updated after migration
+
+### Files Still Needed
+- ❌ `src/components/BillingDetailsModal.tsx` 
+- ❌ `src/hooks/useOpportunityBilling.ts`
+- ❌ `src/components/OpportunityFilter.tsx`
+- ❌ `src/hooks/useDueDateUpdate.ts` (for Act! sync)
 
 ## Tasks
 
@@ -38,7 +75,7 @@
   - [x] 3.3 Add billing status indicator to show when billing details are missing vs. present
   - [x] 3.4 Implement expand/collapse animation using existing shadcn/ui patterns
   - [x] 3.5 Add "Manage Billing" button/link to open billing details modal
-- [ ] 4.0 Line Item Display and Due Date Management
+- [x] 4.0 Line Item Display and Due Date Management
   - [x] 4.1 Create line items table within OpportunityCard showing description, type badge, due date, status
   - [x] 4.2 Implement item type badges (Deliverable/Retainer) using existing contract upload badge styling
   - [x] 4.3 Add due date display with empty state for unassigned deliverable due dates
