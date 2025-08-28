@@ -258,6 +258,8 @@ export type Database = {
       }
       invoice_line_items: {
         Row: {
+          act_deleted_at: string | null
+          act_last_seen_at: string | null
           act_reference: string | null
           billed_at: string | null
           created_at: string | null
@@ -279,6 +281,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          act_deleted_at?: string | null
+          act_last_seen_at?: string | null
           act_reference?: string | null
           billed_at?: string | null
           created_at?: string | null
@@ -300,6 +304,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          act_deleted_at?: string | null
+          act_last_seen_at?: string | null
           act_reference?: string | null
           billed_at?: string | null
           created_at?: string | null
@@ -469,6 +475,8 @@ export type Database = {
       }
       opportunities: {
         Row: {
+          act_deleted_at: string | null
+          act_last_seen_at: string | null
           act_opportunity_id: string
           act_raw_data: Json | null
           actual_close_date: string | null
@@ -494,6 +502,8 @@ export type Database = {
           weighted_value: number | null
         }
         Insert: {
+          act_deleted_at?: string | null
+          act_last_seen_at?: string | null
           act_opportunity_id: string
           act_raw_data?: Json | null
           actual_close_date?: string | null
@@ -519,6 +529,8 @@ export type Database = {
           weighted_value?: number | null
         }
         Update: {
+          act_deleted_at?: string | null
+          act_last_seen_at?: string | null
           act_opportunity_id?: string
           act_raw_data?: Json | null
           actual_close_date?: string | null
@@ -544,6 +556,68 @@ export type Database = {
           weighted_value?: number | null
         }
         Relationships: []
+      }
+      opportunity_billing_info: {
+        Row: {
+          bill_to_address: string
+          bill_to_contact_email: string
+          bill_to_contact_name: string
+          bill_to_name: string
+          created_at: string
+          id: string
+          opportunity_id: string
+          organization_address: string
+          organization_contact_email: string
+          organization_contact_name: string
+          organization_name: string
+          payment_terms: number
+          po_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bill_to_address: string
+          bill_to_contact_email: string
+          bill_to_contact_name: string
+          bill_to_name: string
+          created_at?: string
+          id?: string
+          opportunity_id: string
+          organization_address: string
+          organization_contact_email: string
+          organization_contact_name: string
+          organization_name: string
+          payment_terms?: number
+          po_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bill_to_address?: string
+          bill_to_contact_email?: string
+          bill_to_contact_name?: string
+          bill_to_name?: string
+          created_at?: string
+          id?: string
+          opportunity_id?: string
+          organization_address?: string
+          organization_contact_email?: string
+          organization_contact_name?: string
+          organization_name?: string
+          payment_terms?: number
+          po_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_billing_info_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
