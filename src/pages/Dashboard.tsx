@@ -6,6 +6,7 @@ import { DollarSign, Users, FileText, Clock, AlertCircle, Loader2 } from 'lucide
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import OpportunityCard from '@/components/OpportunityCard';
 
 interface Client {
   id: string;
@@ -291,54 +292,11 @@ export default function Dashboard() {
           >
             <div className="grid gap-6 md:grid-cols-2 grid-cols-1">
               {activeOpportunities.map((opportunity) => (
-                <Card key={opportunity.id} className="w-full">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg">{opportunity.company_name}</CardTitle>
-                        <CardDescription className="mt-1">
-                          {opportunity.primary_contact} • {opportunity.name}
-                        </CardDescription>
-                      </div>
-                      <Badge variant={opportunity.status === 'Project Stage' ? "default" : "secondary"}>
-                        {opportunity.status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      {/* Contract Details */}
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Contract Value:</span>
-                        <span className="font-medium">${opportunity.total_contract_value.toLocaleString()}</span>
-                      </div>
-                      
-                      {opportunity.retainer_amount && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Retainer:</span>
-                          <span className="font-medium">${opportunity.retainer_amount.toLocaleString()}</span>
-                        </div>
-                      )}
-                      
-                      {/* Placeholder for Line Items - will be added in future tasks */}
-                      <div className="pt-2 border-t">
-                        <div className="text-sm text-muted-foreground mb-2">Line Items:</div>
-                        <div className="text-xs text-muted-foreground italic">
-                          Line item management coming soon...
-                        </div>
-                      </div>
-                      
-                      {/* Placeholder for Billing Status - will be added in future tasks */}
-                      <div className="pt-2 border-t">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Billing Details:</span>
-                          <span className="text-xs text-orange-600">Not configured</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <OpportunityCard
+                  key={opportunity.id}
+                  opportunity={opportunity}
+                  defaultExpanded={true}
+                />
               ))}
             </div>
             

@@ -3,7 +3,7 @@
 ## Relevant Files
 
 - `src/pages/Dashboard.tsx` - Main dashboard component that needs major updates for two-column layout and opportunity management
-- `src/components/OpportunityCard.tsx` - New component for expandable opportunity cards with line item display
+- `src/components/OpportunityCard.tsx` - New component for expandable opportunity cards with line item display, expand/collapse functionality, and billing status indicators
 - `src/components/OpportunityFilter.tsx` - New filter component similar to contract upload filter
 - `src/components/LineItemsTable.tsx` - Existing component that may need updates for new opportunity context
 - `src/components/BillingDetailsModal.tsx` - New modal component for managing billing information
@@ -26,18 +26,18 @@
   - [x] 1.2 Run migration and verify table creation in Supabase dashboard
   - [x] 1.3 Update TypeScript types by regenerating `src/integrations/supabase/types.ts`
   - [x] 1.4 Add RLS (Row Level Security) policies for the new table to ensure user data isolation
-- [ ] 2.0 Dashboard Layout Restructure  
+- [x] 2.0 Dashboard Layout Restructure  
   - [x] 2.1 Update `src/pages/Dashboard.tsx` to implement two-column CSS Grid layout
   - [x] 2.2 Replace existing opportunity cards section with new grid container
   - [x] 2.3 Implement infinite scroll functionality for opportunity loading
   - [x] 2.4 Add mobile responsiveness to stack columns vertically on small screens
   - [x] 2.5 Sort opportunities by company name ascending as default
 - [ ] 3.0 Opportunity Card Component Development
-  - [ ] 3.1 Create `src/components/OpportunityCard.tsx` with expandable/collapsible functionality
-  - [ ] 3.2 Design card header with opportunity info (company name, contact, project name, status badge)
-  - [ ] 3.3 Add billing status indicator to show when billing details are missing vs. present
-  - [ ] 3.4 Implement expand/collapse animation using existing shadcn/ui patterns
-  - [ ] 3.5 Add "Manage Billing" button/link to open billing details modal
+  - [x] 3.1 Create `src/components/OpportunityCard.tsx` with expandable/collapsible functionality
+  - [x] 3.2 Design card header with opportunity info (company name, contact, project name, status badge)
+  - [x] 3.3 Add billing status indicator to show when billing details are missing vs. present
+  - [x] 3.4 Implement expand/collapse animation using existing shadcn/ui patterns
+  - [x] 3.5 Add "Manage Billing" button/link to open billing details modal
 - [ ] 4.0 Line Item Display and Due Date Management
   - [ ] 4.1 Create line items table within OpportunityCard showing description, type badge, due date, status
   - [ ] 4.2 Implement item type badges (Deliverable/Retainer) using existing contract upload badge styling
