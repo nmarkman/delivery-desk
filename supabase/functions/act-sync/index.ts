@@ -415,8 +415,8 @@ serve(async (req) => {
     // Step 2: Fetch/sync products (depends on opportunities being up-to-date)
     console.log('Step 2: Syncing products...');
     const productsResult = operation_type === 'sync' ? 
-      await actClient.syncProductsData(connection, { logIntegration: true }) :
-      await actClient.syncProductsData(connection, { logIntegration: false }); // Always sync products, but skip logging for analysis mode
+      await actClient.syncProductsData(connection, { logIntegration: true, skipProductsWithoutDates: false }) :
+      await actClient.syncProductsData(connection, { logIntegration: false, skipProductsWithoutDates: false }); // Always sync products, including those without itemNumber dates
 
     // Step 3: Fetch/sync tasks (independent of opportunities/products)
     // DISABLED: No longer syncing task data - focusing only on opportunities and products

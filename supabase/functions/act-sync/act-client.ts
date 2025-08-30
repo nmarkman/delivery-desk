@@ -694,9 +694,15 @@ export class ActClient {
       }
 
       const allResults: {opportunityId: string, products: ActProduct[], error?: string}[] = [];
-      const activeOpportunities = opportunitiesResult.data.filter(opp => opp.stage !== 'Closed Lost' && opp.stage !== 'Closed Won');
+      // Filter out opportunities with closed statuses (check the actual stage.process.name field)
+      const activeOpportunities = opportunitiesResult.data.filter(opp => {
+        const stageName = opp.stage?.process?.name;
+        const isNotClosed = stageName !== 'Closed Lost' && stageName !== 'Closed Won' && stageName !== 'Closed';
+        console.log(`Opportunity ${opp.id} "${opp.name}": stage="${stageName}" -> ${isNotClosed ? 'INCLUDED' : 'FILTERED OUT'}`);
+        return isNotClosed;
+      });
       
-      console.log(`Found ${activeOpportunities.length} active opportunities to check for products`);
+      console.log(`Found ${activeOpportunities.length}/${opportunitiesResult.data.length} active opportunities to check for products`);
 
       // Fetch products for each active opportunity (with concurrency limit)
       const BATCH_SIZE = 5; // Process 5 opportunities at a time to avoid rate limits
