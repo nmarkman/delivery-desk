@@ -83,13 +83,13 @@
   - [x] 4.5 Implement optimistic updates for due date changes using React Query
   - [x] 4.6 Add visual highlighting for deliverables that need due date assignment
 - [ ] 5.0 Billing Information Management System
-  - [ ] 5.1 Create `src/components/BillingDetailsModal.tsx` with Organization and Bill To sections
-  - [ ] 5.2 Design form fields for organization (name, address, contact name, contact email)
-  - [ ] 5.3 Design form fields for bill to (name, address, contact name, contact email, PO number optional)
-  - [ ] 5.4 Add payment terms field with integer input and default value of 30
-  - [ ] 5.5 Create `src/hooks/useOpportunityBilling.ts` for CRUD operations (create, read, update billing info)
-  - [ ] 5.6 Implement form validation with simple required field checks
-  - [ ] 5.7 Add save/cancel functionality with proper error handling and success feedback
+  - [x] 5.1 Create `src/components/BillingDetailsModal.tsx` with Organization and Bill To sections
+  - [x] 5.2 Design form fields for organization (name, address, contact name, contact email)
+  - [x] 5.3 Design form fields for bill to (name, address, contact name, contact email, PO number optional)
+  - [x] 5.4 Add payment terms field with integer input and default value of 30
+  - [x] 5.5 Create `src/hooks/useOpportunityBilling.ts` for CRUD operations (create, read, update billing info)
+  - [x] 5.6 Implement form validation with simple required field checks
+  - [x] 5.7 Add save/cancel functionality with proper error handling and success feedback
 - [ ] 6.0 Opportunity Filtering System
   - [ ] 6.1 Create `src/components/OpportunityFilter.tsx` similar to contract upload filter design
   - [ ] 6.2 Implement text-based search filtering by company name and project name
