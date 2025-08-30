@@ -892,7 +892,7 @@ export type Database = {
         }[]
       }
       get_user_connections_safe: {
-        Args: { connection_user_id: string }
+        Args: { connection_user_id?: string }
         Returns: {
           act_database_name: string
           act_region: string

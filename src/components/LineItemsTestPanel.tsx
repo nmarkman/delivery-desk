@@ -19,8 +19,7 @@ interface LineItemsTestPanelProps {
 export default function LineItemsTestPanel({ opportunityId }: LineItemsTestPanelProps) {
   const { lineItems, isLoading, updateDueDate, isUpdating, error } = useLineItems(opportunityId);
   
-  // These features are not yet implemented
-  const syncWithAct = () => {};
+  // Act! sync is not yet implemented
   const isSyncing = false;
 
   const testOptimisticUpdate = (itemId: string) => {
@@ -37,8 +36,8 @@ export default function LineItemsTestPanel({ opportunityId }: LineItemsTestPanel
   };
 
   const testActSync = () => {
-    // Test Act! API sync (placeholder for now)
-    console.log('Act! sync would run here');
+    // Act! API sync is not yet implemented
+    console.log('Act! sync feature coming soon');
   };
 
   if (isLoading) {
@@ -108,7 +107,7 @@ export default function LineItemsTestPanel({ opportunityId }: LineItemsTestPanel
                   size="sm"
                   variant="outline"
                   className="text-xs"
-                  onClick={() => testActSync()}
+                  onClick={testActSync}
                   disabled={isSyncing}
                 >
                   {isSyncing ? 'Syncing...' : 'Test Act! Sync'}
