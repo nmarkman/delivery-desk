@@ -127,6 +127,8 @@ Key documentation in `docs/` directory:
 - `act-api-exploration.md`: Comprehensive Act! API analysis
 - `act-api-field-mapping.md`: Field mapping between Act! and DeliveryDesk
 - `prd-database-schema-act-sync.md`: Database and sync requirements
+- `prd-invoicing-feature.md`: **CURRENT FOCUS** - Complete PRD for invoice generation system
+- `tasks-prd-invoicing-feature.md`: **IMPLEMENTATION READY** - Detailed task breakdown for invoice feature
 
 ### Environment Configuration
 
@@ -138,3 +140,26 @@ Key documentation in `docs/` directory:
 - Deployed via Lovable.dev platform
 - Automatic deployments on main branch
 - Uses lovable-tagger for development component tracking
+
+### Current Development Context
+
+#### Invoice Generation System (Ready for Implementation)
+**Status**: Complete PRD and task breakdown finished, ready for development
+**Key Design Decisions**:
+- Client-side PDF generation (no file storage needed)
+- Use existing `invoice_line_items` table as primary invoice data source
+- 1:1 relationship between line items and invoices initially
+- CRCG template matching with provided design and logo
+- Simple paid/unpaid status tracking with overdue detection
+- Invoice numbering: Client shortform + sequential number (WSU-001, WSU-002)
+
+**Implementation Approach**:
+- Treat line items with `billed_at` dates as completed invoices
+- Add minimal schema changes: `invoice_number`, `payment_date`, `invoice_status` to `invoice_line_items`
+- Build React components for invoice template, dashboard, and PDF generation
+- Replace placeholder `/invoices` route with full functionality
+
+**Key Resources**:
+- CRCG Logo URL: `https://osywqypaamxxqlgnvgqw.supabase.co/storage/v1/object/public/public-images/crcg-logo.png`
+- Invoice template design provided in PRD
+- Complete task list: `docs/tasks-prd-invoicing-feature.md` (8 main tasks, 34 sub-tasks)

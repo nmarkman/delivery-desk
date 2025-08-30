@@ -25,8 +25,8 @@
 
 ## 🚧 Current Development Status
 
-**Phase:** Database Schema Design & Act! API Integration  
-**Sprint:** Initial Act! CRM connectivity and data exploration  
+**Phase:** Invoice Generation & Management Implementation  
+**Sprint:** Core invoicing functionality with client-side PDF generation  
 
 ### ✅ Completed Milestones
 - [x] **Act! API Authentication**: Bearer token flow with automatic refresh strategy
@@ -41,12 +41,13 @@
 - [x] **Core UI Components**: SyncDashboard, connection management, and daily sync controls
 - [x] **Contract Upload System**: AI-powered PDF parsing with Claude API for automatic line item extraction
 - [x] **Products Pipeline**: Complete Act! CRM product creation and database sync with support for deliverables (null dates) and retainers
+- [x] **Invoice Feature Planning**: Complete PRD and task breakdown for invoice generation system
 
-### 🔄 Current Tasks
-- [ ] **Invoice Generation**: PDF invoices with CRCG branding and itemized billing
-- [ ] **Payment Tracking**: Invoice status management and overdue tracking
-- [ ] **Dashboard Analytics**: AR metrics, outstanding invoices, and revenue reporting
-- [ ] **Contract Management**: Contract storage, versioning, and line item editing capabilities
+### 🔄 Current Tasks (Ready for Implementation)
+- [ ] **Invoice Generation System**: Client-side PDF invoices with CRCG branding using existing line items
+- [ ] **Payment Status Tracking**: Simple paid/unpaid status management with overdue detection
+- [ ] **Invoice Dashboard**: Replace /invoices placeholder with full invoice management interface
+- [ ] **Database Schema Updates**: Add invoice_number, payment_date, invoice_status to invoice_line_items table
 
 ### 📋 Upcoming Phases
 1. **Core Functionality**: Invoice generation, payment tracking, dashboard
@@ -129,6 +130,8 @@ delivery-desk/
 - **[`docs/delivery-desk-full-prd.md`](docs/delivery-desk-full-prd.md)**: Complete Product Requirements Document
 - **[`docs/prd-database-schema-act-sync.md`](docs/prd-database-schema-act-sync.md)**: Focused PRD for database design and API sync
 - **[`docs/tasks-prd-database-schema-act-sync.md`](docs/tasks-prd-database-schema-act-sync.md)**: Detailed implementation task breakdown
+- **[`docs/prd-invoicing-feature.md`](docs/prd-invoicing-feature.md)**: **CURRENT** - Complete PRD for invoice generation system
+- **[`docs/tasks-prd-invoicing-feature.md`](docs/tasks-prd-invoicing-feature.md)**: **CURRENT** - Ready-to-implement task breakdown (8 main tasks, 34 sub-tasks)
 
 ## 🚀 Development Workflow
 
@@ -170,9 +173,10 @@ Currently using Act! trial account for development:
 This is a private project for CRCG.
 
 ### Current Sprint Focus
-- Complete invoice generation system using extracted contract line items
-- Implement payment tracking and overdue management
-- Build comprehensive AR dashboard with contract and invoice analytics
+- **Invoice Generation**: Implement client-side PDF generation using existing invoice_line_items data
+- **Payment Tracking**: Add simple paid/unpaid status with overdue detection
+- **CRCG Template**: Match exact invoice design with logo and branding
+- **Next Steps**: Detailed implementation tasks available in `docs/tasks-prd-invoicing-feature.md`
 
 ---
 
