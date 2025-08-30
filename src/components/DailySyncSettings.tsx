@@ -15,7 +15,7 @@ interface DailySyncSettings {
   syncTime: string;
   nextSyncAt: string | null;
   lastSyncAt: string | null;
-  status: 'pending' | 'running' | 'success' | 'failed';
+  status: string;
   error: string | null;
 }
 
@@ -184,11 +184,11 @@ export function DailySyncSettings() {
   };
 
   const getStatusBadge = () => {
-    const statusConfig = {
-      pending: { variant: 'secondary' as const, label: 'Pending', icon: Clock },
-      running: { variant: 'default' as const, label: 'Running', icon: Play },
-      success: { variant: 'default' as const, label: 'Success', icon: CheckCircle2, className: 'bg-green-500' },
-      failed: { variant: 'destructive' as const, label: 'Failed', icon: AlertCircle }
+    const statusConfig: Record<string, { variant: 'secondary' | 'default' | 'destructive', label: string, icon: any }> = {
+      pending: { variant: 'secondary', label: 'Pending', icon: Clock },
+      running: { variant: 'default', label: 'Running', icon: Play },
+      success: { variant: 'default', label: 'Success', icon: CheckCircle2 },
+      failed: { variant: 'destructive', label: 'Failed', icon: AlertCircle }
     };
     
     return statusConfig[settings.status] || statusConfig.pending;
@@ -210,7 +210,10 @@ export function DailySyncSettings() {
               Automatically sync your Act! data every day at a scheduled time
             </CardDescription>
           </div>
-          <Badge variant={statusBadge.variant} className={statusBadge.className}>
+          <Badge 
+            variant={statusBadge.variant} 
+            className={settings.status === 'success' ? 'bg-green-500' : undefined}
+          >
             <StatusIcon className="h-3 w-3 mr-1" />
             {statusBadge.label}
           </Badge>

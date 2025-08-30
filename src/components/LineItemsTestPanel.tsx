@@ -17,7 +17,11 @@ interface LineItemsTestPanelProps {
  * 4. Loading states and user feedback
  */
 export default function LineItemsTestPanel({ opportunityId }: LineItemsTestPanelProps) {
-  const { lineItems, isLoading, updateDueDate, isUpdating, syncWithAct, isSyncing, error } = useLineItems(opportunityId);
+  const { lineItems, isLoading, updateDueDate, isUpdating, error } = useLineItems(opportunityId);
+  
+  // These features are not yet implemented
+  const syncWithAct = () => {};
+  const isSyncing = false;
 
   const testOptimisticUpdate = (itemId: string) => {
     // Test optimistic update with a future date
