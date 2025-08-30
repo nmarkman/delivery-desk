@@ -85,16 +85,17 @@ export function SyncResultsDisplay({ results, operationType }: SyncResultsDispla
   }
 
   const oppsResult = results.opportunities_data?.data?.sync_result;
-  const tasksResult = results.tasks_data?.data?.sync_result;
+  // const tasksResult = results.tasks_data?.data?.sync_result; // DISABLED: Task sync is disabled
 
   const getTotalStats = () => {
+    // Only include opportunities data since task sync is disabled
     const total = {
-      processed: (oppsResult?.total_records_processed || 0) + (tasksResult?.total_records_processed || 0),
-      created: (oppsResult?.records_created || 0) + (tasksResult?.records_created || 0),
-      updated: (oppsResult?.records_updated || 0) + (tasksResult?.records_updated || 0),
-      failed: (oppsResult?.records_failed || 0) + (tasksResult?.records_failed || 0),
-      errors: [...(oppsResult?.errors || []), ...(tasksResult?.errors || [])],
-      warnings: [...(oppsResult?.warnings || []), ...(tasksResult?.warnings || [])]
+      processed: (oppsResult?.total_records_processed || 0),
+      created: (oppsResult?.records_created || 0),
+      updated: (oppsResult?.records_updated || 0),
+      failed: (oppsResult?.records_failed || 0),
+      errors: [...(oppsResult?.errors || [])],
+      warnings: [...(oppsResult?.warnings || [])]
     };
     return total;
   };
@@ -243,8 +244,8 @@ export function SyncResultsDisplay({ results, operationType }: SyncResultsDispla
           </Card>
         )}
 
-        {/* Tasks/Deliverables */}
-        {results.tasks_data && (
+        {/* Tasks/Deliverables - DISABLED: Task sync is no longer active */}
+        {/* {results.tasks_data && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between text-base">
@@ -317,7 +318,7 @@ export function SyncResultsDisplay({ results, operationType }: SyncResultsDispla
               )}
             </CardContent>
           </Card>
-        )}
+        )} */}
       </div>
 
       {/* Errors Section */}

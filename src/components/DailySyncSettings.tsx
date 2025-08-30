@@ -227,7 +227,7 @@ export function DailySyncSettings() {
               Enable Daily Sync
             </Label>
             <p className="text-sm text-muted-foreground">
-              Automatically sync opportunities and tasks from Act! CRM
+              Automatically sync opportunities from Act! CRM
             </p>
           </div>
           <Switch

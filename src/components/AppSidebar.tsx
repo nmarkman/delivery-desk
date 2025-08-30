@@ -22,11 +22,12 @@ const navigation = [
     url: '/',
     icon: LayoutDashboard,
   },
-  {
-    title: 'Deliverables Report',
-    url: '/deliverables',
-    icon: FileText,
-  },
+  // DISABLED: No longer using task/deliverables data - report hidden from navigation
+  // {
+  //   title: 'Deliverables Report',
+  //   url: '/deliverables',
+  //   icon: FileText,
+  // },
   {
     title: 'Invoice Generator',
     url: '/invoices',

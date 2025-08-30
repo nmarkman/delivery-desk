@@ -198,23 +198,21 @@ async function syncSingleConnection(
     }
 
     // Step 3: Sync tasks (independent of opportunities/products)
-    console.log(`Starting tasks sync for connection ${connection.id}...`);
-    const tasksResult = await actClient.syncTasksData(connection, { 
-      logIntegration: true,
-      syncOnlyBillable: true,
-      batchId,
-      parentLogId 
-    });
+    // DISABLED: No longer syncing task data - focusing only on opportunities and products
+    // console.log(`Starting tasks sync for connection ${connection.id}...`);
+    // const tasksResult = await actClient.syncTasksData(connection, { 
+    //   logIntegration: true,
+    //   syncOnlyBillable: true,
+    //   batchId,
+    //   parentLogId 
+    // });
+    const tasksResult = { success: true, data: { sync_result: { recordsCreated: 0 } }, message: "Task sync disabled" };
 
-    // Check if any critical syncs failed (opportunities and tasks are critical, products sync failure is non-fatal)
-    const hasErrors = !opportunitiesResult.success || !tasksResult.success;
+    // Check if any critical syncs failed (only opportunities are critical now, products and tasks are non-fatal)
+    const hasErrors = !opportunitiesResult.success;
     
     if (hasErrors) {
-      const errorMessage = [
-        !opportunitiesResult.success && `Opportunities: ${opportunitiesResult.error}`,
-        !tasksResult.success && `Tasks: ${tasksResult.error}`
-      ].filter(Boolean).join('; ');
-      
+      const errorMessage = `Opportunities: ${opportunitiesResult.error}`;
       throw new Error(errorMessage);
     }
 

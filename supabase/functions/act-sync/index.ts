@@ -419,10 +419,12 @@ serve(async (req) => {
       await actClient.syncProductsData(connection, { logIntegration: false }); // Always sync products, but skip logging for analysis mode
 
     // Step 3: Fetch/sync tasks (independent of opportunities/products)
-    console.log('Step 3: Syncing tasks...');
-    const tasksResult = operation_type === 'sync' ? 
-      await actClient.syncTasksData(connection, { logIntegration: true, syncOnlyBillable: true }) :
-      await actClient.getTasks(connection);
+    // DISABLED: No longer syncing task data - focusing only on opportunities and products
+    // console.log('Step 3: Syncing tasks...');
+    // const tasksResult = operation_type === 'sync' ? 
+    //   await actClient.syncTasksData(connection, { logIntegration: true, syncOnlyBillable: true }) :
+    //   await actClient.getTasks(connection);
+    const tasksResult = { success: true, data: [], message: "Task sync disabled" };
 
     // Update last sync timestamp
     await actClient.updateLastSync(connection.id);
@@ -450,8 +452,8 @@ serve(async (req) => {
       sync_sequence: {
         step_1: "opportunities",
         step_2: "products", 
-        step_3: "tasks",
-        rationale: "Products sync requires up-to-date opportunity mappings"
+        step_3: "tasks (disabled)",
+        rationale: "Products sync requires up-to-date opportunity mappings. Task sync is disabled."
       }
     };
 
@@ -481,21 +483,22 @@ serve(async (req) => {
     }
 
     // Log structure analysis for tasks
-    if (tasksResult.success && tasksResult.data && tasksResult.data.length > 0) {
-      const firstTask = tasksResult.data[0];
-      console.log("Sample task structure:");
-      console.log("- ID:", firstTask.id);
-      console.log("- Subject:", firstTask.subject);
-      console.log("- Activity Type Name:", firstTask.activityTypeName);
-      console.log("- Start Time:", firstTask.startTime);
-      console.log("- End Time:", firstTask.endTime);
-      console.log("- Is Cleared:", firstTask.isCleared);
-      console.log("- Is Alarmed:", firstTask.isAlarmed);
-      console.log("- Contacts Array Length:", firstTask.contacts?.length || 0);
-      console.log("- Opportunities Array Length:", firstTask.opportunities?.length || 0);
-      console.log("- Companies Array Length:", firstTask.companies?.length || 0);
-      console.log("- All Top-Level Keys:", Object.keys(firstTask));
-    }
+    // DISABLED: Task sync is disabled, so no task structure analysis
+    // if (tasksResult.success && tasksResult.data && tasksResult.data.length > 0) {
+    //   const firstTask = tasksResult.data[0];
+    //   console.log("Sample task structure:");
+    //   console.log("- ID:", firstTask.id);
+    //   console.log("- Subject:", firstTask.subject);
+    //   console.log("- Activity Type Name:", firstTask.activityTypeName);
+    //   console.log("- Start Time:", firstTask.startTime);
+    //   console.log("- End Time:", firstTask.endTime);
+    //   console.log("- Is Cleared:", firstTask.isCleared);
+    //   console.log("- Is Alarmed:", firstTask.isAlarmed);
+    //   console.log("- Contacts Array Length:", firstTask.contacts?.length || 0);
+    //   console.log("- Opportunities Array Length:", firstTask.opportunities?.length || 0);
+    //   console.log("- Companies Array Length:", firstTask.companies?.length || 0);
+    //   console.log("- All Top-Level Keys:", Object.keys(firstTask));
+    // }
 
     return new Response(
       JSON.stringify(responseData),
