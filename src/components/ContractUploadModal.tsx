@@ -174,7 +174,10 @@ export default function ContractUploadModal({
         throw new Error('No active session found. Please log in again.');
       }
       
-      const response = await fetch(`${supabaseUrl}/functions/v1/contract-upload/upload`, {
+      const functionUrl = `${supabaseUrl}/functions/v1/contract-upload/upload`;
+      console.log('Calling Edge Function:', functionUrl);
+      
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -188,19 +191,42 @@ export default function ContractUploadModal({
         const errorText = await response.text();
         let errorMessage = `Upload failed: ${response.statusText}`;
         
+        console.error('Upload failed - Response details:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          headers: Object.fromEntries(response.headers.entries()),
+          responseText: errorText.substring(0, 500) // First 500 chars for debugging
+        });
+        
         try {
           const errorData = JSON.parse(errorText);
           if (errorData.message) {
             errorMessage = errorData.message;
           }
         } catch (e) {
-          // If we can't parse the error, use the status text
+          // If we can't parse the error, it might be HTML
+          if (errorText.includes('<!DOCTYPE') || errorText.includes('<html>')) {
+            errorMessage = `Upload failed: Received HTML instead of JSON. The Edge Function may not be available at this endpoint.`;
+          } else {
+            errorMessage = `Upload failed: ${response.statusText} - ${errorText.substring(0, 100)}`;
+          }
         }
         
         throw new Error(errorMessage);
       }
 
-      const result = await response.json();
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        const responseText = await response.text();
+        console.error('Failed to parse JSON response:', {
+          error: jsonError,
+          responseText: responseText.substring(0, 500)
+        });
+        throw new Error('Invalid response format from server. Please try again.');
+      }
       
       if (result.success) {
         const processedItems = result.processed_line_items?.line_items || result.pdf_parsing.line_items || [];
