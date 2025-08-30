@@ -166,7 +166,7 @@ export default function ContractUploadModal({
       }, 500);
 
       // Call the Supabase Edge Function
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://osywqypaamxxqlgnvgqw.supabase.co';
       
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -270,7 +270,7 @@ export default function ContractUploadModal({
     setUploadState(prev => ({ ...prev, isProcessing: true, error: null }));
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://osywqypaamxxqlgnvgqw.supabase.co';
       
       const { data: { session } } = await supabase.auth.getSession();
       
