@@ -46,6 +46,9 @@ interface LineItemsTableProps {
   onDelete: (index: number) => void;
   onEdit: (index: number, item: DisplayItem) => void;
   isProcessing: boolean;
+  onSubmit?: () => void;
+  onReset?: () => void;
+  showActionButtons?: boolean;
 }
 
 export default function LineItemsTable({
@@ -53,7 +56,10 @@ export default function LineItemsTable({
   onLineItemsChange,
   onDelete,
   onEdit,
-  isProcessing
+  isProcessing,
+  onSubmit,
+  onReset,
+  showActionButtons = false
 }: LineItemsTableProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingItem, setEditingItem] = useState<DisplayItem | null>(null);
@@ -201,40 +207,16 @@ export default function LineItemsTable({
   const retainersCount = lineItems.filter((item: DisplayItem) => getItemType(item) === 'retainer').length;
   const deliverablesCount = lineItems.filter((item: DisplayItem) => getItemType(item) === 'deliverable').length;
 
-  if (lineItems.length === 0) {
-    return null;
-  }
+  // Always show the table, even when empty, to allow manual line item addition
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <DollarSign className="h-5 w-5" />
-          <span>Extracted Line Items</span>
-        </CardTitle>
-        <CardDescription>
-          Review and optionally edit the extracted billing line items before creating products
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{lineItems.length}</div>
-            <div className="text-sm text-gray-600">Total Items</div>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <DollarSign className="h-5 w-5" />
+            <span>Line Items</span>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{retainersCount}</div>
-            <div className="text-sm text-gray-600">Retainers</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">{deliverablesCount}</div>
-            <div className="text-sm text-gray-600">Deliverables</div>
-          </div>
-        </div>
-
-        {/* Add Item Button */}
-        <div className="mb-4 flex justify-end">
           <Button
             onClick={() => setShowAddForm(true)}
             variant="outline"
@@ -244,15 +226,14 @@ export default function LineItemsTable({
             <Plus className="h-4 w-4" />
             <span>Add Line Item</span>
           </Button>
-        </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
 
         {/* Add Item Form */}
         {showAddForm && (
           <Card className="mb-4 border-blue-200 bg-blue-50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Add New Line Item</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="new-type">Type</Label>
@@ -325,20 +306,21 @@ export default function LineItemsTable({
           </Card>
         )}
 
-        {/* Line Items Table */}
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-24 text-center">Type</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {lineItems.map((item, index) => (
+        {/* Line Items Table - Only show when there are items */}
+        {lineItems.length > 0 && (
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-24 text-center">Type</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lineItems.map((item, index) => (
                 <TableRow key={index}>
                   <TableCell className="text-center">
                     <Badge variant={getTypeBadgeVariant(getItemType(item))} className="flex items-center justify-center space-x-1 mx-auto">
@@ -438,20 +420,70 @@ export default function LineItemsTable({
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                ))
+                }
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
-        {/* Total Amount */}
-        <div className="mt-6 text-right">
-          <div className="text-2xl font-bold text-green-700">
-            Total: {formatCurrency(totalAmount)}
+        {/* Footer with Total and Action Buttons */}
+        {lineItems.length > 0 && (
+          <div className="mt-6 flex items-end justify-between">
+            {/* Action Buttons - Left side */}
+            {showActionButtons && (
+              <div className="flex space-x-4">
+                <Button
+                  onClick={onSubmit}
+                  disabled={isProcessing}
+                  className="flex items-center space-x-2"
+                  size="lg"
+                >
+                  {isProcessing ? (
+                    <>
+                      <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" strokeOpacity="0.25"/>
+                        <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" strokeOpacity="0.75"/>
+                      </svg>
+                      <span>Creating Products...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+                      </svg>
+                      <span>Create & Assign Products</span>
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={onReset}
+                  variant="outline"
+                  disabled={isProcessing}
+                  size="lg"
+                  className="flex items-center space-x-2"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                  </svg>
+                  <span>Start Over</span>
+                </Button>
+              </div>
+            )}
+            
+            {/* Total - Right side */}
+            <div className="text-right">
+              <div className="text-2xl font-bold text-green-700">
+                Total: {formatCurrency(totalAmount)}
+              </div>
+              <div className="text-sm text-gray-600">
+                {retainersCount} retainer(s) • {deliverablesCount} deliverable(s)
+              </div>
+            </div>
           </div>
-          <div className="text-sm text-gray-600">
-            {retainersCount} retainer(s) • {deliverablesCount} deliverable(s)
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

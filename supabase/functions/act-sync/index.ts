@@ -22,7 +22,17 @@ serve(async (req) => {
   
   try {
     // Parse request body to get user_id and operation parameters
-    const { user_id, operation_type = 'analysis', test_credentials, test_opportunity_id } = await req.json();
+    const { 
+      user_id, 
+      operation_type = 'analysis', 
+      test_credentials, 
+      test_opportunity_id,
+      // Product operation parameters
+      action,
+      opportunityId,
+      productId,
+      productData
+    } = await req.json();
     
     if (!user_id) {
       return new Response(
@@ -145,6 +155,109 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
       );
+    }
+
+    // Handle product operations (updateProduct, deleteProduct)
+    if (action === 'updateProduct') {
+      if (!opportunityId || !productId || !productData) {
+        return new Response(
+          JSON.stringify({
+            error: "Missing required parameters for updateProduct action",
+            required: ["opportunityId", "productId", "productData"],
+            received: { opportunityId: !!opportunityId, productId: !!productId, productData: !!productData }
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+
+      try {
+        const updateResult = await actClient.updateProduct(opportunityId, productId, productData, connection);
+        
+        return new Response(
+          JSON.stringify({
+            message: "Product update completed",
+            user_id: user_id,
+            action: action,
+            success: updateResult.success,
+            data: updateResult.data,
+            error: updateResult.error,
+            opportunity_id: opportunityId,
+            product_id: productId,
+            updated_fields: Object.keys(productData)
+          }),
+          {
+            status: updateResult.success ? 200 : 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      } catch (error) {
+        return new Response(
+          JSON.stringify({
+            error: "Exception during product update",
+            details: error instanceof Error ? error.message : 'Unknown error',
+            user_id: user_id,
+            opportunity_id: opportunityId,
+            product_id: productId
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+    }
+
+    if (action === 'deleteProduct') {
+      if (!opportunityId || !productId) {
+        return new Response(
+          JSON.stringify({
+            error: "Missing required parameters for deleteProduct action",
+            required: ["opportunityId", "productId"],
+            received: { opportunityId: !!opportunityId, productId: !!productId }
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+
+      try {
+        const deleteResult = await actClient.deleteProduct(opportunityId, productId, connection);
+        
+        return new Response(
+          JSON.stringify({
+            message: "Product deletion completed",
+            user_id: user_id,
+            action: action,
+            success: deleteResult.success,
+            error: deleteResult.error,
+            opportunity_id: opportunityId,
+            product_id: productId
+          }),
+          {
+            status: deleteResult.success ? 200 : 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      } catch (error) {
+        return new Response(
+          JSON.stringify({
+            error: "Exception during product deletion",
+            details: error instanceof Error ? error.message : 'Unknown error',
+            user_id: user_id,
+            opportunity_id: opportunityId,
+            product_id: productId
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
     }
 
     // Handle test_products operation type

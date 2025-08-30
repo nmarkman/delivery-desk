@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useLineItemCrud } from './useLineItemCrud';
 
 interface LineItem {
   id: string;
@@ -10,6 +11,7 @@ interface LineItem {
   quantity: number | null;
   line_total: number | null;
   details: string | null;
+  act_reference: string | null;
 }
 
 interface UpdateLineItemDueDateParams {
@@ -33,6 +35,18 @@ const sortLineItems = (items: LineItem[]): LineItem[] => {
 export const useLineItems = (opportunityId: string) => {
   const queryClient = useQueryClient();
   const queryKey = ['lineItems', opportunityId];
+  const { 
+    updateLineItem, 
+    deleteLineItem, 
+    isUpdating: isCrudUpdating, 
+    isDeleting,
+    updateError,
+    deleteError,
+    updateErrorMessage,
+    deleteErrorMessage,
+    isUpdateSuccess,
+    isDeleteSuccess
+  } = useLineItemCrud();
 
   // Query to fetch line items
   const query = useQuery({
@@ -40,7 +54,7 @@ export const useLineItems = (opportunityId: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('invoice_line_items')
-        .select('id, description, item_type, billed_at, unit_rate, quantity, line_total, details')
+        .select('id, description, item_type, billed_at, unit_rate, quantity, line_total, details, act_reference')
         .eq('opportunity_id', opportunityId)
         .is('act_deleted_at', null)
         .order('line_number', { ascending: true });
@@ -99,30 +113,46 @@ export const useLineItems = (opportunityId: string) => {
     },
   });
 
-  // Future: Act! API sync mutation (placeholder for integration)
-  const syncWithActMutation = useMutation({
-    mutationFn: async ({ itemId, billed_at }: UpdateLineItemDueDateParams) => {
-      // TODO: Integrate with Act! API to update product/task due date
-      // This will call the Act! sync endpoint with the new due date
-      console.log('TODO: Sync with Act! API', { itemId, billed_at });
-      
-      // For now, just return success - will be implemented when Act! integration is ready
-      return { success: true, itemId, billed_at };
-    },
-    onError: (error) => {
-      console.error('Error syncing with Act! CRM:', error);
-      // Future: Add user notification for sync failures
-    },
-  });
+  // Enhanced line item update with Act! sync
+  const updateLineItemWithActSync = (itemId: string, updates: { description?: string; billed_at?: string | null; unit_rate?: number }) => {
+    updateLineItem({
+      itemId,
+      opportunityId,
+      updates
+    });
+  };
+
+  // Enhanced line item delete with Act! sync
+  const deleteLineItemWithActSync = (itemId: string, actReference?: string | null) => {
+    deleteLineItem({
+      itemId,
+      opportunityId,
+      actReference
+    });
+  };
 
   return {
     lineItems: query.data || [],
     isLoading: query.isLoading,
     error: query.error,
     updateDueDate: updateDueDateMutation.mutate,
-    isUpdating: updateDueDateMutation.isPending,
-    syncWithAct: syncWithActMutation.mutate,
-    isSyncing: syncWithActMutation.isPending,
+    isUpdating: updateDueDateMutation.isPending || isCrudUpdating,
+    isDeleting,
+    // New enhanced methods with Act! sync
+    updateLineItem: updateLineItemWithActSync,
+    deleteLineItem: deleteLineItemWithActSync,
+    // Enhanced error states
+    updateError: updateError,
+    deleteError: deleteError,
+    dueDateUpdateError: updateDueDateMutation.error,
+    // User-friendly error messages
+    updateErrorMessage,
+    deleteErrorMessage,
+    // Success states
+    isUpdateSuccess,
+    isDeleteSuccess,
+    // Combined error state for convenience
+    hasError: !!(query.error || updateError || deleteError || updateDueDateMutation.error),
     refetch: query.refetch,
   };
 };

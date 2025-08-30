@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, Truck, LogOut, User, Receipt, RefreshCw, Upload } from 'lucide-react';
+import { LayoutDashboard, FileText, Truck, LogOut, User, Receipt, RefreshCw } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
@@ -31,11 +31,6 @@ const navigation = [
     title: 'Invoice Generator',
     url: '/invoices',
     icon: Receipt,
-  },
-  {
-    title: 'Contract AI Upload',
-    url: '/contract-upload',
-    icon: Upload,
   },
   {
     title: 'Act! CRM Sync',

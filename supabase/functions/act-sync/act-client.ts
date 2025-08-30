@@ -400,8 +400,29 @@ async function makeApiCall<T>(
       };
     }
 
-    const data = await response.json() as T;
-    return { success: true, data, statusCode: response.status };
+    // Handle empty responses (DELETE operations typically return 204 No Content)
+    const contentLength = response.headers.get('content-length');
+    const contentType = response.headers.get('content-type');
+    
+    if (response.status === 204 || contentLength === '0' || 
+        (!contentType || !contentType.includes('application/json'))) {
+      // Return success with null data for empty responses
+      return { success: true, data: null as T, statusCode: response.status };
+    }
+
+    try {
+      const data = await response.json() as T;
+      return { success: true, data, statusCode: response.status };
+    } catch (jsonError) {
+      // If JSON parsing fails, try to get the text response
+      console.warn(`Failed to parse JSON response, trying text:`, jsonError);
+      const textData = await response.text();
+      if (!textData) {
+        // Empty response is success for DELETE operations
+        return { success: true, data: null as T, statusCode: response.status };
+      }
+      throw new Error(`Invalid JSON response: ${textData}`);
+    }
 
   } catch (error) {
     console.error(`Error making Act! API call for user ${connection.user_id}:`, error);
@@ -1161,6 +1182,87 @@ export class ActClient {
    */
   async testConnection(connection: UserActConnection): Promise<ActApiResponse<boolean>> {
     return testConnection(connection);
+  }
+
+  /**
+   * Delete a product from an opportunity in Act! CRM (CRUD operation - no full sync)
+   */
+  async deleteProduct(
+    opportunityId: string,
+    productId: string,
+    connection: UserActConnection
+  ): Promise<ActApiResponse<void>> {
+    try {
+      console.log(`Deleting product ${productId} from opportunity ${opportunityId} for user ${connection.user_id}...`);
+      
+      const result = await this.makeApiCall<void>(
+        `/api/opportunities/${opportunityId}/products/${productId}`,
+        connection,
+        {
+          method: 'DELETE'
+        }
+      );
+      
+      if (result.success) {
+        console.log(`Successfully deleted product ${productId} from opportunity ${opportunityId}`);
+      } else {
+        console.error(`Failed to delete product ${productId}: ${result.error}`);
+      }
+      
+      return result;
+      
+    } catch (error) {
+      console.error(`Error deleting product ${productId} from opportunity ${opportunityId}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  /**
+   * Update a product in an opportunity in Act! CRM (CRUD operation - no full sync)
+   */
+  async updateProduct(
+    opportunityId: string,
+    productId: string,
+    productData: {
+      name?: string;
+      price?: number;
+      quantity?: number;
+      itemNumber?: string;
+      type?: string;
+    },
+    connection: UserActConnection
+  ): Promise<ActApiResponse<any>> {
+    try {
+      console.log(`Updating product ${productId} in opportunity ${opportunityId} for user ${connection.user_id}...`);
+      console.log('Update data:', productData);
+      
+      const result = await this.makeApiCall<any>(
+        `/api/opportunities/${opportunityId}/products/${productId}`,
+        connection,
+        {
+          method: 'PUT',
+          body: productData
+        }
+      );
+      
+      if (result.success) {
+        console.log(`Successfully updated product ${productId} in opportunity ${opportunityId}`);
+      } else {
+        console.error(`Failed to update product ${productId}: ${result.error}`);
+      }
+      
+      return result;
+      
+    } catch (error) {
+      console.error(`Error updating product ${productId} in opportunity ${opportunityId}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
   }
 
   /**

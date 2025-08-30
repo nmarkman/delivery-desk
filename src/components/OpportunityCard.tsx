@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ChevronDown, ChevronUp, Settings, Calendar, Tag, Edit3, Check, X } from 'lucide-react';
+import { Settings, Calendar, Edit3, Check, X, AlertCircle, Loader2, Trash2 } from 'lucide-react';
 import { useLineItems } from '@/hooks/useLineItems';
 import { useOpportunityBilling } from '@/hooks/useOpportunityBilling';
 import BillingDetailsModal from './BillingDetailsModal';
+import ContractUploadModal from './ContractUploadModal';
+import { toast } from 'sonner';
 
 interface LineItem {
   id: string;
@@ -17,6 +19,7 @@ interface LineItem {
   quantity: number | null;
   line_total: number | null;
   details: string | null;
+  act_reference: string | null;
 }
 
 interface Opportunity {
@@ -37,16 +40,29 @@ interface OpportunityCardProps {
   defaultExpanded?: boolean;
 }
 
-export default function OpportunityCard({ opportunity, defaultExpanded = true }: OpportunityCardProps) {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingDescription, setEditingDescription] = useState<string>('');
   const [editingDate, setEditingDate] = useState<string>('');
+  const [editingPrice, setEditingPrice] = useState<string>('');
   const [billingModalOpen, setBillingModalOpen] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   
   // Use React Query hook for optimistic updates
-  const { lineItems, isLoading: loadingLineItems, updateDueDate, isUpdating } = useLineItems(
-    isExpanded ? opportunity.id : ''
-  );
+  const { 
+    lineItems, 
+    isLoading: loadingLineItems, 
+    hasError,
+    updateErrorMessage,
+    deleteErrorMessage,
+    isUpdateSuccess,
+    isDeleteSuccess,
+    updateLineItem,
+    deleteLineItem,
+    refetch: refetchLineItems
+  } = useLineItems(opportunity.id);
 
   // Use billing hook to fetch billing information
   const { 
@@ -56,36 +72,85 @@ export default function OpportunityCard({ opportunity, defaultExpanded = true }:
     isSaving 
   } = useOpportunityBilling(opportunity.id);
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-  };
+  // Handle error and success notifications
+  useEffect(() => {
+    if (updateErrorMessage) {
+      toast.error('Update Failed', { 
+        description: updateErrorMessage,
+        duration: 5000 
+      });
+    }
+  }, [updateErrorMessage]);
 
-  const getTypeIcon = (type: string) => {
-    return type.toLowerCase() === 'retainer' ? <Calendar className="h-3 w-3" /> : <Tag className="h-3 w-3" />;
-  };
+  useEffect(() => {
+    if (deleteErrorMessage) {
+      toast.error('Delete Failed', { 
+        description: deleteErrorMessage,
+        duration: 5000 
+      });
+    }
+  }, [deleteErrorMessage]);
 
-  const startEditingDate = (item: LineItem) => {
+  useEffect(() => {
+    if (isUpdateSuccess) {
+      toast.success('Line item updated successfully', {
+        description: 'Changes have been saved and synced with Act! CRM'
+      });
+    }
+  }, [isUpdateSuccess]);
+
+  useEffect(() => {
+    if (isDeleteSuccess) {
+      toast.success('Line item deleted successfully', {
+        description: 'Item has been removed and synced with Act! CRM'
+      });
+      setDeletingItemId(null); // Clear delete loading state
+    }
+  }, [isDeleteSuccess]);
+
+  // Clear update loading state when update completes
+  useEffect(() => {
+    if (isUpdateSuccess || updateErrorMessage) {
+      setUpdatingItemId(null);
+    }
+  }, [isUpdateSuccess, updateErrorMessage]);
+
+  // Clear delete loading state when delete completes  
+  useEffect(() => {
+    if (isDeleteSuccess || deleteErrorMessage) {
+      setDeletingItemId(null);
+    }
+  }, [isDeleteSuccess, deleteErrorMessage]);
+
+
+
+  const startEditingItem = (item: LineItem) => {
     setEditingItemId(item.id);
-    // Format existing date for input or use empty string
+    setEditingDescription(item.description);
     setEditingDate(item.billed_at ? item.billed_at : '');
+    setEditingPrice(item.unit_rate.toString());
   };
 
-  const cancelEditingDate = () => {
+  const cancelEditing = () => {
     setEditingItemId(null);
+    setEditingDescription('');
     setEditingDate('');
+    setEditingPrice('');
   };
 
-  const saveDueDate = (itemId: string) => {
-    // Use optimistic update via React Query
-    updateDueDate({
-      itemId,
+  const saveItem = (itemId: string) => {
+    // Set loading state for this specific item
+    setUpdatingItemId(itemId);
+    
+    // Use the enhanced updateLineItem function with all fields
+    updateLineItem(itemId, {
+      description: editingDescription,
       billed_at: editingDate || null,
-      opportunityId: opportunity.id,
+      unit_rate: parseFloat(editingPrice) || 0,
     });
 
     // Clear editing state
-    setEditingItemId(null);
-    setEditingDate('');
+    cancelEditing();
   };
 
   const isDeliverable = (item: LineItem): boolean => {
@@ -105,49 +170,37 @@ export default function OpportunityCard({ opportunity, defaultExpanded = true }:
 
   const deliverablesMissingDates = lineItems.filter(needsDueDate).length;
 
+  // Calculate contract value from active line items
+  const calculatedContractValue = lineItems.reduce((sum, item) => {
+    return sum + (item.unit_rate || 0);
+  }, 0);
 
   return (
-    <Card className="w-full transition-all duration-200 hover:shadow-md">
+    <Card className="w-full transition-all duration-200 hover:shadow-md min-h-[300px] flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <CardTitle className="text-lg truncate">{opportunity.company_name}</CardTitle>
-            <CardDescription className="mt-1">
-              {opportunity.primary_contact} • {opportunity.name}
+            <CardDescription className="mt-1 text-sm">
+              {opportunity.name}
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2 ml-4">
+          <div className="flex flex-col items-end gap-1 ml-4">
             <Badge variant={opportunity.status === 'Project Stage' ? "default" : "secondary"}>
               {opportunity.status}
             </Badge>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={toggleExpanded}
-              className="h-8 w-8 p-0"
-            >
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
+            {/* Contract Value - calculated from active line items */}
+            {calculatedContractValue > 0 && (
+              <div className="text-sm font-medium">
+                ${calculatedContractValue.toLocaleString()}
+              </div>
+            )}
           </div>
         </div>
       </CardHeader>
       
-      {isExpanded && (
-        <CardContent className="pt-0 animate-in slide-in-from-top-2 duration-200">
-          <div className="space-y-3">
-            {/* Contract Details */}
-            {opportunity.total_contract_value > 0 && (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Contract Value:</span>
-                <span className="font-medium">
-                  ${opportunity.total_contract_value.toLocaleString()}
-                </span>
-              </div>
-            )}
+      <CardContent className="pt-0 flex-1 flex flex-col">
+        <div className="flex-1 space-y-3">
             
             {/* Contract Dates */}
             {(opportunity.contract_start_date || opportunity.contract_end_date) && (
@@ -180,7 +233,13 @@ export default function OpportunityCard({ opportunity, defaultExpanded = true }:
                   </span>
                   {deliverablesMissingDates > 0 && (
                     <Badge variant="outline" className="text-xs text-orange-600 border-orange-300 bg-orange-50">
-                      {deliverablesMissingDates} need due dates
+                      Missing dates:{deliverablesMissingDates} 
+                    </Badge>
+                  )}
+                  {hasError && (
+                    <Badge variant="outline" className="text-xs text-red-600 border-red-300 bg-red-50 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Error occurred
                     </Badge>
                   )}
                 </div>
@@ -188,8 +247,9 @@ export default function OpportunityCard({ opportunity, defaultExpanded = true }:
                   variant="ghost" 
                   size="sm"
                   className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700"
+                  onClick={() => setUploadModalOpen(true)}
                 >
-                  Manage
+                  Add Line Items
                 </Button>
               </div>
               
@@ -204,128 +264,176 @@ export default function OpportunityCard({ opportunity, defaultExpanded = true }:
               ) : (
                 <div className="space-y-2 max-h-80 overflow-y-auto">
                   {lineItems.map((item) => (
-                    <div key={item.id} className={`border rounded-lg p-3 group ${getItemHighlightClass(item)}`}>
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 line-clamp-2">
-                            {item.description}
-                          </div>
+                    <div key={item.id} className={`border rounded-lg p-3 group relative ${getItemHighlightClass(item)}`}>
+                      {/* Header with Description and Action Buttons */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0 pr-16">
+                          {editingItemId === item.id ? (
+                            <textarea
+                              value={editingDescription}
+                              onChange={(e) => setEditingDescription(e.target.value)}
+                              className="text-sm font-medium border border-gray-300 rounded-md px-3 py-2 w-full min-h-[60px] resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Enter description..."
+                              disabled={updatingItemId === item.id}
+                              rows={2}
+                            />
+                          ) : (
+                            <div className="text-sm font-medium text-gray-900 line-clamp-2">
+                              {item.description}
+                            </div>
+                          )}
                         </div>
-                        {item.details && (
-                          <div className="flex items-center gap-2 ml-3">
-                            <Badge 
-                              variant="outline"
-                              className="flex items-center justify-center space-x-1 text-xs text-gray-500 border-gray-300 bg-transparent"
-                            >
-                              {getTypeIcon(item.details)}
-                              <span className="capitalize">{item.details.toLowerCase()}</span>
-                            </Badge>
-                          </div>
-                        )}
+                        
+                        {/* Circular Action Buttons in top-right */}
+                        <div className="absolute top-3 right-3 flex gap-1">
+                          {editingItemId === item.id ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 rounded-full bg-green-100 hover:bg-green-200"
+                                onClick={() => saveItem(item.id)}
+                                disabled={updatingItemId === item.id}
+                                title="Save changes"
+                              >
+                                {updatingItemId === item.id ? (
+                                  <Loader2 className="h-3 w-3 text-green-600 animate-spin" />
+                                ) : (
+                                  <Check className="h-3 w-3 text-green-600" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 rounded-full bg-gray-100 hover:bg-gray-200"
+                                onClick={cancelEditing}
+                                disabled={updatingItemId !== null}
+                                title="Cancel editing"
+                              >
+                                <X className="h-3 w-3 text-gray-600" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 rounded-full bg-blue-100 hover:bg-blue-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => startEditingItem(item)}
+                                title="Edit line item"
+                                disabled={updatingItemId === item.id || deletingItemId === item.id}
+                              >
+                                <Edit3 className="h-3 w-3 text-blue-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 rounded-full bg-red-100 hover:bg-red-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to delete this line item? This will also remove it from Act! CRM.')) {
+                                    setDeletingItemId(item.id);
+                                    deleteLineItem(item.id, item.act_reference);
+                                  }
+                                }}
+                                title="Delete line item"
+                                disabled={updatingItemId === item.id || deletingItemId === item.id}
+                              >
+                                {deletingItemId === item.id ? (
+                                  <Loader2 className="h-3 w-3 text-red-600 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-3 w-3 text-red-600" />
+                                )}
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                       
+                      {/* Details Grid */}
                       <div className="grid grid-cols-2 gap-4 text-xs">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3 text-gray-400" />
                           <span className="text-gray-600">Billing Date:</span>
                           
                           {editingItemId === item.id ? (
-                            // Editing mode
-                            <div className="flex items-center gap-1 ml-1">
-                              <Input
-                                type="date"
-                                value={editingDate}
-                                onChange={(e) => setEditingDate(e.target.value)}
-                                className="h-6 w-36 text-xs"
-                                disabled={isUpdating}
-                              />
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={() => saveDueDate(item.id)}
-                                disabled={isUpdating}
-                              >
-                                <Check className="h-3 w-3 text-green-600" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={cancelEditingDate}
-                                disabled={isUpdating}
-                              >
-                                <X className="h-3 w-3 text-gray-500" />
-                              </Button>
-                            </div>
+                            <Input
+                              type="date"
+                              value={editingDate}
+                              onChange={(e) => setEditingDate(e.target.value)}
+                              className="h-6 w-36 text-xs ml-1"
+                              disabled={updatingItemId === item.id}
+                            />
                           ) : (
-                            // Display mode
-                            <div className="flex items-center gap-1 ml-1">
-                              <span className="font-medium">
-                                {item.billed_at 
-                                  ? new Date(item.billed_at + 'T00:00:00').toLocaleDateString()
-                                  : <span className={needsDueDate(item) ? "text-orange-600 font-semibold" : "text-orange-600"}>
-                                      {needsDueDate(item) ? "⚠ Not set" : "Not set"}
-                                    </span>
-                                }
-                              </span>
-                              {isDeliverable(item) && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-4 w-4 p-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() => startEditingDate(item)}
-                                >
-                                  <Edit3 className="h-3 w-3 text-gray-400 hover:text-blue-600" />
-                                </Button>
-                              )}
-                            </div>
+                            <span className="font-medium ml-1">
+                              {item.billed_at 
+                                ? new Date(item.billed_at + 'T00:00:00').toLocaleDateString()
+                                : <span className={needsDueDate(item) ? "text-orange-600 font-semibold" : "text-orange-600"}>
+                                    {needsDueDate(item) ? "⚠ Not set" : "Not set"}
+                                  </span>
+                              }
+                            </span>
                           )}
                         </div>
                         
-                        {item.line_total && (
-                          <div className="flex justify-end">
-                            <span className="text-gray-600">Total:</span>
+                        <div className="flex items-center justify-end gap-1">
+                          {item.details && (
+                            <>
+                              <span className="text-gray-600 capitalize">{item.details.toLowerCase()}</span>
+                              <span className="text-gray-400">|</span>
+                            </>
+                          )}
+                          <span className="text-gray-600">Price:</span>
+                          
+                          {editingItemId === item.id ? (
+                            <Input
+                              type="number"
+                              value={editingPrice}
+                              onChange={(e) => setEditingPrice(e.target.value)}
+                              className="h-6 w-32 text-xs text-right ml-1"
+                              placeholder="0"
+                              step="0.01"
+                              disabled={updatingItemId === item.id}
+                            />
+                          ) : (
                             <span className="font-medium ml-1">
-                              ${Math.round(item.line_total).toLocaleString()}
+                              ${item.unit_rate?.toLocaleString() || '0'}
                             </span>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-            
-            {/* Billing Status */}
-            <div className="pt-3 border-t border-gray-100">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground font-medium">Billing Details:</span>
-                <div className="flex items-center gap-2">
-                  {loadingBillingInfo ? (
-                    <span className="text-xs text-gray-500">Loading...</span>
-                  ) : billingInfo ? (
-                    <span className="text-xs text-green-600 font-medium">✓ Configured</span>
-                  ) : (
-                    <span className="text-xs text-orange-600 font-medium">Not configured</span>
-                  )}
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={() => setBillingModalOpen(true)}
-                    disabled={loadingBillingInfo}
-                  >
-                    <Settings className="h-3 w-3 mr-1" />
-                    {billingInfo ? 'Edit' : 'Configure'}
-                  </Button>
-                </div>
-              </div>
+        </div>
+        
+        {/* Billing Status - Always at bottom as card footer */}
+        <div className="pt-3 border-t border-gray-100 mt-auto">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground font-medium">Billing Details:</span>
+            <div className="flex items-center gap-2">
+              {loadingBillingInfo ? (
+                <span className="text-xs text-gray-500">Loading...</span>
+              ) : billingInfo ? (
+                <span className="text-xs text-green-600 font-medium">✓ Configured</span>
+              ) : (
+                <span className="text-xs text-orange-600 font-medium">Not configured</span>
+              )}
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => setBillingModalOpen(true)}
+                disabled={loadingBillingInfo}
+              >
+                <Settings className="h-3 w-3 mr-1" />
+                {billingInfo ? 'Edit' : 'Configure'}
+              </Button>
             </div>
           </div>
-        </CardContent>
-      )}
+        </div>
+      </CardContent>
       
       {/* Billing Details Modal */}
       <BillingDetailsModal
@@ -335,6 +443,16 @@ export default function OpportunityCard({ opportunity, defaultExpanded = true }:
         companyName={opportunity.company_name}
         billingInfo={billingInfo}
         onSave={saveBillingInfo}
+      />
+      
+      {/* Contract Upload Modal */}
+      <ContractUploadModal
+        isOpen={uploadModalOpen}
+        onClose={() => setUploadModalOpen(false)}
+        opportunityId={opportunity.id}
+        opportunityName={opportunity.name}
+        companyName={opportunity.company_name}
+        onUploadSuccess={() => refetchLineItems()}
       />
     </Card>
   );

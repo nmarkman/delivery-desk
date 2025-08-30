@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import OpportunityCard from '@/components/OpportunityCard';
+import OpportunityFilter from '@/components/OpportunityFilter';
 
 interface Client {
   id: string;
@@ -14,12 +15,6 @@ interface Client {
   outstanding_balance: number;
 }
 
-interface Invoice {
-  id: string;
-  status: string;
-  amount: number;
-  client_id: string;
-}
 
 interface Opportunity {
   id: string;
@@ -37,8 +32,9 @@ interface Opportunity {
 export default function Dashboard() {
   const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [filteredOpportunities, setFilteredOpportunities] = useState<Opportunity[]>([]);
+  const [searchFilter, setSearchFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -49,6 +45,24 @@ export default function Dashboard() {
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const OPPORTUNITIES_PER_PAGE = 10;
+
+  // Filter opportunities based on search term
+  const handleFilterChange = useCallback((searchTerm: string) => {
+    setSearchFilter(searchTerm);
+  }, []);
+
+  // Update filtered opportunities when opportunities or search filter changes
+  useEffect(() => {
+    if (!searchFilter.trim()) {
+      setFilteredOpportunities(opportunities);
+    } else {
+      const filtered = opportunities.filter((opp) =>
+        opp.company_name.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        opp.name.toLowerCase().includes(searchFilter.toLowerCase())
+      );
+      setFilteredOpportunities(filtered);
+    }
+  }, [opportunities, searchFilter]);
 
   const fetchOpportunities = useCallback(async (pageNum: number = 0, reset: boolean = false) => {
     try {
@@ -100,23 +114,15 @@ export default function Dashboard() {
       setLoading(true);
       setError(null);
       
-      const [clientsResult, invoicesResult] = await Promise.all([
-        supabase
-          .from('clients')
-          .select('*')
-          .eq('user_id', user?.id),
-        supabase
-          .from('invoices')
-          .select('*')
-          .eq('user_id', user?.id)
-      ]);
+      const clientsResult = await supabase
+        .from('clients')
+        .select('*')
+        .eq('user_id', user?.id);
 
       // Check for errors
       if (clientsResult.error) throw new Error(`Failed to fetch clients: ${clientsResult.error.message}`);
-      if (invoicesResult.error) throw new Error(`Failed to fetch invoices: ${invoicesResult.error.message}`);
 
       if (clientsResult.data) setClients(clientsResult.data);
-      if (invoicesResult.data) setInvoices(invoicesResult.data);
       
       // Fetch first page of opportunities
       await fetchOpportunities(0, true);
@@ -154,28 +160,14 @@ export default function Dashboard() {
     }
   }, [loadingMore, hasMore, page, fetchOpportunities]);
 
-  // Opportunities are already filtered at database level for active ones (actual_close_date null or future)
-  const activeOpportunities = opportunities;
+  // Use filtered opportunities for display
+  const activeOpportunities = filteredOpportunities;
   
   // Calculate metrics from active opportunities data only
   const uniqueClients = new Set(activeOpportunities.map(opp => opp.company_name)).size;
   const totalOutstanding = activeOpportunities.reduce((sum, opp) => sum + (opp.retainer_amount || 0), 0);
   
-  // Keep existing invoice logic
   const totalBalance = clients.reduce((sum, client) => sum + (client.outstanding_balance || 0), 0);
-  const totalInvoices = invoices.length;
-  const pendingInvoices = invoices.filter(inv => inv.status === 'pending').length;
-  const paidInvoices = invoices.filter(inv => inv.status === 'paid').length;
-
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      paid: 'bg-success text-success-foreground',
-      pending: 'bg-warning text-warning-foreground',
-      draft: 'bg-muted text-muted-foreground',
-      overdue: 'bg-destructive text-destructive-foreground'
-    };
-    return variants[status as keyof typeof variants] || variants.draft;
-  };
 
   if (loading) {
     return (
@@ -246,9 +238,9 @@ export default function Dashboard() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalInvoices}</div>
+            <div className="text-2xl font-bold">—</div>
             <p className="text-xs text-muted-foreground">
-              {paidInvoices} paid, {pendingInvoices} pending
+              Available in Invoice Generator
             </p>
           </CardContent>
         </Card>
@@ -259,9 +251,9 @@ export default function Dashboard() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingInvoices}</div>
+            <div className="text-2xl font-bold">—</div>
             <p className="text-xs text-muted-foreground">
-              Awaiting payment
+              Available in Invoice Generator
             </p>
           </CardContent>
         </Card>
@@ -269,9 +261,16 @@ export default function Dashboard() {
 
       {/* Opportunities Grid - Two Column Layout */}
       <div>
-        <div className="mb-4">
-          <h2 className="text-2xl font-semibold">Opportunities</h2>
-          <p className="text-muted-foreground">Manage your active opportunities and their details</p>
+        <div className="mb-4 flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-semibold">Opportunities</h2>
+            <p className="text-muted-foreground">Manage your active opportunities and their details</p>
+          </div>
+          <OpportunityFilter
+            onFilterChange={handleFilterChange}
+            placeholder="Search by company or opportunity name..."
+            className="mt-1"
+          />
         </div>
         
         {activeOpportunities.length === 0 ? (
@@ -317,40 +316,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-      
-      {/* Recent Invoices - Moved to bottom */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Invoices</CardTitle>
-          <CardDescription>Latest invoice activity</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {invoices.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground">
-              No invoices found.{' '}
-              <Link to="/invoices" className="text-primary hover:underline">
-                Create your first invoice!
-              </Link>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {invoices.slice(0, 6).map((invoice) => (
-                <div key={invoice.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <p className="font-medium">Invoice #{invoice.id.slice(0, 8)}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Amount: ${invoice.amount.toFixed(2)}
-                    </p>
-                  </div>
-                  <Badge className={getStatusBadge(invoice.status)}>
-                    {invoice.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
