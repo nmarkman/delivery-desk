@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Upload, CheckCircle, AlertCircle, X, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { SUPABASE_URL } from '@/integrations/supabase/config';
 import LineItemsTable from './LineItemsTable';
 
 interface LineItem {
@@ -165,8 +166,8 @@ export default function ContractUploadModal({
         }));
       }, 500);
 
-      // Call the Supabase Edge Function
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://osywqypaamxxqlgnvgqw.supabase.co';
+      // Call the Supabase Edge Function  
+      // Use config constant since Lovable doesn't support VITE env vars
       
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -174,7 +175,7 @@ export default function ContractUploadModal({
         throw new Error('No active session found. Please log in again.');
       }
       
-      const functionUrl = `${supabaseUrl}/functions/v1/contract-upload/upload`;
+      const functionUrl = `${SUPABASE_URL}/functions/v1/contract-upload/upload`;
       console.log('Calling Edge Function:', functionUrl);
       
       const response = await fetch(functionUrl, {
@@ -270,7 +271,7 @@ export default function ContractUploadModal({
     setUploadState(prev => ({ ...prev, isProcessing: true, error: null }));
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://osywqypaamxxqlgnvgqw.supabase.co';
+      // Use config constant since Lovable doesn't support VITE env vars
       
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -278,7 +279,7 @@ export default function ContractUploadModal({
         throw new Error('No active session found. Please log in again.');
       }
       
-      const response = await fetch(`${supabaseUrl}/functions/v1/contract-upload/submit`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/contract-upload/submit`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
