@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronDown, ChevronUp, Settings, Calendar, Tag, Edit3, Check, X } from 'lucide-react';
 import { useLineItems } from '@/hooks/useLineItems';
+import { useOpportunityBilling } from '@/hooks/useOpportunityBilling';
+import BillingDetailsModal from './BillingDetailsModal';
 
 interface LineItem {
   id: string;
@@ -39,11 +41,20 @@ export default function OpportunityCard({ opportunity, defaultExpanded = true }:
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingDate, setEditingDate] = useState<string>('');
+  const [billingModalOpen, setBillingModalOpen] = useState(false);
   
   // Use React Query hook for optimistic updates
   const { lineItems, isLoading: loadingLineItems, updateDueDate, isUpdating } = useLineItems(
     isExpanded ? opportunity.id : ''
   );
+
+  // Use billing hook to fetch billing information
+  const { 
+    billingInfo, 
+    isLoading: loadingBillingInfo, 
+    saveBillingInfo, 
+    isSaving 
+  } = useOpportunityBilling(opportunity.id);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
@@ -287,19 +298,27 @@ export default function OpportunityCard({ opportunity, defaultExpanded = true }:
               )}
             </div>
             
-            {/* Placeholder for Billing Status - will be added in future tasks */}
+            {/* Billing Status */}
             <div className="pt-3 border-t border-gray-100">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground font-medium">Billing Details:</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-orange-600 font-medium">Not configured</span>
+                  {loadingBillingInfo ? (
+                    <span className="text-xs text-gray-500">Loading...</span>
+                  ) : billingInfo ? (
+                    <span className="text-xs text-green-600 font-medium">✓ Configured</span>
+                  ) : (
+                    <span className="text-xs text-orange-600 font-medium">Not configured</span>
+                  )}
                   <Button 
                     variant="ghost" 
                     size="sm"
                     className="h-6 px-2 text-xs"
+                    onClick={() => setBillingModalOpen(true)}
+                    disabled={loadingBillingInfo}
                   >
                     <Settings className="h-3 w-3 mr-1" />
-                    Configure
+                    {billingInfo ? 'Edit' : 'Configure'}
                   </Button>
                 </div>
               </div>
@@ -307,6 +326,16 @@ export default function OpportunityCard({ opportunity, defaultExpanded = true }:
           </div>
         </CardContent>
       )}
+      
+      {/* Billing Details Modal */}
+      <BillingDetailsModal
+        open={billingModalOpen}
+        onOpenChange={setBillingModalOpen}
+        opportunityId={opportunity.id}
+        companyName={opportunity.company_name}
+        billingInfo={billingInfo}
+        onSave={saveBillingInfo}
+      />
     </Card>
   );
 }

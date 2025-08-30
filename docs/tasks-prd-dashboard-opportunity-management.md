@@ -90,6 +90,10 @@
   - [x] 5.5 Create `src/hooks/useOpportunityBilling.ts` for CRUD operations (create, read, update billing info)
   - [x] 5.6 Implement form validation with simple required field checks
   - [x] 5.7 Add save/cancel functionality with proper error handling and success feedback
+  - [x] 5.8 Connect BillingDetailsModal to OpportunityCard Configure button
+  - [x] 5.9 Integrate useOpportunityBilling hook into OpportunityCard for status display
+  - [x] 5.10 Update billing status indicator to show actual billing info presence
+  - [x] 5.11 Test database CRUD operations work correctly with Supabase
 - [ ] 6.0 Opportunity Filtering System
   - [ ] 6.1 Create `src/components/OpportunityFilter.tsx` similar to contract upload filter design
   - [ ] 6.2 Implement text-based search filtering by company name and project name

@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Building2, CreditCard } from 'lucide-react';
+import { Building2, CreditCard, Copy } from 'lucide-react';
 
 interface BillingInfo {
   id?: string;
@@ -155,6 +155,16 @@ export default function BillingDetailsModal({
     }
   };
 
+  const copyFromOrganization = () => {
+    setFormData((prev) => ({
+      ...prev,
+      bill_to_name: prev.organization_name,
+      bill_to_address: prev.organization_address,
+      bill_to_contact_name: prev.organization_contact_name,
+      bill_to_contact_email: prev.organization_contact_email,
+    }));
+  };
+
   const handleCancel = () => {
     onOpenChange(false);
   };
@@ -247,9 +257,22 @@ export default function BillingDetailsModal({
 
           {/* Bill To Section */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium">Bill To Details</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-medium">Bill To Details</h3>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={copyFromOrganization}
+                className="h-7 px-2 text-xs"
+                disabled={isSaving}
+              >
+                <Copy className="h-3 w-3 mr-1" />
+                Copy from Organization
+              </Button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
