@@ -50,6 +50,42 @@ export type Database = {
         }
         Relationships: []
       }
+      credential_access_logs: {
+        Row: {
+          access_timestamp: string | null
+          access_type: string
+          connection_id: string | null
+          error_message: string | null
+          id: string
+          ip_address: unknown | null
+          success: boolean | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          access_timestamp?: string | null
+          access_type: string
+          connection_id?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          access_timestamp?: string | null
+          access_type?: string
+          connection_id?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       deliverables: {
         Row: {
           act_activity_type: string | null
@@ -245,6 +281,13 @@ export type Database = {
             columns: ["act_connection_id"]
             isOneToOne: false
             referencedRelation: "user_act_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_logs_act_connection_id_fkey"
+            columns: ["act_connection_id"]
+            isOneToOne: false
+            referencedRelation: "user_connections_public"
             referencedColumns: ["id"]
           },
           {
@@ -738,7 +781,72 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_connections_public: {
+        Row: {
+          act_database_name: string | null
+          act_region: string | null
+          connection_error: string | null
+          connection_name: string | null
+          connection_status: string | null
+          created_at: string | null
+          daily_sync_enabled: boolean | null
+          daily_sync_status: string | null
+          daily_sync_time: string | null
+          id: string | null
+          is_active: boolean | null
+          is_default: boolean | null
+          last_connection_test: string | null
+          last_daily_sync_at: string | null
+          last_sync_at: string | null
+          next_sync_at: string | null
+          total_api_calls: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          act_database_name?: string | null
+          act_region?: string | null
+          connection_error?: string | null
+          connection_name?: string | null
+          connection_status?: string | null
+          created_at?: string | null
+          daily_sync_enabled?: boolean | null
+          daily_sync_status?: string | null
+          daily_sync_time?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          last_connection_test?: string | null
+          last_daily_sync_at?: string | null
+          last_sync_at?: string | null
+          next_sync_at?: string | null
+          total_api_calls?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          act_database_name?: string | null
+          act_region?: string | null
+          connection_error?: string | null
+          connection_name?: string | null
+          connection_status?: string | null
+          created_at?: string | null
+          daily_sync_enabled?: boolean | null
+          daily_sync_status?: string | null
+          daily_sync_time?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          last_connection_test?: string | null
+          last_daily_sync_at?: string | null
+          last_sync_at?: string | null
+          next_sync_at?: string | null
+          total_api_calls?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       complete_integration_log: {
@@ -756,6 +864,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_connection_credentials_secure: {
+        Args: { connection_id: string }
+        Returns: {
+          act_password_encrypted: string
+          act_username: string
+          api_base_url: string
+          cached_bearer_token: string
+          token_expires_at: string
+        }[]
+      }
       get_connections_ready_for_sync: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -770,6 +888,29 @@ export type Database = {
           id: string
           token_expires_at: string
           token_last_refreshed_at: string
+          user_id: string
+        }[]
+      }
+      get_user_connections_safe: {
+        Args: { connection_user_id: string }
+        Returns: {
+          act_database_name: string
+          act_region: string
+          connection_error: string
+          connection_name: string
+          connection_status: string
+          created_at: string
+          daily_sync_enabled: boolean
+          daily_sync_status: string
+          daily_sync_time: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          last_connection_test: string
+          last_daily_sync_at: string
+          last_sync_at: string
+          next_sync_at: string
+          updated_at: string
           user_id: string
         }[]
       }

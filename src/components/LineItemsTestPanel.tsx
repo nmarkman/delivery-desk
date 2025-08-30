@@ -36,13 +36,9 @@ export default function LineItemsTestPanel({ opportunityId }: LineItemsTestPanel
     });
   };
 
-  const testActSync = (itemId: string, currentDate: string | null) => {
+  const testActSync = () => {
     // Test Act! API sync (placeholder for now)
-    syncWithAct({
-      itemId,
-      billed_at: currentDate,
-      opportunityId,
-    });
+    console.log('Act! sync would run here');
   };
 
   if (isLoading) {
@@ -112,7 +108,7 @@ export default function LineItemsTestPanel({ opportunityId }: LineItemsTestPanel
                   size="sm"
                   variant="outline"
                   className="text-xs"
-                  onClick={() => testActSync(item.id, item.billed_at)}
+                  onClick={() => testActSync()}
                   disabled={isSyncing}
                 >
                   {isSyncing ? 'Syncing...' : 'Test Act! Sync'}
