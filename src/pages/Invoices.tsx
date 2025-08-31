@@ -22,6 +22,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, calculateOverdueStatus, extractClientShortform, generateNextInvoiceNumber } from '@/utils/invoiceHelpers';
+
+// Helper function to format dates without timezone issues
+const formatDateSafe = (dateString: string): string => {
+  if (!dateString) return '';
+  // Parse as local date to avoid timezone shifts
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day); // month is 0-indexed
+  return date.toLocaleDateString();
+};
 import { InvoiceTemplate, type InvoiceData, type InvoiceLineItemData, type BillingInfo } from '@/components/invoices/InvoiceTemplate';
 
 interface InvoiceLineItem {
@@ -601,8 +610,8 @@ export default function Invoices() {
                       </p>
                       {item.billed_at && (
                         <p className="text-xs text-muted-foreground">
-                          Billed: {new Date(item.billed_at).toLocaleDateString()}
-                          {item.payment_date && ` • Paid: ${new Date(item.payment_date).toLocaleDateString()}`}
+                          Billed: {formatDateSafe(item.billed_at)}
+                          {item.payment_date && ` • Paid: ${formatDateSafe(item.payment_date)}`}
                         </p>
                       )}
                     </div>
