@@ -153,8 +153,12 @@
   }
 
   /* Logo sizing for print */
-  .h-16 {
-    height: 4rem !important;
+  .h-12 {
+    height: 3rem !important;
+  }
+  
+  .print\\:h-10 {
+    height: 2.5rem !important;
   }
 
   /* Remove shadows for print */

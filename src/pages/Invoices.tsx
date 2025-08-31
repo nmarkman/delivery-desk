@@ -396,9 +396,9 @@ export default function Invoices() {
   };
 
   const convertToInvoiceData = (item: InvoiceLineItem): InvoiceData | null => {
-    if (!item.opportunities?.opportunity_billing_info) return null;
+    if (!item.opportunities?.opportunity_billing_info || !Array.isArray(item.opportunities.opportunity_billing_info) || item.opportunities.opportunity_billing_info.length === 0) return null;
 
-    const billingInfo = item.opportunities.opportunity_billing_info;
+    const billingInfo = item.opportunities.opportunity_billing_info[0];
     
     return {
       invoice_number: item.invoice_number || 'DRAFT',
@@ -408,16 +408,16 @@ export default function Invoices() {
         new Date().toISOString().split('T')[0],
       status: (item.invoice_status as any) || 'draft',
       billing_info: {
-        organization_name: billingInfo.organization_name,
-        organization_address: billingInfo.organization_address || '',
-        organization_contact_name: billingInfo.organization_contact_name || '',
-        organization_contact_email: billingInfo.organization_contact_email || '',
-        bill_to_name: billingInfo.bill_to_name || item.opportunities.company_name,
-        bill_to_address: billingInfo.bill_to_address || '',
-        bill_to_contact_name: billingInfo.bill_to_contact_name || '',
-        bill_to_contact_email: billingInfo.bill_to_contact_email || '',
-        payment_terms: billingInfo.payment_terms || 30,
-        po_number: billingInfo.po_number
+        organization_name: billingInfo?.organization_name || '',
+        organization_address: billingInfo?.organization_address || '',
+        organization_contact_name: billingInfo?.organization_contact_name || '',
+        organization_contact_email: billingInfo?.organization_contact_email || '',
+        bill_to_name: billingInfo?.bill_to_name || item.opportunities?.company_name || '',
+        bill_to_address: billingInfo?.bill_to_address || '',
+        bill_to_contact_name: billingInfo?.bill_to_contact_name || '',
+        bill_to_contact_email: billingInfo?.bill_to_contact_email || '',
+        payment_terms: billingInfo?.payment_terms || 30,
+        po_number: billingInfo?.po_number || ''
       },
       line_items: [{
         id: item.id,

@@ -67,6 +67,14 @@
   - [x] 6.5 Add "Download PDF" buttons to invoice template and list views
   - [x] 6.6 Test PDF output quality and single-page layout
   - [x] 6.7 Handle edge cases (draft invoices, missing data, etc.)
+- [x] 6.5 Improve invoice template design and data accuracy
+  - [x] 6.5.1 Fix logo cutoff in upper right corner of PDF
+  - [x] 6.5.2 Reduce font sizes and line spacing for better PDF layout
+  - [x] 6.5.3 Fix Organization and Bill To sections to use opportunity_billing_info data
+  - [x] 6.5.4 Remove deliverable/retainer text from line item descriptions
+  - [x] 6.5.5 Remove stray "0" between subtotal and total sections
+  - [x] 6.5.6 Fix Net 30 cutoff and make payment terms dynamic from opportunity_billing_info
+  - [x] 6.5.7 Test and verify all data mappings and layout improvements
 - [ ] 7.0 Add overdue calculation and status indicators
   - [ ] 7.1 Create utility function to calculate overdue status (due_date < current_date AND status = 'sent' AND payment_date IS NULL)
   - [ ] 7.2 Add overdue highlighting in invoice list component

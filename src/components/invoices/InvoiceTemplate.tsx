@@ -98,10 +98,10 @@ export function InvoiceTemplate({ invoice, className = "", showDownloadButton = 
       )}
       
       {/* Company Header */}
-      <div className="p-6 print:p-3">
-        <div className="flex justify-between items-start mb-4 print:mb-3">
+      <div className="px-6 pt-6 pb-1 print:px-3 print:pt-3 print:pb-1">
+        <div className="flex justify-between items-start mb-2 print:mb-1">
           <div className="flex-1">
-            <div className="text-sm text-gray-800 leading-relaxed">
+            <div className="text-xs text-gray-800 leading-tight print:text-xs print:leading-tight">
               <div className="font-semibold">Collegiate Retail Consulting Group</div>
               <div>330 Cedarcrest Lane</div>
               <div>Double Oak, TX 75077</div>
@@ -109,22 +109,22 @@ export function InvoiceTemplate({ invoice, className = "", showDownloadButton = 
               <div>rmarkman@collegiateretailconsulting.com</div>
             </div>
           </div>
-          <div className="flex-shrink-0 ml-8">
+          <div className="flex-shrink-0 ml-4">
             <div className="text-right">
               <img 
                 src="https://osywqypaamxxqlgnvgqw.supabase.co/storage/v1/object/public/public-images/crcg-logo.png"
                 alt="CRCG Logo"
-                className="h-16 w-auto ml-auto"
+                className="h-12 w-auto ml-auto print:h-10"
               />
             </div>
           </div>
         </div>
 
         {/* Invoice Header Bar */}
-        <div className="bg-gray-600 text-white px-4 py-2 mb-4 print:mb-3">
+        <div className="bg-gray-600 text-white px-4 py-2 mb-2 print:mb-1">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-lg font-semibold">INVOICE NO. #{invoice.invoice_number}</h3>
+              <h3 className="text-base font-semibold print:text-sm">INVOICE NO. #{invoice.invoice_number}</h3>
             </div>
             <div className="text-right">
               <div>{new Date(invoice.invoice_date).toLocaleDateString()}</div>
@@ -138,8 +138,8 @@ export function InvoiceTemplate({ invoice, className = "", showDownloadButton = 
         <div className="grid grid-cols-2 gap-8 mb-6 print:mb-4">
           {/* Left Column - Organization */}
           <div>
-            <h4 className="font-semibold text-gray-700 mb-3 border-b border-gray-300 pb-1">ORGANIZATION</h4>
-            <div className="text-sm text-gray-800 leading-relaxed">
+            <h4 className="font-semibold text-gray-700 mb-2 print:mb-1 border-b border-gray-300 pb-1">ORGANIZATION</h4>
+            <div className="text-xs text-gray-800 leading-snug print:text-xs print:leading-tight">
               <div>{billing.organization_name}</div>
               <div className="whitespace-pre-line mt-1">
                 {billing.organization_address}
@@ -153,8 +153,8 @@ export function InvoiceTemplate({ invoice, className = "", showDownloadButton = 
 
           {/* Right Column - Bill To */}
           <div>
-            <h4 className="font-semibold text-gray-700 mb-3 border-b border-gray-300 pb-1">BILL TO</h4>
-            <div className="text-sm text-gray-800 leading-relaxed">
+            <h4 className="font-semibold text-gray-700 mb-2 print:mb-1 border-b border-gray-300 pb-1">BILL TO</h4>
+            <div className="text-xs text-gray-800 leading-snug print:text-xs print:leading-tight">
               <div>Attn: {billing.bill_to_contact_name}</div>
               <div>{billing.bill_to_name}</div>
               <div className="whitespace-pre-line mt-1">
@@ -175,28 +175,25 @@ export function InvoiceTemplate({ invoice, className = "", showDownloadButton = 
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-gray-600 text-white">
-                  <th className="text-left py-2 px-3 text-sm font-semibold w-20">QUANTITY</th>
-                  <th className="text-left py-2 px-3 text-sm font-semibold">DESCRIPTION</th>
-                  <th className="text-right py-2 px-3 text-sm font-semibold w-32">UNIT PRICE</th>
-                  <th className="text-right py-2 px-3 text-sm font-semibold w-32">TOTAL</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold w-20 print:text-xs print:py-1">QUANTITY</th>
+                  <th className="text-left py-2 px-3 text-xs font-semibold print:text-xs print:py-1">DESCRIPTION</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold w-32 print:text-xs print:py-1">UNIT PRICE</th>
+                  <th className="text-right py-2 px-3 text-xs font-semibold w-32 print:text-xs print:py-1">TOTAL</th>
                 </tr>
               </thead>
               <tbody>
                 {invoice.line_items.map((item, index) => (
                   <tr key={item.id} className="border-b border-gray-300">
-                    <td className="py-2 px-3 text-sm text-center align-top print:py-1">
+                    <td className="py-2 px-3 text-xs text-center align-top print:py-1 print:text-xs">
                       {item.quantity}
                     </td>
-                    <td className="py-2 px-3 text-sm align-top print:py-1">
+                    <td className="py-2 px-3 text-xs align-top print:py-1 print:text-xs">
                       <div className="font-medium">{item.description}</div>
-                      {item.details && (
-                        <div className="text-gray-700 text-sm mt-1 leading-relaxed print:mt-0">{item.details}</div>
-                      )}
                     </td>
-                    <td className="py-2 px-3 text-sm text-right align-top print:py-1">
+                    <td className="py-2 px-3 text-xs text-right align-top print:py-1 print:text-xs">
                       {formatCurrency(item.unit_rate)}
                     </td>
-                    <td className="py-2 px-3 text-sm text-right font-medium align-top print:py-1">
+                    <td className="py-2 px-3 text-xs text-right font-medium align-top print:py-1 print:text-xs">
                       {formatCurrency(item.line_total)}
                     </td>
                   </tr>
@@ -211,25 +208,25 @@ export function InvoiceTemplate({ invoice, className = "", showDownloadButton = 
           <div className="flex justify-end">
             <div className="w-80">
               <div className="flex justify-between items-center py-1 border-b border-gray-300">
-                <span className="font-semibold text-gray-700">SUBTOTAL</span>
-                <span className="font-semibold">{formatCurrency(invoice.subtotal)}</span>
+                <span className="font-semibold text-gray-700 text-xs print:text-xs">SUBTOTAL</span>
+                <span className="font-semibold text-xs print:text-xs">{formatCurrency(invoice.subtotal)}</span>
               </div>
-              {invoice.tax_amount && invoice.tax_amount > 0 && (
+              {invoice.tax_amount && invoice.tax_amount > 0 ? (
                 <div className="flex justify-between items-center py-1 border-b border-gray-300">
-                  <span className="font-semibold text-gray-700">TAX</span>
-                  <span className="font-semibold">{formatCurrency(invoice.tax_amount)}</span>
+                  <span className="font-semibold text-gray-700 text-xs print:text-xs">TAX</span>
+                  <span className="font-semibold text-xs print:text-xs">{formatCurrency(invoice.tax_amount)}</span>
                 </div>
-              )}
+              ) : null}
               <div className="flex justify-between items-center py-1 border-b-2 border-gray-400">
-                <span className="font-bold text-lg">TOTAL</span>
-                <span className="font-bold text-lg">{formatCurrency(invoice.total_amount)}</span>
+                <span className="font-bold text-sm print:text-xs">TOTAL</span>
+                <span className="font-bold text-sm print:text-xs">{formatCurrency(invoice.total_amount)}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Payment Terms */}
-        <div className="text-center text-sm">
+        <div className="text-center text-xs print:text-xs mt-2 print:mt-1 pb-8 print:pb-6">
           <div className="font-semibold">Net {billing.payment_terms}</div>
         </div>
       </div>
