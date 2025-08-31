@@ -30,3 +30,11 @@ dist-ssr
 supabase/.temp/
 supabase/migrations/*
 .supabase
+
+# Development/Testing artifacts
+test-contract.*
+temp_types.ts
+.cursor/
+.playwright-mcp/
+Act-API-Testing.postman_collection.json
+bun.lockb
