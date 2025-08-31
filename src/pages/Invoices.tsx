@@ -463,9 +463,17 @@ export default function Invoices() {
     // Status filter
     if (statusFilter !== 'all') {
       if (statusFilter === 'overdue') {
-        filtered = filtered.filter(item => 
-          calculateOverdueStatus(item.invoice_status, item.billed_at, item.payment_date)
-        );
+        filtered = filtered.filter(item => {
+          const status = item.invoice_status || 'draft';
+          // Check if already marked as overdue in database
+          if (status === 'overdue') {
+            return true;
+          }
+          // Or check if it should be calculated as overdue
+          const billingInfo = item.opportunities?.opportunity_billing_info;
+          const paymentTerms = Array.isArray(billingInfo) && billingInfo.length > 0 ? billingInfo[0].payment_terms || 30 : 30;
+          return calculateOverdueStatus(status, item.billed_at, item.payment_date, paymentTerms);
+        });
       } else {
         filtered = filtered.filter(item => item.invoice_status === statusFilter);
       }
@@ -483,7 +491,9 @@ export default function Invoices() {
 
   const getStatusBadge = (item: InvoiceLineItem) => {
     const status = item.invoice_status || 'draft';
-    const isOverdue = calculateOverdueStatus(status, item.billed_at, item.payment_date, 30);
+    const billingInfo = item.opportunities?.opportunity_billing_info;
+    const paymentTerms = Array.isArray(billingInfo) && billingInfo.length > 0 ? billingInfo[0].payment_terms || 30 : 30;
+    const isOverdue = calculateOverdueStatus(status, item.billed_at, item.payment_date, paymentTerms);
     
     if (isOverdue) {
       return <Badge variant="destructive" className="bg-red-600 hover:bg-red-700 text-white font-semibold border-red-700 animate-pulse">Overdue</Badge>;
@@ -751,7 +761,9 @@ export default function Invoices() {
             ) : (
               <div className="space-y-3">
                 {filteredItems.map((item) => {
-                  const isOverdue = calculateOverdueStatus(item.invoice_status, item.billed_at, item.payment_date, 30);
+                  const billingInfo = item.opportunities?.opportunity_billing_info;
+                  const paymentTerms = Array.isArray(billingInfo) && billingInfo.length > 0 ? billingInfo[0].payment_terms || 30 : 30;
+                  const isOverdue = calculateOverdueStatus(item.invoice_status, item.billed_at, item.payment_date, paymentTerms);
                   return (
                   <div key={item.id} className={`flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 ${isOverdue ? 'border-red-200 bg-red-50/50 hover:bg-red-50' : ''}`}>
                     <div className="flex-1">
