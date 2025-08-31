@@ -22,6 +22,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, calculateOverdueStatus, extractClientShortform, generateNextInvoiceNumber } from '@/utils/invoiceHelpers';
+import { InvoiceTemplate, type InvoiceData, type InvoiceLineItemData, type BillingInfo } from '@/components/invoices/InvoiceTemplate';
+import { PaymentStatusButton } from '@/components/invoices/PaymentStatusButton';
 
 // Helper function to format dates without timezone issues
 const formatDateSafe = (dateString: string): string => {
@@ -31,7 +33,6 @@ const formatDateSafe = (dateString: string): string => {
   const date = new Date(year, month - 1, day); // month is 0-indexed
   return date.toLocaleDateString();
 };
-import { InvoiceTemplate, type InvoiceData, type InvoiceLineItemData, type BillingInfo } from '@/components/invoices/InvoiceTemplate';
 
 interface InvoiceLineItem {
   id: string;
@@ -345,16 +346,16 @@ export default function Invoices() {
 
   const getStatusBadge = (item: InvoiceLineItem) => {
     const status = item.invoice_status || 'draft';
-    const isOverdue = calculateOverdueStatus(status, item.billed_at);
+    const isOverdue = calculateOverdueStatus(status, item.billed_at, 30);
     
     if (isOverdue) {
       return <Badge variant="destructive">Overdue</Badge>;
     }
 
     const variants = {
-      draft: <Badge variant="secondary">Draft</Badge>,
-      sent: <Badge variant="outline">Sent</Badge>,
-      paid: <Badge variant="default" className="bg-green-600">Paid</Badge>,
+      draft: <Badge variant="secondary" className="bg-gray-200 text-gray-700">Draft</Badge>,
+      sent: <Badge variant="outline" className="border-blue-500 text-blue-700">Sent</Badge>,
+      paid: <Badge variant="default" className="bg-green-600 hover:bg-green-700">Paid</Badge>,
       overdue: <Badge variant="destructive">Overdue</Badge>
     };
     
@@ -629,6 +630,12 @@ export default function Invoices() {
                         <Download className="h-4 w-4" />
                         PDF
                       </Button>
+                      <PaymentStatusButton 
+                        invoiceId={item.id}
+                        currentStatus={item.invoice_status}
+                        invoiceNumber={item.invoice_number || 'DRAFT'}
+                        onStatusChange={() => fetchInvoiceData()}
+                      />
                     </div>
                   </div>
                 ))}
