@@ -21,7 +21,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency, calculateOverdueStatus } from '@/utils/invoiceHelpers';
+import { formatCurrency, calculateOverdueStatus, extractClientShortform, generateNextInvoiceNumber } from '@/utils/invoiceHelpers';
 import { InvoiceTemplate, type InvoiceData, type InvoiceLineItemData, type BillingInfo } from '@/components/invoices/InvoiceTemplate';
 
 interface InvoiceLineItem {
@@ -69,6 +69,7 @@ export default function Invoices() {
   const navigate = useNavigate();
   const { invoiceId } = useParams();
   const { toast } = useToast();
+  // Removed complex useInvoiceGeneration hook - using direct utility functions instead
   
   const [invoiceLineItems, setInvoiceLineItems] = useState<InvoiceLineItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<InvoiceLineItem[]>([]);
@@ -158,8 +159,9 @@ export default function Invoices() {
 
       if (error) throw error;
 
-      setInvoiceLineItems(data || []);
-      calculateSummary(data || []);
+      const itemsWithNumbers = await autoGenerateInvoiceNumbers(data || []);
+      setInvoiceLineItems(itemsWithNumbers);
+      calculateSummary(itemsWithNumbers);
     } catch (error) {
       console.error('Error fetching invoice data:', error);
       toast({
@@ -170,6 +172,98 @@ export default function Invoices() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const autoGenerateInvoiceNumbers = async (items: InvoiceLineItem[]): Promise<InvoiceLineItem[]> => {
+    const updatedItems = [...items];
+    const itemsNeedingNumbers = items.filter(item => !item.invoice_number && item.opportunities?.company_name);
+    
+    if (itemsNeedingNumbers.length === 0) {
+      return updatedItems;
+    }
+    
+    console.log(`Auto-generating invoice numbers for ${itemsNeedingNumbers.length} items...`);
+    
+    // Group items by company name and sort by billed_at date within each group
+    const itemsByCompany = itemsNeedingNumbers.reduce((acc, item) => {
+      const companyName = item.opportunities!.company_name;
+      if (!acc[companyName]) {
+        acc[companyName] = [];
+      }
+      acc[companyName].push(item);
+      return acc;
+    }, {} as Record<string, InvoiceLineItem[]>);
+    
+    // Sort each company's items by billed_at date (earliest first)
+    Object.keys(itemsByCompany).forEach(companyName => {
+      itemsByCompany[companyName].sort((a, b) => {
+        const dateA = new Date(a.billed_at || '').getTime();
+        const dateB = new Date(b.billed_at || '').getTime();
+        return dateA - dateB;
+      });
+    });
+    
+    // Generate sequential invoice numbers for each company
+    for (const [companyName, companyItems] of Object.entries(itemsByCompany)) {
+      try {
+        // Get the shortform for this company (no uniqueness checking)
+        const clientShortform = extractClientShortform(companyName);
+        console.log(`Processing ${companyItems.length} items for ${companyName} (${clientShortform})`);
+        
+        // Find existing invoice numbers for this shortform to determine next sequence
+        const { data: existingData } = await supabase
+          .from('invoice_line_items')
+          .select('invoice_number')
+          .not('invoice_number', 'is', null)
+          .like('invoice_number', `${clientShortform}-%`)
+          .order('invoice_number', { ascending: false });
+        
+        // Determine starting sequence number
+        let nextSequence = 1;
+        if (existingData && existingData.length > 0) {
+          const highestNumber = existingData[0].invoice_number;
+          const match = highestNumber?.match(/-(\d+)$/);
+          if (match) {
+            nextSequence = parseInt(match[1], 10) + 1;
+          }
+        }
+        
+        // Generate and update each item
+        for (let i = 0; i < companyItems.length; i++) {
+          const item = companyItems[i];
+          const sequenceNumber = (nextSequence + i).toString().padStart(3, '0');
+          const invoiceNumber = `${clientShortform}-${sequenceNumber}`;
+          
+          try {
+            const { error } = await supabase
+              .from('invoice_line_items')
+              .update({ invoice_number: invoiceNumber })
+              .eq('id', item.id);
+              
+            if (!error) {
+              console.log(`Generated ${invoiceNumber} for ${companyName} item ${item.id} (billed: ${item.billed_at})`);
+              
+              // Update the item in our array
+              const itemIndex = updatedItems.findIndex(ui => ui.id === item.id);
+              if (itemIndex !== -1) {
+                updatedItems[itemIndex] = {
+                  ...updatedItems[itemIndex],
+                  invoice_number: invoiceNumber
+                };
+              }
+            } else {
+              console.error('Error updating invoice number:', error);
+            }
+          } catch (error) {
+            console.error('Error updating item:', error);
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing company ${companyName}:`, error);
+      }
+    }
+    
+    return updatedItems;
   };
 
   const calculateSummary = (items: InvoiceLineItem[]) => {
