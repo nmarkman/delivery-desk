@@ -311,11 +311,17 @@ export type Database = {
           details: string | null
           id: string
           invoice_id: string | null
+          invoice_number: string | null
+          invoice_status:
+            | Database["public"]["Enums"]["invoice_status_new"]
+            | null
           item_type: string
           line_number: number
           line_total: number | null
           opportunity_id: string | null
+          payment_date: string | null
           quantity: number | null
+          sent_date: string | null
           service_period_end: string | null
           service_period_start: string | null
           source: string | null
@@ -334,11 +340,17 @@ export type Database = {
           details?: string | null
           id?: string
           invoice_id?: string | null
+          invoice_number?: string | null
+          invoice_status?:
+            | Database["public"]["Enums"]["invoice_status_new"]
+            | null
           item_type: string
           line_number: number
           line_total?: number | null
           opportunity_id?: string | null
+          payment_date?: string | null
           quantity?: number | null
+          sent_date?: string | null
           service_period_end?: string | null
           service_period_start?: string | null
           source?: string | null
@@ -357,11 +369,17 @@ export type Database = {
           details?: string | null
           id?: string
           invoice_id?: string | null
+          invoice_number?: string | null
+          invoice_status?:
+            | Database["public"]["Enums"]["invoice_status_new"]
+            | null
           item_type?: string
           line_number?: number
           line_total?: number | null
           opportunity_id?: string | null
+          payment_date?: string | null
           quantity?: number | null
+          sent_date?: string | null
           service_period_end?: string | null
           service_period_start?: string | null
           source?: string | null
@@ -929,6 +947,7 @@ export type Database = {
     }
     Enums: {
       invoice_status: "draft" | "invoiced" | "paid" | "overdue"
+      invoice_status_new: "draft" | "sent" | "paid" | "overdue"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1057,6 +1076,7 @@ export const Constants = {
   public: {
     Enums: {
       invoice_status: ["draft", "invoiced", "paid", "overdue"],
+      invoice_status_new: ["draft", "sent", "paid", "overdue"],
     },
   },
 } as const

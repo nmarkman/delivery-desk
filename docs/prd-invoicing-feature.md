@@ -48,16 +48,17 @@ The Invoice Generation & Management feature enables automatic creation of profes
 3.4. Generated PDFs must follow the filename convention: `[ClientShortform]_CRCG Invoice [Invoice Number]_[YYYY-MM-DD].pdf`
 
 ### 4. Payment Status Tracking
-4.1. The system must provide a simple interface to mark invoices as paid  
-4.2. When marked as paid, the system must record the payment_date in the invoice record  
-4.3. The system must calculate overdue status based on: `due_date < current_date AND payment_date IS NULL`  
-4.4. The system must update the invoice status enum appropriately (draft → paid, or calculate overdue)
+4.1. The system must provide a simple interface to mark invoices as sent and as paid  
+4.2. When marked as sent, the system must record the sent_date and update status to "sent"
+4.3. When marked as paid, the system must record the payment_date and update status to "paid"  
+4.4. The system must calculate overdue status based on: `due_date < current_date AND status = 'sent' AND payment_date IS NULL`  
+4.5. The system must support the workflow: draft → sent → paid (with automatic overdue calculation for sent unpaid invoices)
 
 ### 5. Dashboard & Reporting Views
-5.1. The system must display a list of all invoices with status indicators (paid, unpaid, overdue)  
-5.2. The system must show total outstanding balance (sum of unpaid invoice totals)  
+5.1. The system must display a list of all invoices with status indicators (draft, sent, paid, overdue)  
+5.2. The system must show total outstanding balance (sum of sent unpaid invoice totals)  
 5.3. The system must show total overdue balance (sum of overdue invoice totals)  
-5.4. The system must show counts of unpaid and overdue invoices  
+5.4. The system must show counts of draft, sent, and overdue invoices  
 5.5. The system must allow filtering invoices by status and client
 5.6. This will use the `/invoices` route of the app and replace all of the current content on that page, which is placeholder
 
@@ -92,7 +93,9 @@ The Invoice Generation & Management feature enables automatic creation of profes
 - Company contact information and address (you have this already from the invoice pdf example)
 
 ### Database Schema Updates
-- The existing `invoices` table structure supports all requirements  
+- The existing `invoices` table structure supports most requirements  
+- Add `sent_date` field to track when invoice is marked as sent
+- Update `invoice_status` enum to include: draft, sent, paid, overdue
 - Consider adding an index on `invoice_number` for quick lookups  
 - Consider adding an index on `status` and `due_date` for overdue calculations
 
@@ -137,7 +140,7 @@ The Invoice Generation & Management feature enables automatic creation of profes
 4. **Client Shortform Conflicts**: What's the fallback strategy if multiple clients have the same abbreviated name?  
    A: make one up. Not important. He can change the filenames manually if there is a problem.
 5. **Status Workflow**: Should we add a "sent" status when your dad emails the invoice, or keep it simple with just paid/unpaid?
-   A: add support for a sent status but assume we are just starting with draft (intiial state when invoice is generated) and paid.
+   A: **UPDATED** - Use workflow: Draft → Sent → Paid. Dad will manually mark invoices as "sent" when he emails them, then mark as "paid" when payment is received. Only "sent" invoices can become overdue.
 
 ## Implementation Notes
 
