@@ -354,8 +354,8 @@ export default function Invoices() {
 
     const variants = {
       draft: <Badge variant="secondary" className="bg-gray-200 text-gray-700">Draft</Badge>,
-      sent: <Badge variant="outline" className="border-blue-500 text-blue-700">Sent</Badge>,
-      paid: <Badge variant="default" className="bg-green-600 hover:bg-green-700">Paid</Badge>,
+      sent: <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 text-white">Sent</Badge>,
+      paid: <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white">Paid</Badge>,
       overdue: <Badge variant="destructive">Overdue</Badge>
     };
     
