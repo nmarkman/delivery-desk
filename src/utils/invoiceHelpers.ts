@@ -132,17 +132,21 @@ export function parseInvoiceNumber(invoiceNumber: string): {
 
 /**
  * Calculates overdue status for an invoice line item
+ * Criteria: due_date < current_date AND status = 'sent' AND payment_date IS NULL
  * @param status - Current invoice status
  * @param billedAt - Date when line item was billed
+ * @param paymentDate - Date when payment was received (null if unpaid)
  * @param paymentTerms - Payment terms in days (default 30)
  * @returns True if invoice is overdue
  */
 export function calculateOverdueStatus(
   status: string | null,
   billedAt: string | null,
+  paymentDate: string | null,
   paymentTerms: number = 30
 ): boolean {
-  if (!status || !billedAt || status !== 'sent') {
+  // Must be sent status and not yet paid
+  if (!status || !billedAt || status !== 'sent' || paymentDate !== null) {
     return false;
   }
 

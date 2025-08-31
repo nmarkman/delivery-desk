@@ -75,11 +75,11 @@
   - [x] 6.5.5 Remove stray "0" between subtotal and total sections
   - [x] 6.5.6 Fix Net 30 cutoff and make payment terms dynamic from opportunity_billing_info
   - [x] 6.5.7 Test and verify all data mappings and layout improvements
-- [ ] 7.0 Add overdue calculation and status indicators
-  - [ ] 7.1 Create utility function to calculate overdue status (due_date < current_date AND status = 'sent' AND payment_date IS NULL)
-  - [ ] 7.2 Add overdue highlighting in invoice list component
-  - [ ] 7.3 Create overdue badge/indicator styling
-  - [ ] 7.4 Update invoice status automatically to "overdue" for qualifying invoices
+- [x] 7.0 Add overdue calculation and status indicators
+  - [x] 7.1 Create utility function to calculate overdue status (due_date < current_date AND status = 'sent' AND payment_date IS NULL)
+  - [x] 7.2 Add overdue highlighting in invoice list component
+  - [x] 7.3 Create overdue badge/indicator styling
+  - [x] 7.4 Update invoice status automatically to "overdue" for qualifying invoices
 - [ ] 8.0 Create dashboard summary views (outstanding/overdue balances)
   - [ ] 8.1 Create `InvoiceSummary` component with summary cards
   - [ ] 8.2 Implement calculation for total outstanding balance (sum of sent unpaid invoices only)

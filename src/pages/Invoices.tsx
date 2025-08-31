@@ -203,8 +203,9 @@ export default function Invoices() {
       if (error) throw error;
 
       const itemsWithNumbers = await autoGenerateInvoiceNumbers(data || []);
-      setInvoiceLineItems(itemsWithNumbers);
-      calculateSummary(itemsWithNumbers);
+      const itemsWithUpdatedStatus = await updateOverdueStatuses(itemsWithNumbers);
+      setInvoiceLineItems(itemsWithUpdatedStatus);
+      calculateSummary(itemsWithUpdatedStatus);
     } catch (error) {
       console.error('Error fetching invoice data:', error);
       toast({
@@ -309,10 +310,62 @@ export default function Invoices() {
     return updatedItems;
   };
 
+  const updateOverdueStatuses = async (items: InvoiceLineItem[]): Promise<InvoiceLineItem[]> => {
+    const updatedItems = [...items];
+    const itemsToUpdate: InvoiceLineItem[] = [];
+
+    // Find items that should be marked as overdue
+    for (const item of items) {
+      if (item.invoice_status === 'sent' && !item.payment_date && item.billed_at) {
+        const billingInfo = item.opportunities?.opportunity_billing_info;
+        const paymentTerms = Array.isArray(billingInfo) && billingInfo.length > 0 ? billingInfo[0].payment_terms || 30 : 30;
+        
+        if (calculateOverdueStatus('sent', item.billed_at, null, paymentTerms)) {
+          itemsToUpdate.push(item);
+        }
+      }
+    }
+
+    if (itemsToUpdate.length === 0) {
+      return updatedItems;
+    }
+
+    console.log(`Updating ${itemsToUpdate.length} items to overdue status...`);
+
+    // Update each overdue item in the database
+    for (const item of itemsToUpdate) {
+      try {
+        const { error } = await supabase
+          .from('invoice_line_items')
+          .update({ invoice_status: 'overdue' })
+          .eq('id', item.id);
+          
+        if (!error) {
+          console.log(`Updated item ${item.id} to overdue status`);
+          
+          // Update the item in our array
+          const itemIndex = updatedItems.findIndex(ui => ui.id === item.id);
+          if (itemIndex !== -1) {
+            updatedItems[itemIndex] = {
+              ...updatedItems[itemIndex],
+              invoice_status: 'overdue'
+            };
+          }
+        } else {
+          console.error('Error updating overdue status:', error);
+        }
+      } catch (error) {
+        console.error('Error updating overdue item:', error);
+      }
+    }
+
+    return updatedItems;
+  };
+
   const calculateSummary = (items: InvoiceLineItem[]) => {
     const summary = items.reduce((acc, item) => {
       const status = item.invoice_status || 'draft';
-      const isOverdue = calculateOverdueStatus(status, item.billed_at);
+      const isOverdue = calculateOverdueStatus(status, item.billed_at, item.payment_date);
       
       // Count by status
       acc[`${status}Count` as keyof InvoiceSummary] += 1;
@@ -360,7 +413,7 @@ export default function Invoices() {
     if (statusFilter !== 'all') {
       if (statusFilter === 'overdue') {
         filtered = filtered.filter(item => 
-          calculateOverdueStatus(item.invoice_status, item.billed_at)
+          calculateOverdueStatus(item.invoice_status, item.billed_at, item.payment_date)
         );
       } else {
         filtered = filtered.filter(item => item.invoice_status === statusFilter);
@@ -379,17 +432,17 @@ export default function Invoices() {
 
   const getStatusBadge = (item: InvoiceLineItem) => {
     const status = item.invoice_status || 'draft';
-    const isOverdue = calculateOverdueStatus(status, item.billed_at, 30);
+    const isOverdue = calculateOverdueStatus(status, item.billed_at, item.payment_date, 30);
     
     if (isOverdue) {
-      return <Badge variant="destructive">Overdue</Badge>;
+      return <Badge variant="destructive" className="bg-red-600 hover:bg-red-700 text-white font-semibold border-red-700 animate-pulse">Overdue</Badge>;
     }
 
     const variants = {
       draft: <Badge variant="secondary" className="bg-gray-200 text-gray-700">Draft</Badge>,
       sent: <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 text-white">Sent</Badge>,
       paid: <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white">Paid</Badge>,
-      overdue: <Badge variant="destructive">Overdue</Badge>
+      overdue: <Badge variant="destructive" className="bg-red-600 hover:bg-red-700 text-white font-semibold border-red-700">Overdue</Badge>
     };
     
     return variants[status] || variants.draft;
@@ -654,8 +707,10 @@ export default function Invoices() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredItems.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
+                {filteredItems.map((item) => {
+                  const isOverdue = calculateOverdueStatus(item.invoice_status, item.billed_at, item.payment_date, 30);
+                  return (
+                  <div key={item.id} className={`flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 ${isOverdue ? 'border-red-200 bg-red-50/50 hover:bg-red-50' : ''}`}>
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
                         <h4 className="font-medium">
@@ -701,7 +756,8 @@ export default function Invoices() {
                       />
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
