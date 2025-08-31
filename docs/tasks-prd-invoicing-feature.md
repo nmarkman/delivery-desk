@@ -52,19 +52,21 @@
   - [x] 4.3 Implement data fetching for line items with `billed_at` dates
   - [x] 4.4 Add routing for individual invoice views
   - [x] 4.5 Integrate invoice filters and search functionality
-- [ ] 5.0 Add payment status tracking functionality
-  - [ ] 5.1 Create `PaymentStatusButton` component with "Mark as Sent" and "Mark as Paid" actions
-  - [ ] 5.2 Implement function to update `sent_date` when marking as sent
-  - [ ] 5.3 Implement function to update `payment_date` when marking as paid
-  - [ ] 5.4 Add status indicator badges (draft, sent, paid, overdue)
-  - [ ] 5.5 Create confirmation dialogs for status changes
-  - [ ] 5.6 Ensure workflow progression: draft → sent → paid (no skipping states)
-- [ ] 6.0 Implement client-side PDF generation and download
-  - [ ] 6.1 Research and choose PDF generation approach (print CSS vs jsPDF)
-  - [ ] 6.2 Create `pdfGenerator.ts` utility with download functionality
-  - [ ] 6.3 Add "Download PDF" button to invoice template
-  - [ ] 6.4 Implement filename convention: `[ClientShortform]_CRCG Invoice [Invoice Number]_[YYYY-MM-DD].pdf`
-  - [ ] 6.5 Test PDF output matches CRCG template design
+- [x] 5.0 Add payment status tracking functionality
+  - [x] 5.1 Create `PaymentStatusButton` component with "Mark as Sent" and "Mark as Paid" actions
+  - [x] 5.2 Implement function to update `sent_date` when marking as sent
+  - [x] 5.3 Implement function to update `payment_date` when marking as paid
+  - [x] 5.4 Add status indicator badges (draft, sent, paid, overdue)
+  - [x] 5.5 Create confirmation dialogs for status changes
+  - [x] 5.6 Ensure workflow progression: draft → sent → paid (no skipping states)
+- [x] 6.0 Implement client-side PDF generation and download
+  - [x] 6.1 Install jsPDF and html2canvas libraries
+  - [x] 6.2 Create `pdfGenerator.ts` utility with jsPDF implementation
+  - [x] 6.3 Implement invoice template to canvas conversion
+  - [x] 6.4 Add PDF generation with filename convention: `[ClientShortform]_CRCG Invoice [Invoice Number]_[YYYY-MM-DD].pdf`
+  - [x] 6.5 Add "Download PDF" buttons to invoice template and list views
+  - [x] 6.6 Test PDF output quality and single-page layout
+  - [x] 6.7 Handle edge cases (draft invoices, missing data, etc.)
 - [ ] 7.0 Add overdue calculation and status indicators
   - [ ] 7.1 Create utility function to calculate overdue status (due_date < current_date AND status = 'sent' AND payment_date IS NULL)
   - [ ] 7.2 Add overdue highlighting in invoice list component

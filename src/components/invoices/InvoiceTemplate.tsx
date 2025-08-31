@@ -1,5 +1,9 @@
 import React from 'react';
-import { formatCurrency } from '@/utils/invoiceHelpers';
+import { formatCurrency, parseInvoiceNumber } from '@/utils/invoiceHelpers';
+import { downloadInvoicePDF, isPDFGenerationSupported } from '@/utils/pdfGenerator';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import '@/styles/invoice-print.css';
 
 export interface InvoiceLineItemData {
@@ -41,18 +45,58 @@ export interface InvoiceData {
 interface InvoiceTemplateProps {
   invoice: InvoiceData;
   className?: string;
+  showDownloadButton?: boolean;
 }
 
-export function InvoiceTemplate({ invoice, className = "" }: InvoiceTemplateProps) {
+export function InvoiceTemplate({ invoice, className = "", showDownloadButton = true }: InvoiceTemplateProps) {
   const { billing_info: billing } = invoice;
+  const { toast } = useToast();
   
   // Calculate due date for display
   const invoiceDate = new Date(invoice.invoice_date);
   const dueDate = new Date(invoiceDate);
   dueDate.setDate(dueDate.getDate() + billing.payment_terms);
+
+  // Extract client shortform for PDF filename
+  const parsedInvoice = parseInvoiceNumber(invoice.invoice_number);
+  const clientShortform = parsedInvoice?.shortform || 'CLIENT';
+
+  // Handle PDF download
+  const handleDownloadPDF = async () => {
+    try {
+      await downloadInvoicePDF(invoice.invoice_number, clientShortform);
+      
+      toast({
+        title: "PDF Downloaded",
+        description: `Invoice ${invoice.invoice_number} has been downloaded as PDF.`
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "PDF Generation Failed",
+        description: "There was an error generating the PDF. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
   
   return (
     <div className={`invoice-template max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:max-w-none print:mx-0 ${className}`}>
+      {/* Download PDF Button - Visible on screen, hidden during PDF generation */}
+      {showDownloadButton && isPDFGenerationSupported() && (
+        <div className="flex justify-end p-4 pb-0 no-pdf">
+          <Button
+            onClick={handleDownloadPDF}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 hover:bg-blue-50"
+          >
+            <Download className="h-4 w-4" />
+            Download PDF
+          </Button>
+        </div>
+      )}
+      
       {/* Company Header */}
       <div className="p-6 print:p-3">
         <div className="flex justify-between items-start mb-4 print:mb-3">

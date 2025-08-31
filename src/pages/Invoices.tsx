@@ -21,7 +21,8 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { formatCurrency, calculateOverdueStatus, extractClientShortform, generateNextInvoiceNumber } from '@/utils/invoiceHelpers';
+import { formatCurrency, calculateOverdueStatus, extractClientShortform, generateNextInvoiceNumber, parseInvoiceNumber } from '@/utils/invoiceHelpers';
+import { downloadInvoicePDF } from '@/utils/pdfGenerator';
 import { InvoiceTemplate, type InvoiceData, type InvoiceLineItemData, type BillingInfo } from '@/components/invoices/InvoiceTemplate';
 import { PaymentStatusButton } from '@/components/invoices/PaymentStatusButton';
 
@@ -79,6 +80,10 @@ export default function Invoices() {
   const navigate = useNavigate();
   const { invoiceId } = useParams();
   const { toast } = useToast();
+  
+  // Check for downloadPDF query parameter
+  const searchParams = new URLSearchParams(window.location.search);
+  const shouldDownloadPDF = searchParams.get('downloadPDF') === 'true';
   // Removed complex useInvoiceGeneration hook - using direct utility functions instead
   
   const [invoiceLineItems, setInvoiceLineItems] = useState<InvoiceLineItem[]>([]);
@@ -121,12 +126,40 @@ export default function Invoices() {
         const invoiceData = convertToInvoiceData(item);
         if (invoiceData) {
           setSelectedInvoice(invoiceData);
+          
+          // If PDF download was requested, trigger it after a short delay to ensure template is rendered
+          if (shouldDownloadPDF && invoiceData.invoice_number) {
+            setTimeout(() => {
+              const parsedInvoice = parseInvoiceNumber(invoiceData.invoice_number);
+              const clientShortform = parsedInvoice?.shortform || extractClientShortform(invoiceData.billing_info.organization_name);
+              
+              downloadInvoicePDF(invoiceData.invoice_number, clientShortform)
+                .then(() => {
+                  toast({
+                    title: "PDF Downloaded",
+                    description: `Invoice ${invoiceData.invoice_number} has been downloaded as PDF.`
+                  });
+                  // Remove the query parameter from URL after successful download
+                  navigate(`/invoices/${invoiceId}`, { replace: true });
+                })
+                .catch((error) => {
+                  console.error('Error generating PDF:', error);
+                  toast({
+                    title: "PDF Generation Failed",
+                    description: "There was an error generating the PDF. Please try again.",
+                    variant: "destructive"
+                  });
+                  // Remove the query parameter even on error
+                  navigate(`/invoices/${invoiceId}`, { replace: true });
+                });
+            }, 1000); // 1 second delay to ensure template is fully rendered
+          }
         }
       }
     } else {
       setSelectedInvoice(null);
     }
-  }, [invoiceId, invoiceLineItems]);
+  }, [invoiceId, invoiceLineItems, shouldDownloadPDF, toast, navigate]);
 
   const fetchInvoiceData = async () => {
     try {
@@ -407,6 +440,21 @@ export default function Invoices() {
     navigate(`/invoices/${item.id}`);
   };
 
+  const handleDownloadPDF = async (item: InvoiceLineItem) => {
+    if (!item.invoice_number) {
+      toast({
+        title: "Cannot Download PDF",
+        description: "This invoice needs an invoice number first. Please mark it as sent to generate a number.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // For invoices in the list, navigate to the individual invoice view and trigger PDF download
+    // This ensures the template is properly rendered before PDF generation
+    navigate(`/invoices/${item.id}?downloadPDF=true`);
+  };
+
   const uniqueClients = Array.from(
     new Set(invoiceLineItems.map(item => item.opportunities?.company_name).filter(Boolean))
   );
@@ -445,7 +493,16 @@ export default function Invoices() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2"
+                onClick={() => {
+                  const currentItem = invoiceLineItems.find(item => item.id === invoiceId);
+                  if (currentItem) {
+                    handleDownloadPDF(currentItem);
+                  }
+                }}
+              >
                 <Download className="h-4 w-4" />
                 Download PDF
               </Button>
@@ -626,7 +683,13 @@ export default function Invoices() {
                         <Eye className="h-4 w-4" />
                         View
                       </Button>
-                      <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-2"
+                        onClick={() => handleDownloadPDF(item)}
+                        disabled={!item.invoice_number}
+                      >
                         <Download className="h-4 w-4" />
                         PDF
                       </Button>

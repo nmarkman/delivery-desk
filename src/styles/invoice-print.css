@@ -16,6 +16,7 @@
 
   /* Hide non-essential elements when printing */
   .no-print,
+  .no-pdf,
   .print\\:hidden {
     display: none !important;
   }
