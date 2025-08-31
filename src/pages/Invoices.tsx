@@ -39,8 +39,19 @@ interface InvoiceLineItem {
   service_period_start: string | null;
   service_period_end: string | null;
   opportunities: {
-    organization_name: string;
-    opportunity_billing_info: any;
+    company_name: string;
+    opportunity_billing_info: {
+      organization_name: string;
+      organization_address: string;
+      organization_contact_name: string;
+      organization_contact_email: string;
+      bill_to_name: string;
+      bill_to_address: string;
+      bill_to_contact_name: string;
+      bill_to_contact_email: string;
+      payment_terms: number;
+      po_number?: string;
+    } | null;
   } | null;
 }
 
@@ -125,8 +136,19 @@ export default function Invoices() {
           service_period_start,
           service_period_end,
           opportunities (
-            organization_name,
-            opportunity_billing_info
+            company_name,
+            opportunity_billing_info (
+              organization_name,
+              organization_address,
+              organization_contact_name,
+              organization_contact_email,
+              bill_to_name,
+              bill_to_address,
+              bill_to_contact_name,
+              bill_to_contact_email,
+              payment_terms,
+              po_number
+            )
           )
         `)
         .not('billed_at', 'is', null)
@@ -190,7 +212,7 @@ export default function Invoices() {
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(item => 
-        item.opportunities?.organization_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.opportunities?.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -210,7 +232,7 @@ export default function Invoices() {
     // Client filter
     if (clientFilter !== 'all') {
       filtered = filtered.filter(item => 
-        item.opportunities?.organization_name === clientFilter
+        item.opportunities?.company_name === clientFilter
       );
     }
 
@@ -244,20 +266,20 @@ export default function Invoices() {
       invoice_number: item.invoice_number || 'DRAFT',
       invoice_date: item.billed_at || new Date().toISOString().split('T')[0],
       due_date: item.billed_at ? 
-        new Date(new Date(item.billed_at).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] :
+        new Date(new Date(item.billed_at).getTime() + (billingInfo?.payment_terms || 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0] :
         new Date().toISOString().split('T')[0],
       status: (item.invoice_status as any) || 'draft',
       billing_info: {
-        organization_name: item.opportunities.organization_name,
-        organization_address: billingInfo?.organization_address || '',
-        organization_contact_name: billingInfo?.organization_contact_name || '',
-        organization_contact_email: billingInfo?.organization_contact_email || '',
-        bill_to_name: billingInfo?.bill_to_name || item.opportunities.organization_name,
-        bill_to_address: billingInfo?.bill_to_address || '',
-        bill_to_contact_name: billingInfo?.bill_to_contact_name || '',
-        bill_to_contact_email: billingInfo?.bill_to_contact_email || '',
-        payment_terms: billingInfo?.payment_terms || 30,
-        po_number: billingInfo?.po_number
+        organization_name: billingInfo.organization_name,
+        organization_address: billingInfo.organization_address || '',
+        organization_contact_name: billingInfo.organization_contact_name || '',
+        organization_contact_email: billingInfo.organization_contact_email || '',
+        bill_to_name: billingInfo.bill_to_name || item.opportunities.company_name,
+        bill_to_address: billingInfo.bill_to_address || '',
+        bill_to_contact_name: billingInfo.bill_to_contact_name || '',
+        bill_to_contact_email: billingInfo.bill_to_contact_email || '',
+        payment_terms: billingInfo.payment_terms || 30,
+        po_number: billingInfo.po_number
       },
       line_items: [{
         id: item.id,
@@ -281,7 +303,7 @@ export default function Invoices() {
   };
 
   const uniqueClients = Array.from(
-    new Set(invoiceLineItems.map(item => item.opportunities?.organization_name).filter(Boolean))
+    new Set(invoiceLineItems.map(item => item.opportunities?.company_name).filter(Boolean))
   );
 
   if (loading) {
@@ -480,7 +502,7 @@ export default function Invoices() {
                         {getStatusBadge(item)}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">
-                        {item.opportunities?.organization_name} • {item.description} • {formatCurrency(item.line_total)}
+                        {item.opportunities?.company_name} • {item.description} • {formatCurrency(item.line_total)}
                       </p>
                       {item.billed_at && (
                         <p className="text-xs text-muted-foreground">
