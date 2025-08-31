@@ -37,15 +37,15 @@
   - [x] 2.3 Create function to generate next sequential invoice number per client
   - [x] 2.4 Handle edge cases for duplicate shortforms and special characters
   - [x] 2.5 Create custom hook `useInvoiceGeneration` to manage invoice number logic
-- [ ] 3.0 Build invoice HTML template component matching CRCG design
-  - [ ] 3.1 Create base `InvoiceTemplate` component structure
-  - [ ] 3.2 Add CRCG header with logo and company contact information
-  - [ ] 3.3 Add "COLLEGIATE RETAIL" branding element styling
-  - [ ] 3.4 Create Organization and Bill To sections using opportunity_billing_info data
-  - [ ] 3.5 Build line items table with quantity, description, unit price, and total columns
-  - [ ] 3.6 Add subtotal, total, and payment terms sections
-  - [ ] 3.7 Style invoice number and date in header bar
-  - [ ] 3.8 Create print-specific CSS file for PDF optimization
+- [x] 3.0 Build invoice HTML template component matching CRCG design
+  - [x] 3.1 Create base `InvoiceTemplate` component structure
+  - [x] 3.2 Add CRCG header with logo and company contact information
+  - [x] 3.3 Add "COLLEGIATE RETAIL" branding element styling
+  - [x] 3.4 Create Organization and Bill To sections using opportunity_billing_info data
+  - [x] 3.5 Build line items table with quantity, description, unit price, and total columns
+  - [x] 3.6 Add subtotal, total, and payment terms sections
+  - [x] 3.7 Style invoice number and date in header bar
+  - [x] 3.8 Create print-specific CSS file for PDF optimization
 - [ ] 4.0 Implement invoices dashboard page (/invoices route)
   - [ ] 4.1 Replace placeholder content in `src/pages/Invoices.tsx`
   - [ ] 4.2 Create main layout with summary cards and invoice list

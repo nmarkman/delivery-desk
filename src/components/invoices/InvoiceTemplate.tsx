@@ -1,0 +1,194 @@
+import React from 'react';
+import { formatCurrency } from '@/utils/invoiceHelpers';
+import '@/styles/invoice-print.css';
+
+export interface InvoiceLineItemData {
+  id: string;
+  description: string;
+  details?: string;
+  quantity: number;
+  unit_rate: number;
+  line_total: number;
+  service_period_start?: string;
+  service_period_end?: string;
+}
+
+export interface BillingInfo {
+  organization_name: string;
+  organization_address: string;
+  organization_contact_name: string;
+  organization_contact_email: string;
+  bill_to_name: string;
+  bill_to_address: string;
+  bill_to_contact_name: string;
+  bill_to_contact_email: string;
+  payment_terms: number;
+  po_number?: string;
+}
+
+export interface InvoiceData {
+  invoice_number: string;
+  invoice_date: string;
+  due_date: string;
+  billing_info: BillingInfo;
+  line_items: InvoiceLineItemData[];
+  subtotal: number;
+  tax_amount?: number;
+  total_amount: number;
+  status: 'draft' | 'sent' | 'paid' | 'overdue';
+}
+
+interface InvoiceTemplateProps {
+  invoice: InvoiceData;
+  className?: string;
+}
+
+export function InvoiceTemplate({ invoice, className = "" }: InvoiceTemplateProps) {
+  const { billing_info: billing } = invoice;
+  
+  // Calculate due date for display
+  const invoiceDate = new Date(invoice.invoice_date);
+  const dueDate = new Date(invoiceDate);
+  dueDate.setDate(dueDate.getDate() + billing.payment_terms);
+  
+  return (
+    <div className={`invoice-template max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:max-w-none print:mx-0 ${className}`}>
+      {/* Company Header */}
+      <div className="p-6 print:p-3">
+        <div className="flex justify-between items-start mb-4 print:mb-3">
+          <div className="flex-1">
+            <div className="text-sm text-gray-800 leading-relaxed">
+              <div className="font-semibold">Collegiate Retail Consulting Group</div>
+              <div>330 Cedarcrest Lane</div>
+              <div>Double Oak, TX 75077</div>
+              <div>917.821.0596</div>
+              <div>rmarkman@collegiateretailconsulting.com</div>
+            </div>
+          </div>
+          <div className="flex-shrink-0 ml-8">
+            <div className="text-right">
+              <img 
+                src="https://osywqypaamxxqlgnvgqw.supabase.co/storage/v1/object/public/public-images/crcg-logo.png"
+                alt="CRCG Logo"
+                className="h-16 w-auto ml-auto"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Invoice Header Bar */}
+        <div className="bg-gray-600 text-white px-4 py-2 mb-4 print:mb-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold">INVOICE NO. #{invoice.invoice_number}</h3>
+            </div>
+            <div className="text-right">
+              <div>{new Date(invoice.invoice_date).toLocaleDateString()}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Billing Information */}
+      <div className="px-6 print:px-3">
+        <div className="grid grid-cols-2 gap-8 mb-6 print:mb-4">
+          {/* Left Column - Organization */}
+          <div>
+            <h4 className="font-semibold text-gray-700 mb-3 border-b border-gray-300 pb-1">ORGANIZATION</h4>
+            <div className="text-sm text-gray-800 leading-relaxed">
+              <div>{billing.organization_name}</div>
+              <div className="whitespace-pre-line mt-1">
+                {billing.organization_address}
+              </div>
+              <div className="mt-2">
+                <div>Attn: {billing.organization_contact_name}</div>
+                <div>{billing.organization_contact_email}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Bill To */}
+          <div>
+            <h4 className="font-semibold text-gray-700 mb-3 border-b border-gray-300 pb-1">BILL TO</h4>
+            <div className="text-sm text-gray-800 leading-relaxed">
+              <div>Attn: {billing.bill_to_contact_name}</div>
+              <div>{billing.bill_to_name}</div>
+              <div className="whitespace-pre-line mt-1">
+                {billing.bill_to_address}
+              </div>
+              {billing.po_number && (
+                <div className="mt-2">
+                  <div>Purchase Order Number: {billing.po_number}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Line Items Table */}
+        <div className="mb-6 print:mb-4">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-600 text-white">
+                  <th className="text-left py-2 px-3 text-sm font-semibold w-20">QUANTITY</th>
+                  <th className="text-left py-2 px-3 text-sm font-semibold">DESCRIPTION</th>
+                  <th className="text-right py-2 px-3 text-sm font-semibold w-32">UNIT PRICE</th>
+                  <th className="text-right py-2 px-3 text-sm font-semibold w-32">TOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoice.line_items.map((item, index) => (
+                  <tr key={item.id} className="border-b border-gray-300">
+                    <td className="py-2 px-3 text-sm text-center align-top print:py-1">
+                      {item.quantity}
+                    </td>
+                    <td className="py-2 px-3 text-sm align-top print:py-1">
+                      <div className="font-medium">{item.description}</div>
+                      {item.details && (
+                        <div className="text-gray-700 text-sm mt-1 leading-relaxed print:mt-0">{item.details}</div>
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-sm text-right align-top print:py-1">
+                      {formatCurrency(item.unit_rate)}
+                    </td>
+                    <td className="py-2 px-3 text-sm text-right font-medium align-top print:py-1">
+                      {formatCurrency(item.line_total)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Totals Section */}
+        <div className="border-t-2 border-gray-400 pt-3 mb-6 print:pt-2 print:mb-4">
+          <div className="flex justify-end">
+            <div className="w-80">
+              <div className="flex justify-between items-center py-1 border-b border-gray-300">
+                <span className="font-semibold text-gray-700">SUBTOTAL</span>
+                <span className="font-semibold">{formatCurrency(invoice.subtotal)}</span>
+              </div>
+              {invoice.tax_amount && invoice.tax_amount > 0 && (
+                <div className="flex justify-between items-center py-1 border-b border-gray-300">
+                  <span className="font-semibold text-gray-700">TAX</span>
+                  <span className="font-semibold">{formatCurrency(invoice.tax_amount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center py-1 border-b-2 border-gray-400">
+                <span className="font-bold text-lg">TOTAL</span>
+                <span className="font-bold text-lg">{formatCurrency(invoice.total_amount)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Payment Terms */}
+        <div className="text-center text-sm">
+          <div className="font-semibold">Net {billing.payment_terms}</div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Plus } from 'lucide-react';
+import { FileText, Download, Plus, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { InvoiceTemplate, type InvoiceData } from '@/components/invoices/InvoiceTemplate';
 
 interface Client {
   id: string;
@@ -39,6 +40,58 @@ export default function InvoiceGenerator() {
   const [amount, setAmount] = useState('');
   const [monthYear, setMonthYear] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showDesignPreview, setShowDesignPreview] = useState(false);
+
+  // Sample data for design preview
+  const sampleInvoiceData: InvoiceData = {
+    invoice_number: "WSU-001",
+    invoice_date: "2024-01-15",
+    due_date: "2024-02-14",
+    status: "draft",
+    billing_info: {
+      organization_name: "Washington State University",
+      organization_address: "1500 NE Stadium Way\nPullman, WA 99164\nUnited States",
+      organization_contact_name: "Sarah Johnson",
+      organization_contact_email: "sarah.johnson@wsu.edu",
+      bill_to_name: "Washington State University",
+      bill_to_address: "Accounts Payable Department\n1500 NE Stadium Way\nPullman, WA 99164\nUnited States",
+      bill_to_contact_name: "Mike Williams",
+      bill_to_contact_email: "accounts.payable@wsu.edu",
+      payment_terms: 30,
+      po_number: "WSU-2024-001"
+    },
+    line_items: [
+      {
+        id: "1",
+        description: "Monthly Retainer - Strategic Consulting",
+        details: "Strategic retail consulting services for January 2024",
+        quantity: 1,
+        unit_rate: 5000,
+        line_total: 5000,
+        service_period_start: "2024-01-01",
+        service_period_end: "2024-01-31"
+      },
+      {
+        id: "2", 
+        description: "Market Analysis Report",
+        details: "Comprehensive analysis of regional retail market trends and competitive positioning",
+        quantity: 1,
+        unit_rate: 2500,
+        line_total: 2500
+      },
+      {
+        id: "3",
+        description: "Store Layout Optimization",
+        details: "On-site consultation and layout recommendations for flagship store",
+        quantity: 8,
+        unit_rate: 200,
+        line_total: 1600
+      }
+    ],
+    subtotal: 9100,
+    tax_amount: 0,
+    total_amount: 9100
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -155,10 +208,46 @@ export default function InvoiceGenerator() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Invoice Generator</h1>
-          <p className="text-muted-foreground">Create and manage invoices for your clients</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Invoice Generator</h1>
+            <p className="text-muted-foreground">Create and manage invoices for your clients</p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowDesignPreview(!showDesignPreview)}
+            className="flex items-center gap-2"
+          >
+            <Eye className="h-4 w-4" />
+            {showDesignPreview ? 'Hide' : 'Preview'} CRCG Template
+          </Button>
         </div>
+
+        {showDesignPreview && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center text-lg">🎨 Design Preview - CRCG Invoice Template</CardTitle>
+              <CardDescription className="text-center">
+                Review the invoice design and provide feedback below. This shows how invoices will look when generated.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-2">
+              <div className="max-h-[800px] overflow-y-auto border rounded-lg">
+                <InvoiceTemplate invoice={sampleInvoiceData} />
+              </div>
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-2">Design Review Notes:</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• CRCG logo and "COLLEGIATE RETAIL" branding in header</li>
+                  <li>• Professional layout matching existing invoice format</li>
+                  <li>• All billing information, line items, and totals included</li>
+                  <li>• Print-optimized styling for PDF generation</li>
+                  <li>• Ready for your feedback and any design adjustments</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Invoice Creation Form */}
