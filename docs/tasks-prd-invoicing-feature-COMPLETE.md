@@ -80,10 +80,14 @@
   - [x] 7.2 Add overdue highlighting in invoice list component
   - [x] 7.3 Create overdue badge/indicator styling
   - [x] 7.4 Update invoice status automatically to "overdue" for qualifying invoices
-- [ ] 8.0 Create dashboard summary views (outstanding/overdue balances)
-  - [ ] 8.1 Create `InvoiceSummary` component with summary cards
-  - [ ] 8.2 Implement calculation for total outstanding balance (sum of sent unpaid invoices only)
-  - [ ] 8.3 Implement calculation for total overdue balance
-  - [ ] 8.4 Add counts for draft, sent, and overdue invoices
-  - [ ] 8.5 Create filters to show invoices by status (draft, sent, paid, overdue)
-  - [ ] 8.6 Add client-based filtering functionality
+- [x] 8.0 Enhanced dashboard metrics with invoice data integration
+  - [x] 8.1 Reorder dashboard metrics tiles: Total Clients, Total Active Contract Value, Pending Invoices, Total Outstanding
+  - [x] 8.2 Update Total Outstanding to show dollar value from sent + overdue invoices with count subtitle
+  - [x] 8.3 Create new Total Active Contract Value metric summing all opportunity line items (excluding soft deleted)
+  - [x] 8.4 Update Pending Invoices to show count of draft invoices ready to be sent
+  - [x] 8.5 Add invoice line items data fetching with proper overdue status calculations
+  - [x] 8.6 Implement currency formatting without decimals for cleaner monetary display
+  - [x] 8.7 Ensure metrics show totals for ALL opportunities, not filtered dataset
+  - [x] 8.8 Make Pending Invoices and Total Outstanding tiles clickable with navigation to filtered invoice lists
+  - [x] 8.9 Add purple hover glow effects to indicate clickable tiles
+  - [x] 8.10 Implement URL parameter handling in invoices page for pre-applied status filters

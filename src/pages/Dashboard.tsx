@@ -5,9 +5,20 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, Users, FileText, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import OpportunityCard from '@/components/OpportunityCard';
 import OpportunityFilter from '@/components/OpportunityFilter';
+import { formatCurrency, calculateOverdueStatus } from '@/utils/invoiceHelpers';
+
+// Helper function to format currency without decimals for large amounts
+const formatCurrencyNoDecimals = (amount: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
+};
 
 interface Client {
   id: string;
@@ -29,11 +40,37 @@ interface Opportunity {
   created_at: string | null;
 }
 
+interface InvoiceLineItem {
+  id: string;
+  opportunity_id: string;
+  invoice_number: string | null;
+  invoice_status: 'draft' | 'sent' | 'paid' | 'overdue' | null;
+  line_total: number;
+  billed_at: string | null;
+  payment_date: string | null;
+  opportunities?: {
+    opportunity_billing_info?: Array<{
+      payment_terms?: number;
+    }>;
+  };
+}
+
+interface LineItem {
+  id: string;
+  opportunity_id: string;
+  description: string;
+  unit_rate: number;
+  act_deleted_at: string | null;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [filteredOpportunities, setFilteredOpportunities] = useState<Opportunity[]>([]);
+  const [invoiceLineItems, setInvoiceLineItems] = useState<InvoiceLineItem[]>([]);
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [searchFilter, setSearchFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +160,46 @@ export default function Dashboard() {
       if (clientsResult.error) throw new Error(`Failed to fetch clients: ${clientsResult.error.message}`);
 
       if (clientsResult.data) setClients(clientsResult.data);
+
+      // Fetch all invoice line items for metrics (both billed and draft)
+      const invoiceResult = await supabase
+        .from('invoice_line_items')
+        .select(`
+          id,
+          opportunity_id,
+          invoice_number,
+          invoice_status,
+          line_total,
+          billed_at,
+          payment_date,
+          opportunities!inner(
+            user_id,
+            opportunity_billing_info(payment_terms)
+          )
+        `)
+        .eq('opportunities.user_id', user?.id);
+
+      if (invoiceResult.error) throw new Error(`Failed to fetch invoice data: ${invoiceResult.error.message}`);
+      
+      if (invoiceResult.data) setInvoiceLineItems(invoiceResult.data);
+
+      // Fetch all line items for contract value calculation
+      const lineItemsResult = await supabase
+        .from('invoice_line_items')
+        .select(`
+          id,
+          opportunity_id,
+          description,
+          unit_rate,
+          act_deleted_at,
+          opportunities!inner(user_id)
+        `)
+        .eq('opportunities.user_id', user?.id)
+        .is('act_deleted_at', null); // Exclude soft deleted items
+
+      if (lineItemsResult.error) throw new Error(`Failed to fetch line items: ${lineItemsResult.error.message}`);
+      
+      if (lineItemsResult.data) setLineItems(lineItemsResult.data);
       
       // Fetch first page of opportunities
       await fetchOpportunities(0, true);
@@ -163,11 +240,44 @@ export default function Dashboard() {
   // Use filtered opportunities for display
   const activeOpportunities = filteredOpportunities;
   
-  // Calculate metrics from active opportunities data only
-  const uniqueClients = new Set(activeOpportunities.map(opp => opp.company_name)).size;
-  const totalOutstanding = activeOpportunities.reduce((sum, opp) => sum + (opp.retainer_amount || 0), 0);
+  // Calculate metrics from ALL opportunities (not filtered)
+  const uniqueClients = new Set(opportunities.map(opp => opp.company_name)).size;
   
-  const totalBalance = clients.reduce((sum, client) => sum + (client.outstanding_balance || 0), 0);
+  // Total Outstanding: sum of sent and overdue invoices
+  const outstandingInvoices = invoiceLineItems.filter(item => {
+    if (!item.billed_at || item.payment_date) return false; // Must be billed and not paid
+    const status = item.invoice_status || 'draft';
+    if (status === 'sent' || status === 'overdue') return true;
+    
+    // Also check if it should be calculated as overdue
+    const billingInfo = item.opportunities?.opportunity_billing_info;
+    const paymentTerms = Array.isArray(billingInfo) && billingInfo.length > 0 ? billingInfo[0].payment_terms || 30 : 30;
+    return calculateOverdueStatus(status, item.billed_at, item.payment_date, paymentTerms);
+  });
+  
+  const totalOutstanding = outstandingInvoices.reduce((sum, item) => sum + item.line_total, 0);
+  const outstandingCount = outstandingInvoices.length;
+  
+  // Total Active Contract Value: sum of all line items unit rates for ALL opportunities
+  const allOpportunityIds = new Set(opportunities.map(opp => opp.id));
+  const totalActiveContractValue = lineItems
+    .filter(item => allOpportunityIds.has(item.opportunity_id))
+    .reduce((sum, item) => sum + (item.unit_rate || 0), 0);
+  
+  // Pending Invoices: count of draft invoices (line items with billed_at dates but no invoice status or draft status)
+  const pendingInvoices = invoiceLineItems.filter(item => 
+    item.billed_at && (!item.invoice_status || item.invoice_status === 'draft')
+  );
+  const pendingCount = pendingInvoices.length;
+
+  // Click handlers for navigating to invoices with filters
+  const handlePendingInvoicesClick = () => {
+    navigate('/invoices?status=draft');
+  };
+
+  const handleOutstandingClick = () => {
+    navigate('/invoices?status=sent');
+  };
 
   if (loading) {
     return (
@@ -208,19 +318,6 @@ export default function Dashboard() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">—</div>
-            <p className="text-xs text-muted-foreground">
-              From {uniqueClients} clients
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -234,26 +331,45 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Active Contract Value</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">—</div>
+            <div className="text-2xl font-bold">{formatCurrencyNoDecimals(totalActiveContractValue)}</div>
             <p className="text-xs text-muted-foreground">
-              Available in Invoice Generator
+              From {opportunities.length} active contract{opportunities.length !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer transition-all duration-200 hover:shadow-md hover:ring-4 hover:ring-purple-300 hover:ring-opacity-80" 
+          onClick={handlePendingInvoicesClick}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Invoices</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">—</div>
+            <div className="text-2xl font-bold">{pendingCount}</div>
             <p className="text-xs text-muted-foreground">
-              Available in Invoice Generator
+              Ready to send
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className="cursor-pointer transition-all duration-200 hover:shadow-md hover:ring-4 hover:ring-purple-300 hover:ring-opacity-80" 
+          onClick={handleOutstandingClick}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrencyNoDecimals(totalOutstanding)}</div>
+            <p className="text-xs text-muted-foreground">
+              From {outstandingCount} invoice{outstandingCount !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>

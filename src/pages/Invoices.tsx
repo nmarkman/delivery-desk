@@ -141,6 +141,15 @@ export default function Invoices() {
     }
   }, [user, loading, navigate]);
 
+  // Handle URL query parameters for pre-applied filters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const statusParam = searchParams.get('status');
+    if (statusParam && ['draft', 'sent', 'paid', 'overdue'].includes(statusParam)) {
+      setStatusFilter(statusParam);
+    }
+  }, []);
+
   useEffect(() => {
     if (user) {
       fetchInvoiceData();
