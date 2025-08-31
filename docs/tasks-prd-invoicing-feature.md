@@ -46,12 +46,12 @@
   - [x] 3.6 Add subtotal, total, and payment terms sections
   - [x] 3.7 Style invoice number and date in header bar
   - [x] 3.8 Create print-specific CSS file for PDF optimization
-- [ ] 4.0 Implement invoices dashboard page (/invoices route)
-  - [ ] 4.1 Replace placeholder content in `src/pages/Invoices.tsx`
-  - [ ] 4.2 Create main layout with summary cards and invoice list
-  - [ ] 4.3 Implement data fetching for line items with `billed_at` dates
-  - [ ] 4.4 Add routing for individual invoice views
-  - [ ] 4.5 Integrate invoice filters and search functionality
+- [x] 4.0 Implement invoices dashboard page (/invoices route)
+  - [x] 4.1 Replace placeholder content in `src/pages/Invoices.tsx`
+  - [x] 4.2 Create main layout with summary cards and invoice list
+  - [x] 4.3 Implement data fetching for line items with `billed_at` dates
+  - [x] 4.4 Add routing for individual invoice views
+  - [x] 4.5 Integrate invoice filters and search functionality
 - [ ] 5.0 Add payment status tracking functionality
   - [ ] 5.1 Create `PaymentStatusButton` component with "Mark as Sent" and "Mark as Paid" actions
   - [ ] 5.2 Implement function to update `sent_date` when marking as sent

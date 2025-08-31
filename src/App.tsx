@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ActSync from "./pages/ActSync";
+import Invoices from "./pages/Invoices";
 import InvoiceGenerator from "./pages/InvoiceGenerator";
 import DeliverablesReport from "./pages/DeliverablesReport";
 import NotFound from "./pages/NotFound";
@@ -24,7 +25,9 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/act-sync" element={<ActSync />} />
-            <Route path="/invoices" element={<InvoiceGenerator />} />
+            <Route path="/invoices" element={<Invoices />} />
+            <Route path="/invoices/:invoiceId" element={<Invoices />} />
+            <Route path="/invoice-generator" element={<InvoiceGenerator />} />
             <Route path="/deliverables" element={<DeliverablesReport />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -29,7 +29,7 @@ const navigation = [
   //   icon: FileText,
   // },
   {
-    title: 'Invoice Generator',
+    title: 'Invoices',
     url: '/invoices',
     icon: Receipt,
   },
