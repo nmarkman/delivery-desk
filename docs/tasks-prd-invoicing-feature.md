@@ -9,12 +9,12 @@
 - `src/components/invoices/InvoiceSummary.tsx` - Dashboard component showing outstanding/overdue balances
 - `src/components/invoices/PaymentStatusButton.tsx` - Button component for marking invoices as sent or paid
 - `src/hooks/useInvoices.ts` - Custom hook for fetching and managing invoice data
-- `src/hooks/useInvoiceGeneration.ts` - Custom hook for invoice number generation logic
-- `src/utils/invoiceHelpers.ts` - Utility functions for invoice calculations and formatting
+- `src/hooks/useInvoiceGeneration.ts` - ✅ Custom hook for invoice number generation logic
+- `src/utils/invoiceHelpers.ts` - ✅ Utility functions for invoice calculations and formatting  
 - `src/utils/pdfGenerator.ts` - Client-side PDF generation utilities
 - `src/styles/invoice-print.css` - Print-specific CSS for PDF generation
-- `supabase/migrations/add_invoice_fields.sql` - Database migration for any needed schema updates
-- `src/integrations/supabase/types.ts` - Auto-generated types (will update after migrations)
+- `supabase/migrations/add_invoice_fields.sql` - ✅ Database migration for invoice tracking fields
+- `src/integrations/supabase/types.ts` - ✅ Auto-generated types updated with new invoice fields
 
 ### Notes
 
@@ -31,12 +31,12 @@
   - [x] 1.4 Add `invoice_status` enum field to `invoice_line_items` table (draft, sent, paid, overdue)
   - [x] 1.5 Create database migration file with the new fields
   - [x] 1.6 Apply migration and regenerate TypeScript types
-- [ ] 2.0 Create invoice number generation system
-  - [ ] 2.1 Create utility function to extract client shortform from organization name
-  - [ ] 2.2 Create function to query existing invoice numbers for a specific client
-  - [ ] 2.3 Create function to generate next sequential invoice number per client
-  - [ ] 2.4 Handle edge cases for duplicate shortforms and special characters
-  - [ ] 2.5 Create custom hook `useInvoiceGeneration` to manage invoice number logic
+- [x] 2.0 Create invoice number generation system
+  - [x] 2.1 Create utility function to extract client shortform from organization name
+  - [x] 2.2 Create function to query existing invoice numbers for a specific client
+  - [x] 2.3 Create function to generate next sequential invoice number per client
+  - [x] 2.4 Handle edge cases for duplicate shortforms and special characters
+  - [x] 2.5 Create custom hook `useInvoiceGeneration` to manage invoice number logic
 - [ ] 3.0 Build invoice HTML template component matching CRCG design
   - [ ] 3.1 Create base `InvoiceTemplate` component structure
   - [ ] 3.2 Add CRCG header with logo and company contact information
