@@ -155,7 +155,7 @@ export default function Invoices() {
         .not('billed_at', 'is', null)
         .is('act_deleted_at', null)
         .eq('user_id', user?.id)
-        .order('billed_at', { ascending: false });
+        .order('billed_at', { ascending: true });
 
       if (error) throw error;
 
