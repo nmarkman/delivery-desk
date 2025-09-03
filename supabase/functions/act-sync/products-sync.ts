@@ -243,10 +243,7 @@ export async function syncProducts(
       await logProductsSyncIntegration(connection, results, skippedCount);
     }
 
-    // Step 5: Soft delete stale products (not seen in 2 days)  
-    if (results.success) {
-      await softDeleteStaleProducts(connection.user_id);
-    }
+    // Step 5: Soft delete stale products (removed - UI handles manual deletion)
 
     const successCount = results.records_created + results.records_updated;
     const successRate = results.total_records_processed > 0 
@@ -543,38 +540,3 @@ async function logProductsSyncIntegration(
   }
 }
 
-/**
- * Soft delete invoice line items not seen in Act! for more than 2 days
- */
-async function softDeleteStaleProducts(userId: string): Promise<void> {
-  try {
-    const staleThreshold = new Date(Date.now() - (2 * 24 * 60 * 60 * 1000)); // 2 days ago
-    
-    console.log(`🗑️ Checking for stale products older than ${staleThreshold.toISOString()}...`);
-    
-    const { data, error } = await supabase
-      .from('invoice_line_items')
-      .update({ act_deleted_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .not('act_reference', 'is', null) // Only Act! synced products
-      .lt('act_last_seen_at', staleThreshold.toISOString())
-      .is('act_deleted_at', null) // Not already soft-deleted
-      .select('id, description, act_reference, unit_rate');
-
-    if (error) {
-      console.error('Error soft-deleting stale products:', error);
-      return;
-    }
-
-    if (data && data.length > 0) {
-      console.log(`🗑️ Soft-deleted ${data.length} stale products:`);
-      data.forEach((product: any) => {
-        console.log(`  - ${product.description} ($${product.unit_rate}) (Act! ID: ${product.act_reference})`);
-      });
-    } else {
-      console.log('✅ No stale products found');
-    }
-  } catch (error) {
-    console.error('Exception during soft delete of stale products:', error);
-  }
-}

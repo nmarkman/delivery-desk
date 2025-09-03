@@ -511,10 +511,7 @@ export async function syncOpportunities(
       await logSyncOperation(result, connection);
     }
 
-    // Step 4: Soft delete stale opportunities (not seen in 2 days)
-    if (result.success) {
-      await softDeleteStaleOpportunities(connection.user_id);
-    }
+    // Step 4: Soft delete stale opportunities (removed - UI handles manual deletion)
 
     return result;
 
@@ -570,38 +567,4 @@ async function logSyncOperation(
   }
 }
 
-/**
- * Soft delete opportunities not seen in Act! for more than 2 days
- */
-async function softDeleteStaleOpportunities(userId: string): Promise<void> {
-  try {
-    const staleThreshold = new Date(Date.now() - (2 * 24 * 60 * 60 * 1000)); // 2 days ago
-    
-    console.log(`🗑️ Checking for stale opportunities older than ${staleThreshold.toISOString()}...`);
-    
-    const { data, error } = await supabase
-      .from('opportunities')
-      .update({ act_deleted_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .not('act_opportunity_id', 'is', null) // Only Act! synced opportunities
-      .lt('act_last_seen_at', staleThreshold.toISOString())
-      .is('act_deleted_at', null) // Not already soft-deleted
-      .select('id, name, act_opportunity_id');
-
-    if (error) {
-      console.error('Error soft-deleting stale opportunities:', error);
-      return;
-    }
-
-    if (data && data.length > 0) {
-      console.log(`🗑️ Soft-deleted ${data.length} stale opportunities:`);
-      data.forEach(opp => {
-        console.log(`  - ${opp.name} (Act! ID: ${opp.act_opportunity_id})`);
-      });
-    } else {
-      console.log('✅ No stale opportunities found');
-    }
-  } catch (error) {
-    console.error('Exception during soft delete of stale opportunities:', error);
-  }
-} 
+ 

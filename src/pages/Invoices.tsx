@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   Eye,
   Download,
-  Settings
+  Settings,
+  Info
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +31,7 @@ import { InvoiceTemplate, type InvoiceData, type InvoiceLineItemData, type Billi
 import { PaymentStatusButton } from '@/components/invoices/PaymentStatusButton';
 import BillingDetailsModal from '@/components/BillingDetailsModal';
 import { useOpportunityBilling } from '@/hooks/useOpportunityBilling';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Helper function to format dates without timezone issues
 const formatDateSafe = (dateString: string): string => {
@@ -660,8 +662,9 @@ export default function Invoices() {
   }
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <TooltipProvider>
+      <Layout>
+        <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">Invoices</h1>
@@ -791,7 +794,22 @@ export default function Invoices() {
                         <h4 className="font-medium">
                           {item.invoice_number || 'DRAFT'}
                         </h4>
-                        {getStatusBadge(item)}
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(item)}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-sm">
+                              <div className="space-y-1">
+                                <p className="font-medium">{item.description}</p>
+                                {item.details && (
+                                  <p className="text-xs text-muted-foreground">{item.details}</p>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">
                         {item.opportunities?.company_name} • {formatCurrency(item.line_total)}
@@ -852,33 +870,34 @@ export default function Invoices() {
           </CardContent>
         </Card>
 
-      </div>
+        </div>
 
-      {/* Billing Details Modal */}
-      <BillingDetailsModal
-        open={billingModalOpen}
-        onOpenChange={setBillingModalOpen}
-        opportunityId={selectedOpportunityId || ''}
-        companyName={selectedCompanyName}
-        billingInfo={billingInfo}
-        onSave={async (savedBillingInfo) => {
-          try {
-            // Save billing info and wait for completion
-            await saveBillingInfoAsync(savedBillingInfo);
-            
-            // Refresh both billing info and invoice data
-            await Promise.all([
-              refetchBillingInfo(),
-              fetchInvoiceData()
-            ]);
-            
-            setBillingModalOpen(false);
-          } catch (error) {
-            console.error('Error saving billing info:', error);
-            // Don't close modal on error so user can try again
-          }
-        }}
-      />
-    </Layout>
+        {/* Billing Details Modal */}
+        <BillingDetailsModal
+          open={billingModalOpen}
+          onOpenChange={setBillingModalOpen}
+          opportunityId={selectedOpportunityId || ''}
+          companyName={selectedCompanyName}
+          billingInfo={billingInfo}
+          onSave={async (savedBillingInfo) => {
+            try {
+              // Save billing info and wait for completion
+              await saveBillingInfoAsync(savedBillingInfo);
+              
+              // Refresh both billing info and invoice data
+              await Promise.all([
+                refetchBillingInfo(),
+                fetchInvoiceData()
+              ]);
+              
+              setBillingModalOpen(false);
+            } catch (error) {
+              console.error('Error saving billing info:', error);
+              // Don't close modal on error so user can try again
+            }
+          }}
+        />
+      </Layout>
+    </TooltipProvider>
   );
 }

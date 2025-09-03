@@ -91,12 +91,12 @@
   - [ ] 8.4 Update form validation to allow empty contact email
   - [ ] 8.5 Test billing details functionality with and without contact email
 
-- [ ] 9.0 Re-add Product Names to Invoice Page
-  - [ ] 9.1 Analyze current invoice line item data structure for product/deliverable names
-  - [ ] 9.2 Add product/deliverable name display to invoice table view as a tooltip hover where user can see the full name
-  - [ ] 9.4 Ensure readability for contracts with 8-9 deliverables
-  - [ ] 9.5 Test display with various deliverable name lengths and quantities
+- [x] 9.0 Re-add Product Names to Invoice Page
+  - [x] 9.1 Analyze current invoice line item data structure for product/deliverable names
+  - [x] 9.2 Add product/deliverable name display to invoice table view as a tooltip hover where user can see the full name
+  - [x] 9.4 Ensure readability for contracts with 8-9 deliverables
+  - [x] 9.5 Test display with various deliverable name lengths and quantities
 
 - [x] 10.0 Fix yellow display issue of left nav bar
 
-- [ ] 11.0 Remove or significantly update soft delete logic on opps and invoice_line_items
+- [x] 11.0 Remove or significantly update soft delete logic on opps and invoice_line_items
