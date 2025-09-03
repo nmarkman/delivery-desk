@@ -1149,8 +1149,8 @@ Cost Proposal:
             type: item.type === 'retainer' ? 'Retainer' : 'Deliverable'
           };
           
-          // Only add itemNumber for retainers (deliverables get no date)
-          if (item.type === 'retainer' && item.date) {
+          // Add itemNumber (date) if provided for both retainers and deliverables
+          if (item.date) {
             return { ...baseProduct, itemNumber: item.date };
           }
           

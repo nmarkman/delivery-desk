@@ -42,6 +42,7 @@ const formatDateSafe = (dateString: string): string => {
 
 interface InvoiceLineItem {
   id: string;
+  opportunity_id: string;
   invoice_number: string | null;
   invoice_status: 'draft' | 'sent' | 'paid' | 'overdue' | null;
   description: string;
@@ -116,7 +117,8 @@ export default function Invoices() {
   // Billing hook for the selected opportunity
   const { 
     billingInfo, 
-    saveBillingInfo, 
+    saveBillingInfoAsync, 
+    refetch: refetchBillingInfo,
     isLoading: billingLoading 
   } = useOpportunityBilling(selectedOpportunityId || '');
 
@@ -219,6 +221,7 @@ export default function Invoices() {
         .from('invoice_line_items')
         .select(`
           id,
+          opportunity_id,
           invoice_number,
           invoice_status,
           description,
@@ -858,11 +861,22 @@ export default function Invoices() {
         opportunityId={selectedOpportunityId || ''}
         companyName={selectedCompanyName}
         billingInfo={billingInfo}
-        onSave={(savedBillingInfo) => {
-          saveBillingInfo({ billingInfo: savedBillingInfo });
-          // Refresh invoice data to reflect billing changes
-          fetchInvoiceData();
-          setBillingModalOpen(false);
+        onSave={async (savedBillingInfo) => {
+          try {
+            // Save billing info and wait for completion
+            await saveBillingInfoAsync(savedBillingInfo);
+            
+            // Refresh both billing info and invoice data
+            await Promise.all([
+              refetchBillingInfo(),
+              fetchInvoiceData()
+            ]);
+            
+            setBillingModalOpen(false);
+          } catch (error) {
+            console.error('Error saving billing info:', error);
+            // Don't close modal on error so user can try again
+          }
         }}
       />
     </Layout>

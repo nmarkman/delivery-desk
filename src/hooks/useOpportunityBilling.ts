@@ -178,6 +178,19 @@ export const useOpportunityBilling = (opportunityId: string) => {
     }
   };
 
+  // Async version for promise-based handling
+  const saveBillingInfoAsync = async (billingInfo: BillingInfo) => {
+    if (billingInfo.id) {
+      // Update existing
+      const { id, ...updateData } = billingInfo;
+      return updateBillingInfoMutation.mutateAsync({ id, billingInfo: updateData });
+    } else {
+      // Create new
+      const { id, created_at, updated_at, user_id, ...createData } = billingInfo;
+      return createBillingInfoMutation.mutateAsync({ billingInfo: createData });
+    }
+  };
+
   return {
     // Data
     billingInfo: query.data,
@@ -189,6 +202,7 @@ export const useOpportunityBilling = (opportunityId: string) => {
     updateBillingInfo: updateBillingInfoMutation.mutate,
     deleteBillingInfo: deleteBillingInfoMutation.mutate,
     saveBillingInfo,
+    saveBillingInfoAsync,
     
     // Loading states
     isCreating: createBillingInfoMutation.isPending,

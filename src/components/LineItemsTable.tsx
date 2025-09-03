@@ -268,7 +268,7 @@ export default function LineItemsTable({
                   <Input
                     id="new-amount"
                     type="number"
-                    value={newItem.amount}
+                    value={newItem.amount === 0 ? '' : newItem.amount}
                     onChange={(e) => setNewItem(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
                     placeholder="0.00"
                     min="0"
