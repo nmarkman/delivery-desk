@@ -13,17 +13,23 @@
 - `src/utils/dashboardCalculations.ts` - New utility for dashboard metrics calculations (TO BE CREATED)
 - `supabase/migrations/` - Database migration files for making contact email nullable
 - `src/components/ui/RefreshButton.tsx` - New refresh button component for dashboard (TO BE CREATED)
-- `src/pages/Invoices.tsx` - ✅ UPDATED: Invoice list page with date-based numbering integration
+- `src/pages/Invoices.tsx` - ✅ UPDATED: Invoice list page with tooltips and date-based numbering integration
 - `src/pages/InvoiceGenerator.tsx` - ✅ UPDATED: Sample data updated with company/opportunity info
 - `src/styles/invoice-print.css` - ✅ UPDATED: PDF font sizes reduced by 15%
+- `src/components/AppSidebar.tsx` - ✅ UPDATED: Fixed text visibility issues with inline styles
+- `supabase/functions/act-sync/opportunities-sync.ts` - ✅ UPDATED: Removed automatic soft deletion
+- `supabase/functions/act-sync/products-sync.ts` - ✅ UPDATED: Removed automatic soft deletion
 
 ### Implementation Status
 
 - ✅ **COMPLETED**: Date-based invoice numbering system (WSU-MMDDYY-XX format)
 - ✅ **COMPLETED**: Company and opportunity header added to invoice template
-- ✅ **COMPLETED**: JavaScript date rendering bug fixed (timezone issues resolved)
+- ✅ **COMPLETED**: JavaScript date rendering bug fixed (timezone issues resolved)  
 - ✅ **COMPLETED**: Leading zero and manual entry bugs fixed
-- 🔄 **REMAINING**: Tasks 5.0-11.0 require implementation
+- ✅ **COMPLETED**: Product names tooltip added to invoice page
+- ✅ **COMPLETED**: Sidebar text visibility issues fixed (yellow display)
+- ✅ **COMPLETED**: Act sync auto-deletion logic safely removed
+- 🔄 **REMAINING**: Tasks 5.0-8.0 require implementation (4 tasks remaining)
 
 ### Key Technical Context
 
@@ -31,6 +37,10 @@
 - Invoice numbering now uses date-based format with sequential numbering for same dates
 - InvoiceData interface includes `company_name?` and `opportunity_name?` fields
 - PDF generation has 15% smaller fonts for better print layout
+- Sidebar text visibility fixed with inline styles (`style={{ color: '#000000' }}`)
+- Act sync no longer auto-deletes opportunities/line items - only UI manual deletion remains
+- Product names display via tooltip hover on invoice page using `Info` icon
+- UI filtering for soft-deleted items (`act_deleted_at`) preserved across all components
 - Follow the process rules in `.cursor/process-task-list.mdc` - implement one sub-task at a time and ask for permission before proceeding
 
 ## Tasks
@@ -98,5 +108,26 @@
   - [x] 9.5 Test display with various deliverable name lengths and quantities
 
 - [x] 10.0 Fix yellow display issue of left nav bar
+  - [x] 10.1 Identified CSS custom properties format issue and text inheritance conflicts
+  - [x] 10.2 Fixed sidebar color definitions with proper HSL values
+  - [x] 10.3 Applied inline styles to force black text on all sidebar elements
+  - [x] 10.4 Updated navigation items, header text, and user email styling
 
 - [x] 11.0 Remove or significantly update soft delete logic on opps and invoice_line_items
+  - [x] 11.1 Analyzed current soft delete implementation in Act sync vs UI
+  - [x] 11.2 Removed `softDeleteStaleOpportunities()` function from opportunities-sync.ts
+  - [x] 11.3 Removed `softDeleteStaleProducts()` function from products-sync.ts  
+  - [x] 11.4 Preserved UI filtering and manual deletion functionality
+  - [x] 11.5 Tested that UI continues to hide soft-deleted items properly
+
+---
+
+## 🎯 NEXT PRIORITIES FOR NEW AGENT
+
+The remaining 4 tasks focus on dashboard improvements and billing functionality. **Start with Task 5.0** as it's foundational for the dashboard filtering work.
+
+### Ready for Implementation:
+- **5.0 Update Dashboard Metrics Calculations** - Update existing metrics logic
+- **6.0 Implement Dashboard Filtering by Opportunity** - Add click-to-filter on opportunity cards
+- **7.0 Add ACT Data Refresh Button to Dashboard** - Add manual sync trigger
+- **8.0 Make Contact Email Optional in Billing Details** - Database migration + form updates
