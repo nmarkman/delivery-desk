@@ -2,28 +2,35 @@
 
 ## Relevant Files
 
-- `src/components/InvoiceTemplate.tsx` - Main invoice template component that needs company/opportunity name header
+- `src/components/invoices/InvoiceTemplate.tsx` - ✅ UPDATED: Main invoice template with company/opportunity header and fixed date rendering
 - `src/components/Dashboard.tsx` - Dashboard page with metrics tiles that need calculation updates and filtering
 - `src/components/BillingDetailsModal.tsx` - Modal for bill-to details where contact email needs to be optional
-- `src/utils/dateBasedInvoiceNumbering.ts` - Utility functions for date-based invoice number generation (WSU-MMDDYY-XX format)
-- `src/hooks/useInvoiceNumbering.ts` - New hook for date-based invoice number generation logic
+- `src/utils/dateBasedInvoiceNumbering.ts` - ✅ CREATED: Utility functions for date-based invoice number generation (WSU-MMDDYY-XX format)
+- `src/hooks/useInvoiceNumbering.ts` - ✅ CREATED: React hook for date-based invoice number generation logic
 - `src/pages/ActSync.tsx` - ACT sync page with existing refresh pattern to leverage
 - `src/integrations/supabase/types.ts` - Auto-generated types (may update after DB migration)
-- `src/utils/dateUtils.ts` - Utility functions for date handling and formatting
-- `src/utils/dashboardCalculations.ts` - New utility for dashboard metrics calculations
+- `src/utils/dateUtils.ts` - ✅ CREATED: Timezone-safe date utility functions for consistent date handling
+- `src/utils/dashboardCalculations.ts` - New utility for dashboard metrics calculations (TO BE CREATED)
 - `supabase/migrations/` - Database migration files for making contact email nullable
-- `src/components/ui/RefreshButton.tsx` - New refresh button component for dashboard
-- `supabase/functions/migrate-invoice-numbers/index.ts` - Edge Function to migrate existing invoice numbers to date-based format
-- `src/utils/migrateInvoiceNumbers.ts` - Client utilities for triggering and validating migration
-- `src/components/admin/InvoiceNumberMigration.tsx` - Admin interface for running the migration
-- `test-migration-logic.ts` - Test script to validate migration logic before deployment
+- `src/components/ui/RefreshButton.tsx` - New refresh button component for dashboard (TO BE CREATED)
+- `src/pages/Invoices.tsx` - ✅ UPDATED: Invoice list page with date-based numbering integration
+- `src/pages/InvoiceGenerator.tsx` - ✅ UPDATED: Sample data updated with company/opportunity info
+- `src/styles/invoice-print.css` - ✅ UPDATED: PDF font sizes reduced by 15%
 
-### Notes
+### Implementation Status
 
-- Database migration needed to make contact email nullable in organization billing info
-- Invoice number updates will affect all existing invoice line items
-- Dashboard filtering needs to work with existing search functionality
-- Date rendering bug needs investigation across all date inputs
+- ✅ **COMPLETED**: Date-based invoice numbering system (WSU-MMDDYY-XX format)
+- ✅ **COMPLETED**: Company and opportunity header added to invoice template
+- ✅ **COMPLETED**: JavaScript date rendering bug fixed (timezone issues resolved)
+- 🔄 **REMAINING**: Tasks 4.0-11.0 require implementation
+
+### Key Technical Context
+
+- All date operations should use utilities from `src/utils/dateUtils.ts` to avoid timezone bugs
+- Invoice numbering now uses date-based format with sequential numbering for same dates
+- InvoiceData interface includes `company_name?` and `opportunity_name?` fields
+- PDF generation has 15% smaller fonts for better print layout
+- Follow the process rules in `.cursor/process-task-list.mdc` - implement one sub-task at a time and ask for permission before proceeding
 
 ## Tasks
 
