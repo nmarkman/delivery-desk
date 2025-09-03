@@ -27,12 +27,12 @@
 
 ## Tasks
 
-- [ ] 1.0 Fix Invoice Number Format to Date-Based System
-  - [ ] 1.1 Create utility function for generating WSU-MMDDYY-XX format invoice numbers
-  - [ ] 1.2 Implement logic to handle duplicate dates with sequential numbering (-01, -02, etc.)
-  - [ ] 1.3 Update all existing invoice line items with new numbering format
-  - [ ] 1.4 Modify invoice generation to use new numbering system
-  - [ ] 1.5 Add database migration to update existing records, if needed.
+- [x] 1.0 Fix Invoice Number Format to Date-Based System
+  - [x] 1.1 Create utility function for generating WSU-MMDDYY-XX format invoice numbers
+  - [x] 1.2 Implement logic to handle duplicate dates with sequential numbering (-01, -02, etc.)
+  - [x] 1.3 Update all existing invoice line items with new numbering format
+  - [x] 1.4 Modify invoice generation to use new numbering system
+  - [x] 1.5 Add database migration to update existing records, if needed.
 
 - [ ] 2.0 Add Company and Opportunity Header to Invoice Template
   - [ ] 2.1 Modify InvoiceTemplate component to fetch opportunity data including company name
