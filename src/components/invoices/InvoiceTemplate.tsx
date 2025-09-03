@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatCurrency, parseInvoiceNumber } from '@/utils/invoiceHelpers';
 import { downloadInvoicePDF, isPDFGenerationSupported } from '@/utils/pdfGenerator';
+import { formatDateForDisplay } from '@/utils/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -129,7 +130,7 @@ export function InvoiceTemplate({ invoice, className = "", showDownloadButton = 
               <h3 className="text-base font-semibold print:text-sm">INVOICE NO. #{invoice.invoice_number}</h3>
             </div>
             <div className="text-right">
-              <div>{new Date(invoice.invoice_date).toLocaleDateString()}</div>
+              <div>{formatDateForDisplay(invoice.invoice_date, { month: 'numeric', day: 'numeric', year: 'numeric' })}</div>
             </div>
           </div>
         </div>
