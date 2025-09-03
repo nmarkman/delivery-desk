@@ -11,7 +11,7 @@
   .invoice-template {
     max-height: 10.2in; /* Letter height minus margins */
     overflow: hidden;
-    font-size: 12px;
+    font-size: 10.2px; /* Reduced by 15% from 12px */
   }
 
   /* Hide non-essential elements when printing */
@@ -101,29 +101,29 @@
     -webkit-print-color-adjust: exact !important;
   }
 
-  /* Ensure proper font sizes */
+  /* Ensure proper font sizes - reduced by 15% for PDF */
   .text-xs {
-    font-size: 0.75rem !important;
+    font-size: 0.6375rem !important; /* 0.75 * 0.85 */
   }
   
   .text-sm {
-    font-size: 0.875rem !important;
+    font-size: 0.74375rem !important; /* 0.875 * 0.85 */
   }
 
   .text-base {
-    font-size: 1rem !important;
+    font-size: 0.85rem !important; /* 1 * 0.85 */
   }
 
   .text-lg {
-    font-size: 1.125rem !important;
+    font-size: 0.95625rem !important; /* 1.125 * 0.85 */
   }
 
   .text-xl {
-    font-size: 1.25rem !important;
+    font-size: 1.0625rem !important; /* 1.25 * 0.85 */
   }
 
   .text-2xl {
-    font-size: 1.5rem !important;
+    font-size: 1.275rem !important; /* 1.5 * 0.85 */
   }
 
   /* Optimize spacing for print */

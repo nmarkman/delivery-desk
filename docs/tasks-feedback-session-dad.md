@@ -34,12 +34,12 @@
   - [x] 1.4 Modify invoice generation to use new numbering system
   - [x] 1.5 Add database migration to update existing records, if needed.
 
-- [ ] 2.0 Add Company and Opportunity Header to Invoice Template
-  - [ ] 2.1 Modify InvoiceTemplate component to fetch opportunity data including company name
-  - [ ] 2.2 Add styled header section above line items table
-  - [ ] 2.3 Display company name (from opportunity.company_name field) as first line
-  - [ ] 2.4 Display opportunity name/description as second line
-  - [ ] 2.5 Ensure header styling matches existing invoice template design
+- [x] 2.0 Add Company and Opportunity Header to Invoice Template
+  - [x] 2.1 Modify InvoiceTemplate component to fetch opportunity data including company name
+  - [x] 2.2 Add styled header section above line items table
+  - [x] 2.3 Display company name (from opportunity.company_name field) as first line
+  - [x] 2.4 Display opportunity name/description as second line
+  - [x] 2.5 Ensure header styling matches existing invoice template design
 
 - [ ] 3.0 Fix JavaScript Date Rendering Bug
   - [ ] 3.1 Investigate date rendering issue where 9/6 displays as 9/5

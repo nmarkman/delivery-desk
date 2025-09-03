@@ -56,6 +56,7 @@ interface InvoiceLineItem {
   service_period_end: string | null;
   opportunities: {
     company_name: string;
+    name: string;
     opportunity_billing_info: {
       organization_name: string;
       organization_address: string;
@@ -232,6 +233,7 @@ export default function Invoices() {
           service_period_end,
           opportunities (
             company_name,
+            name,
             opportunity_billing_info (
               organization_name,
               organization_address,
@@ -558,7 +560,9 @@ export default function Invoices() {
       }],
       subtotal: item.line_total,
       tax_amount: 0,
-      total_amount: item.line_total
+      total_amount: item.line_total,
+      company_name: item.opportunities?.company_name,
+      opportunity_name: item.opportunities?.name
     };
   };
 

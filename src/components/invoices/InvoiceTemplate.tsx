@@ -40,6 +40,8 @@ export interface InvoiceData {
   tax_amount?: number;
   total_amount: number;
   status: 'draft' | 'sent' | 'paid' | 'overdue';
+  company_name?: string;
+  opportunity_name?: string;
 }
 
 interface InvoiceTemplateProps {
@@ -168,6 +170,20 @@ export function InvoiceTemplate({ invoice, className = "", showDownloadButton = 
             </div>
           </div>
         </div>
+
+        {/* Company and Service Header */}
+        {(invoice.company_name || invoice.opportunity_name) && (
+          <div className="mb-4 print:mb-3">
+            <div className="text-center border border-gray-400 px-4 py-2 print:py-1 bg-gray-50 print:bg-white">
+              <div className="font-semibold text-sm text-gray-800 print:text-xs">
+                {invoice.company_name}
+              </div>
+              <div className="text-sm text-gray-600 print:text-xs">
+                {invoice.opportunity_name || 'Consulting and Project Management Services'}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Line Items Table */}
         <div className="mb-6 print:mb-4">

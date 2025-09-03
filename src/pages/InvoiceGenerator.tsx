@@ -90,7 +90,9 @@ export default function InvoiceGenerator() {
     ],
     subtotal: 9100,
     tax_amount: 0,
-    total_amount: 9100
+    total_amount: 9100,
+    company_name: "Wayne State University",
+    opportunity_name: "Consulting and Project Management Services"
   };
 
   useEffect(() => {
