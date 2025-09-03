@@ -23,6 +23,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, calculateOverdueStatus, extractClientShortform, generateNextInvoiceNumber, parseInvoiceNumber } from '@/utils/invoiceHelpers';
+import { generateDateBasedInvoiceNumber } from '@/utils/dateBasedInvoiceNumbering';
+import { parseDateSafely } from '@/utils/dateUtils';
 import { downloadInvoicePDF } from '@/utils/pdfGenerator';
 import { InvoiceTemplate, type InvoiceData, type InvoiceLineItemData, type BillingInfo } from '@/components/invoices/InvoiceTemplate';
 import { PaymentStatusButton } from '@/components/invoices/PaymentStatusButton';
@@ -269,13 +271,13 @@ export default function Invoices() {
 
   const autoGenerateInvoiceNumbers = async (items: InvoiceLineItem[]): Promise<InvoiceLineItem[]> => {
     const updatedItems = [...items];
-    const itemsNeedingNumbers = items.filter(item => !item.invoice_number && item.opportunities?.company_name);
+    const itemsNeedingNumbers = items.filter(item => !item.invoice_number && item.opportunities?.company_name && item.billed_at);
     
     if (itemsNeedingNumbers.length === 0) {
       return updatedItems;
     }
     
-    console.log(`Auto-generating invoice numbers for ${itemsNeedingNumbers.length} items...`);
+    console.log(`Auto-generating date-based invoice numbers for ${itemsNeedingNumbers.length} items...`);
     
     // Group items by company name and sort by billed_at date within each group
     const itemsByCompany = itemsNeedingNumbers.reduce((acc, item) => {
@@ -290,42 +292,44 @@ export default function Invoices() {
     // Sort each company's items by billed_at date (earliest first)
     Object.keys(itemsByCompany).forEach(companyName => {
       itemsByCompany[companyName].sort((a, b) => {
-        const dateA = new Date(a.billed_at || '').getTime();
-        const dateB = new Date(b.billed_at || '').getTime();
+        const dateA = parseDateSafely(a.billed_at || '').getTime();
+        const dateB = parseDateSafely(b.billed_at || '').getTime();
         return dateA - dateB;
       });
     });
     
-    // Generate sequential invoice numbers for each company
+    // Generate date-based invoice numbers for each company
     for (const [companyName, companyItems] of Object.entries(itemsByCompany)) {
       try {
-        // Get the shortform for this company (no uniqueness checking)
+        // Get the shortform for this company
         const clientShortform = extractClientShortform(companyName);
-        console.log(`Processing ${companyItems.length} items for ${companyName} (${clientShortform})`);
+        console.log(`Processing ${companyItems.length} items for ${companyName} (${clientShortform}) with date-based numbering`);
         
-        // Find existing invoice numbers for this shortform to determine next sequence
+        // Find existing invoice numbers for this shortform (both old and new formats)
         const { data: existingData } = await supabase
           .from('invoice_line_items')
           .select('invoice_number')
           .not('invoice_number', 'is', null)
-          .like('invoice_number', `${clientShortform}-%`)
-          .order('invoice_number', { ascending: false });
+          .like('invoice_number', `${clientShortform}-%`);
         
-        // Determine starting sequence number
-        let nextSequence = 1;
-        if (existingData && existingData.length > 0) {
-          const highestNumber = existingData[0].invoice_number;
-          const match = highestNumber?.match(/-(\d+)$/);
-          if (match) {
-            nextSequence = parseInt(match[1], 10) + 1;
+        const existingNumbers = existingData?.map(item => item.invoice_number).filter(Boolean) as string[] || [];
+        
+        // Generate and update each item using date-based numbering
+        for (const item of companyItems) {
+          if (!item.billed_at) {
+            console.warn(`Skipping item ${item.id} - no billed_at date`);
+            continue;
           }
-        }
-        
-        // Generate and update each item
-        for (let i = 0; i < companyItems.length; i++) {
-          const item = companyItems[i];
-          const sequenceNumber = (nextSequence + i).toString().padStart(3, '0');
-          const invoiceNumber = `${clientShortform}-${sequenceNumber}`;
+          
+          // Generate date-based invoice number
+          const invoiceNumber = generateDateBasedInvoiceNumber(
+            clientShortform, 
+            item.billed_at,
+            existingNumbers
+          );
+          
+          // Add this number to existing list to avoid duplicates in this batch
+          existingNumbers.push(invoiceNumber);
           
           try {
             const { error } = await supabase
@@ -334,7 +338,7 @@ export default function Invoices() {
               .eq('id', item.id);
               
             if (!error) {
-              console.log(`Generated ${invoiceNumber} for ${companyName} item ${item.id} (billed: ${item.billed_at})`);
+              console.log(`Generated date-based ${invoiceNumber} for ${companyName} item ${item.id} (billed: ${item.billed_at})`);
               
               // Update the item in our array
               const itemIndex = updatedItems.findIndex(ui => ui.id === item.id);
