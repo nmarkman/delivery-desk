@@ -61,7 +61,7 @@ export function AppSidebar() {
   const getNavClassName = ({ isActive }: { isActive: boolean }) =>
     isActive 
       ? "bg-primary text-primary-foreground font-medium" 
-      : "!text-black hover:bg-gray-200 hover:!text-black transition-colors duration-200";
+      : "!text-black hover:bg-gray-100 hover:!text-black transition-colors duration-200";
 
   return (
     <Sidebar className={isCollapsed ? "w-14" : "w-64"}>
@@ -72,8 +72,8 @@ export function AppSidebar() {
           </div>
           {!isCollapsed && (
             <div>
-              <h1 className="text-lg font-bold text-foreground">DeliveryDesk</h1>
-              <p className="text-sm text-muted-foreground">{getCurrentPageTitle()}</p>
+              <h1 className="text-lg font-bold" style={{ color: '#000000' }}>DeliveryDesk</h1>
+              <p className="text-sm" style={{ color: '#000000' }}>{getCurrentPageTitle()}</p>
             </div>
           )}
         </div>
@@ -91,8 +91,8 @@ export function AppSidebar() {
                       end 
                       className={getNavClassName}
                     >
-                      <item.icon className="h-5 w-5 !text-black" strokeWidth={1.5} />
-                      {!isCollapsed && <span className="!text-black font-normal">{item.title}</span>}
+                      <item.icon className="h-5 w-5" strokeWidth={1.5} style={{ color: '#000000' }} />
+                      {!isCollapsed && <span className="font-normal" style={{ color: '#000000' }}>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -112,16 +112,17 @@ export function AppSidebar() {
           </Avatar>
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
+              <p className="text-sm font-medium truncate" style={{ color: '#000000' }}>
                 {user?.email}
               </p>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleSignOut}
-                className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
+                className="h-auto p-0 text-xs"
+                style={{ color: '#000000' }}
               >
-                <LogOut className="h-3 w-3 mr-1" />
+                <LogOut className="h-3 w-3 mr-1" style={{ color: '#000000' }} />
                 Sign out
               </Button>
             </div>

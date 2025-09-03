@@ -22,7 +22,8 @@
 - ✅ **COMPLETED**: Date-based invoice numbering system (WSU-MMDDYY-XX format)
 - ✅ **COMPLETED**: Company and opportunity header added to invoice template
 - ✅ **COMPLETED**: JavaScript date rendering bug fixed (timezone issues resolved)
-- 🔄 **REMAINING**: Tasks 4.0-11.0 require implementation
+- ✅ **COMPLETED**: Leading zero and manual entry bugs fixed
+- 🔄 **REMAINING**: Tasks 5.0-11.0 require implementation
 
 ### Key Technical Context
 
@@ -55,11 +56,11 @@
   - [x] 3.4 Test date rendering across all forms (manual line items, deliverable dates, etc.)
   - [x] 3.5 Ensure consistent date display format throughout application
 
-- [ ] 4.0 Fix Leading Zero and Manual Entry Bugs
-  - [ ] 4.1 Fix leading zero issue on manual line item creation ($02000 display bug)
-  - [ ] 4.2 Fix deliverable date bug when creating manual entries (you specify a date but when you submit, the date is stripped. It works when you edit the line item afterward. I think we might have something in place creating deliverable line itesm from the contact upload modal as null deliverable date. It should default to null but if a user adds one for a deliverable in the modal, it should respect it in the creation)
-  - [ ] 4.3 Fix billing details update hook from invoice page (the hook does not save the company billing information in the database. That only seems to work when saving billing details from the dashboard page. Look at how its implemented on dashboard and make sure the form submit is handled the same way from the invoice page)
-  - [ ] 4.5 Test all manual entry workflows for data integrity (user to test and confirm with you)
+- [x] 4.0 Fix Leading Zero and Manual Entry Bugs
+  - [x] 4.1 Fix leading zero issue on manual line item creation ($02000 display bug)
+  - [x] 4.2 Fix deliverable date bug when creating manual entries (you specify a date but when you submit, the date is stripped. It works when you edit the line item afterward. I think we might have something in place creating deliverable line itesm from the contact upload modal as null deliverable date. It should default to null but if a user adds one for a deliverable in the modal, it should respect it in the creation)
+  - [x] 4.3 Fix billing details update hook from invoice page (the hook does not save the company billing information in the database. That only seems to work when saving billing details from the dashboard page. Look at how its implemented on dashboard and make sure the form submit is handled the same way from the invoice page)
+  - [x] 4.5 Test all manual entry workflows for data integrity (user to test and confirm with you)
 
 - [ ] 5.0 Update Dashboard Metrics Calculations
   - [ ] 5.1 Modify "Total Outstanding" calculation to be ACV minus sum of paid invoices
@@ -96,6 +97,6 @@
   - [ ] 9.4 Ensure readability for contracts with 8-9 deliverables
   - [ ] 9.5 Test display with various deliverable name lengths and quantities
 
-- [10.0] Fix yellow display issue of left nav bar
+- [x] 10.0 Fix yellow display issue of left nav bar
 
-- [11.0] Remove or significantly update soft delete logic on opps and invoice_line_items
+- [ ] 11.0 Remove or significantly update soft delete logic on opps and invoice_line_items
