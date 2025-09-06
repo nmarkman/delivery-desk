@@ -40,9 +40,10 @@ interface Opportunity {
 interface OpportunityCardProps {
   opportunity: Opportunity;
   defaultExpanded?: boolean;
+  onDataChange?: () => void;
 }
 
-export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
+export default function OpportunityCard({ opportunity, onDataChange }: OpportunityCardProps) {
   const navigate = useNavigate();
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingDescription, setEditingDescription] = useState<string>('');
@@ -99,8 +100,12 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
       toast.success('Line item updated successfully', {
         description: 'Changes have been saved and synced with Act! CRM'
       });
+      // Trigger dashboard data refresh
+      if (onDataChange) {
+        onDataChange();
+      }
     }
-  }, [isUpdateSuccess]);
+  }, [isUpdateSuccess, onDataChange]);
 
   useEffect(() => {
     if (isDeleteSuccess) {
@@ -108,8 +113,12 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
         description: 'Item has been removed and synced with Act! CRM'
       });
       setDeletingItemId(null); // Clear delete loading state
+      // Trigger dashboard data refresh
+      if (onDataChange) {
+        onDataChange();
+      }
     }
-  }, [isDeleteSuccess]);
+  }, [isDeleteSuccess, onDataChange]);
 
   // Clear update loading state when update completes
   useEffect(() => {

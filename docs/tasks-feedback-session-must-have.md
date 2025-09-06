@@ -46,14 +46,14 @@
   - [x] 3.6 Test navigation flow from dashboard to invoice page, ensuring proper invoice filtering/display
   - [x] 3.7 on the `/invoices/{invoice_number}` page, we should persist the same actions and status display we have on the main invoices table. A user should be able to see the status of an invoice from the specific invoice page and be able to take the same actions on an invoice that they can from the invoice line item table (mark as sent, mark as paid, etc), using the same UI buttons/elements from the invoice line item page. 
 
-- [ ] 4.0 Update Dashboard Metrics Calculations
-  - [ ] 4.1 Locate current metrics calculation in Dashboard.tsx around lines 243-258
-  - [ ] 4.2 Modify "Total Outstanding" calculation (line ~246) to be ACV (sum of all line_total) minus sum of paid invoices
-  - [ ] 4.3 Change "Pending" tile label and calculation to "Billed & Unpaid" using existing `outstandingInvoices` logic
-  - [ ] 4.4 Create `src/utils/dashboardCalculations.ts` utility for cleaner calculation logic
-  - [ ] 4.5 Update dashboard tiles JSX to use new calculation methods and labels
-  - [ ] 4.6 Ensure metrics update correctly when search filtering is applied (currently uses `opportunities` vs `filteredOpportunities`)
-  - [ ] 4.7 make sure that upon deletion or addition of a new line item to the `OpportunityCard`, that the dashboard metrics update after that action. I currently notice that when I delete an invoice line item, the dashboard metrics don't update until I refresh the page.
+- [x] 4.0 Update Dashboard Metrics Calculations
+  - [x] 4.1 Locate current metrics calculation in Dashboard.tsx around lines 243-258
+  - [x] 4.2 Modify "Total Outstanding" calculation (line ~246) to be ACV (sum of all line_total) minus sum of paid invoices
+  - [x] 4.3 Change "Pending" tile label and calculation to "Billed & Unpaid" using existing `outstandingInvoices` logic
+  - [x] 4.4 Create `src/utils/dashboardCalculations.ts` utility for cleaner calculation logic
+  - [x] 4.5 Update dashboard tiles JSX to use new calculation methods and labels
+  - [x] 4.6 Ensure metrics update correctly when search filtering is applied (currently uses `opportunities` vs `filteredOpportunities`)
+  - [x] 4.7 make sure that upon deletion or addition of a new line item to the `OpportunityCard`, that the dashboard metrics update after that action. I currently notice that when I delete an invoice line item, the dashboard metrics don't update until I refresh the page.
 
 - [ ] 5.0 Add ACT Data Refresh Button to Dashboard  
   - [ ] 5.1 Create reusable RefreshButton component using `useActConnection.ts` hook
