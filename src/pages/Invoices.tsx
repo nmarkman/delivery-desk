@@ -647,12 +647,33 @@ export default function Invoices() {
               >
                 ← Back to Invoices
               </Button>
-              <h1 className="text-3xl font-bold text-foreground">
-                Invoice {selectedInvoice.invoice_number}
-              </h1>
-              <p className="text-muted-foreground">
-                {selectedInvoice.billing_info.organization_name}
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-foreground">
+                  Invoice {selectedInvoice.invoice_number}
+                </h1>
+                {(() => {
+                  const currentItem = invoiceLineItems.find(item => item.id === invoiceId);
+                  return currentItem ? getStatusBadge(currentItem) : null;
+                })()}
+              </div>
+              <p className="text-muted-foreground mb-2">
+                {selectedInvoice.billing_info.organization_name} • {formatCurrency((() => {
+                  const currentItem = invoiceLineItems.find(item => item.id === invoiceId);
+                  return currentItem?.line_total || 0;
+                })())}
               </p>
+              {(() => {
+                const currentItem = invoiceLineItems.find(item => item.id === invoiceId);
+                if (currentItem?.billed_at) {
+                  return (
+                    <p className="text-sm text-muted-foreground">
+                      Billed: {formatDateSafe(currentItem.billed_at)}
+                      {currentItem.payment_date && ` • Paid: ${formatDateSafe(currentItem.payment_date)}`}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
             </div>
             <div className="flex items-center gap-2">
               <Button 
@@ -668,10 +689,30 @@ export default function Invoices() {
                 <Download className="h-4 w-4" />
                 Download PDF
               </Button>
+              {(() => {
+                const currentItem = invoiceLineItems.find(item => item.id === invoiceId);
+                return currentItem ? (
+                  <PaymentStatusButton 
+                    invoiceId={currentItem.id}
+                    currentStatus={currentItem.invoice_status}
+                    invoiceNumber={currentItem.invoice_number || 'DRAFT'}
+                    onStatusChange={() => fetchInvoiceData()}
+                  />
+                ) : null;
+              })()}
             </div>
           </div>
           
-          <Card>
+          <Card className={(() => {
+            const currentItem = invoiceLineItems.find(item => item.id === invoiceId);
+            if (currentItem) {
+              const billingInfo = currentItem.opportunities?.opportunity_billing_info;
+              const paymentTerms = Array.isArray(billingInfo) && billingInfo.length > 0 ? billingInfo[0].payment_terms || 30 : 30;
+              const isOverdue = calculateOverdueStatus(currentItem.invoice_status, currentItem.billed_at, currentItem.payment_date, paymentTerms);
+              return isOverdue ? 'border-red-200 bg-red-50/50' : '';
+            }
+            return '';
+          })()}>
             <CardContent className="p-6">
               <InvoiceTemplate invoice={selectedInvoice} showDownloadButton={false} />
             </CardContent>

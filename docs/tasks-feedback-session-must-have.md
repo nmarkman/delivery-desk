@@ -37,14 +37,14 @@
   - [x] 2.5 Update `convertToInvoiceData()` function in Invoices.tsx to include custom payment terms in billing_info object
   - [x] 2.6 Test with examples like "1% 10 net 30" to verify proper display on generated invoices
 
-- [ ] 3.0 Add Quick Invoice Connection from Dashboard
-  - [ ] 3.1 Locate line item rendering in OpportunityCard.tsx around lines 267-404
-  - [ ] 3.2 Add hover action icons/button to the existing action button area (lines 287-404) for line items that have `billed_at` dates set AND are associated with an opportunity that has their organization billing info applied. This should appear alongside the existing hover actions for edit and delete
-  - [ ] 3.3 Implement click handler that navigates to `/invoices/{invoice_number}` using React Router
-  - [ ] 3.4 Add appropriate visual indicators (FileText icon) for the hover action
-  - [ ] 3.5 Ensure hover actions only appear for line items with both invoice_number and billed_at values (billed items)
-  - [ ] 3.6 Test navigation flow from dashboard to invoice page, ensuring proper invoice filtering/display
-  - [ ] 3.7 on the `/invoices/{invoice_number}` page, we should persist the same actions and status display we have on the main invoices table. A user should be able to see the status of an invoice from the specific invoice page and be able to take the same actions on an invoice that they can from the invoice line item table (mark as sent, mark as paid, etc), using the same UI buttons/elements from the invoice line item page. 
+- [x] 3.0 Add Quick Invoice Connection from Dashboard
+  - [x] 3.1 Locate line item rendering in OpportunityCard.tsx around lines 267-404
+  - [x] 3.2 Add hover action icons/button to the existing action button area (lines 287-404) for line items that have `billed_at` dates set AND are associated with an opportunity that has their organization billing info applied. This should appear alongside the existing hover actions for edit and delete
+  - [x] 3.3 Implement click handler that navigates to `/invoices/{invoice_number}` using React Router
+  - [x] 3.4 Add appropriate visual indicators (FileText icon) for the hover action
+  - [x] 3.5 Ensure hover actions only appear for line items with both invoice_number and billed_at values (billed items)
+  - [x] 3.6 Test navigation flow from dashboard to invoice page, ensuring proper invoice filtering/display
+  - [x] 3.7 on the `/invoices/{invoice_number}` page, we should persist the same actions and status display we have on the main invoices table. A user should be able to see the status of an invoice from the specific invoice page and be able to take the same actions on an invoice that they can from the invoice line item table (mark as sent, mark as paid, etc), using the same UI buttons/elements from the invoice line item page. 
 
 - [ ] 4.0 Add Never Truncate Product Names Option for Dashboard
   - [ ] 4.1 Add user preference toggle (localStorage-based) for displaying full product/deliverable names
