@@ -32,6 +32,7 @@ interface BillingInfo {
   payment_terms: number;
   po_number: string;
   custom_school_code?: string;
+  custom_payment_terms_text?: string;
 }
 
 interface BillingDetailsModalProps {
@@ -64,6 +65,7 @@ export default function BillingDetailsModal({
     payment_terms: 30,
     po_number: '',
     custom_school_code: '',
+    custom_payment_terms_text: '',
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -89,6 +91,7 @@ export default function BillingDetailsModal({
         payment_terms: 30,
         po_number: '',
         custom_school_code: '',
+        custom_payment_terms_text: '',
       });
     }
     setErrors({});
@@ -149,6 +152,15 @@ export default function BillingDetailsModal({
         newErrors.custom_school_code = 'School code must contain only letters and numbers';
       } else if (schoolCode.length < 2 || schoolCode.length > 10) {
         newErrors.custom_school_code = 'School code must be between 2-10 characters';
+      }
+    }
+
+    // Custom payment terms validation (optional but reasonable length limit)
+    if (formData.custom_payment_terms_text && formData.custom_payment_terms_text.trim()) {
+      const paymentTermsText = formData.custom_payment_terms_text.trim();
+      
+      if (paymentTermsText.length > 200) {
+        newErrors.custom_payment_terms_text = 'Payment terms text must be 200 characters or less';
       }
     }
 
@@ -510,6 +522,25 @@ export default function BillingDetailsModal({
                 )}
                 <p className="text-xs text-muted-foreground">
                   Override auto-generated abbreviation for invoice numbers
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="custom-payment-terms">Custom Payment Terms (optional)</Label>
+                <Textarea
+                  id="custom-payment-terms"
+                  value={formData.custom_payment_terms_text || ''}
+                  onChange={(e) => handleInputChange('custom_payment_terms_text', e.target.value)}
+                  placeholder="e.g., 1% 10 net 30, Due upon receipt, etc."
+                  rows={3}
+                  maxLength={200}
+                  className={errors.custom_payment_terms_text ? 'border-red-300' : ''}
+                />
+                {errors.custom_payment_terms_text && (
+                  <p className="text-sm text-red-600">{errors.custom_payment_terms_text}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  When provided, replaces "Net {'{payment_terms}'}" on invoices. Leave blank to use default format.
                 </p>
               </div>
             </div>

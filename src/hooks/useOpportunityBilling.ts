@@ -15,6 +15,7 @@ interface BillingInfo {
   payment_terms: number;
   po_number: string;
   custom_school_code?: string;
+  custom_payment_terms_text?: string;
   created_at?: string;
   updated_at?: string;
   user_id?: string;

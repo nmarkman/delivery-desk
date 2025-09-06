@@ -29,13 +29,13 @@
   - [x] 1.5 Update form validation in BillingDetailsModal and submission handling for the new field
   - [x] 1.6 Test with various school names and custom overrides (e.g., "CSN" for College of Southern Nevada)
 
-- [ ] 2.0 Add Custom Payment Terms Text Field
-  - [ ] 2.1 Create database migration to add optional `custom_payment_terms_text` field to opportunity_billing_info table
-  - [ ] 2.2 Update BillingDetailsModal to include new payment terms text area field with clear labeling
-  - [ ] 2.3 Modify InvoiceTemplate component line 247 to conditionally display custom payment terms text when provided, replacing "Net {billing.payment_terms}" format
-  - [ ] 2.4 Ensure numeric payment_terms field is still used for overdue calculations in `calculateOverdueStatus()` function
-  - [ ] 2.5 Update `convertToInvoiceData()` function in Invoices.tsx to include custom payment terms in billing_info object
-  - [ ] 2.6 Test with examples like "1% 10 net 30" to verify proper display on generated invoices
+- [x] 2.0 Add Custom Payment Terms Text Field
+  - [x] 2.1 Create database migration to add optional `custom_payment_terms_text` field to opportunity_billing_info table
+  - [x] 2.2 Update BillingDetailsModal to include new payment terms text area field with clear labeling
+  - [x] 2.3 Modify InvoiceTemplate component line 247 to conditionally display custom payment terms text when provided, replacing "Net {billing.payment_terms}" format
+  - [x] 2.4 Ensure numeric payment_terms field is still used for overdue calculations in `calculateOverdueStatus()` function
+  - [x] 2.5 Update `convertToInvoiceData()` function in Invoices.tsx to include custom payment terms in billing_info object
+  - [x] 2.6 Test with examples like "1% 10 net 30" to verify proper display on generated invoices
 
 - [ ] 3.0 Add Quick Invoice Connection from Dashboard
   - [ ] 3.1 Locate line item rendering in OpportunityCard.tsx around lines 267-404
@@ -44,6 +44,7 @@
   - [ ] 3.4 Add appropriate visual indicators (FileText icon) for the hover action
   - [ ] 3.5 Ensure hover actions only appear for line items with both invoice_number and billed_at values (billed items)
   - [ ] 3.6 Test navigation flow from dashboard to invoice page, ensuring proper invoice filtering/display
+  - [ ] 3.7 on the `/invoices/{invoice_number}` page, we should persist the same actions and status display we have on the main invoices table. A user should be able to see the status of an invoice from the specific invoice page and be able to take the same actions on an invoice that they can from the invoice line item table (mark as sent, mark as paid, etc), using the same UI buttons/elements from the invoice line item page. 
 
 - [ ] 4.0 Add Never Truncate Product Names Option for Dashboard
   - [ ] 4.1 Add user preference toggle (localStorage-based) for displaying full product/deliverable names

@@ -71,6 +71,7 @@ interface InvoiceLineItem {
       bill_to_contact_email: string;
       payment_terms: number;
       po_number?: string;
+      custom_payment_terms_text?: string;
     } | null;
   } | null;
 }
@@ -249,7 +250,8 @@ export default function Invoices() {
               bill_to_contact_name,
               bill_to_contact_email,
               payment_terms,
-              po_number
+              po_number,
+              custom_payment_terms_text
             )
           )
         `)
@@ -308,9 +310,26 @@ export default function Invoices() {
     // Generate date-based invoice numbers for each company
     for (const [companyName, companyItems] of Object.entries(itemsByCompany)) {
       try {
-        // Get the shortform for this company
-        const clientShortform = extractClientShortform(companyName);
-        console.log(`Processing ${companyItems.length} items for ${companyName} (${clientShortform}) with date-based numbering`);
+        // Get custom school code from billing info for this opportunity
+        let customSchoolCode: string | undefined;
+        if (companyItems.length > 0) {
+          const opportunityId = companyItems[0].opportunity_id;
+          if (opportunityId) {
+            const { data: billingData, error: billingError } = await supabase
+              .from('opportunity_billing_info')
+              .select('custom_school_code')
+              .eq('opportunity_id', opportunityId)
+              .single();
+            
+            if (!billingError && billingData?.custom_school_code) {
+              customSchoolCode = billingData.custom_school_code;
+            }
+          }
+        }
+
+        // Get the shortform for this company (with custom override if available)
+        const clientShortform = extractClientShortform(companyName, customSchoolCode);
+        console.log(`Processing ${companyItems.length} items for ${companyName} (${clientShortform}) with date-based numbering${customSchoolCode ? ` using custom code: ${customSchoolCode}` : ''}`);
         
         // Find existing invoice numbers for this shortform (both old and new formats)
         const { data: existingData } = await supabase
@@ -551,7 +570,8 @@ export default function Invoices() {
         bill_to_contact_name: billingInfo?.bill_to_contact_name || '',
         bill_to_contact_email: billingInfo?.bill_to_contact_email || '',
         payment_terms: billingInfo?.payment_terms || 30,
-        po_number: billingInfo?.po_number || ''
+        po_number: billingInfo?.po_number || '',
+        custom_payment_terms_text: billingInfo?.custom_payment_terms_text || ''
       },
       line_items: [{
         id: item.id,
