@@ -268,6 +268,18 @@ export default function ContractUploadModal({
       return;
     }
 
+    // CRITICAL LOGGING: Track submission
+    console.warn('🔵 LINE ITEM SUBMISSION START:', {
+      opportunityId,
+      lineItemCount: lineItems.length,
+      lineItems: lineItems.map(item => ({
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price
+      })),
+      timestamp: new Date().toISOString()
+    });
+
     setUploadState(prev => ({ ...prev, isProcessing: true, error: null }));
 
     try {

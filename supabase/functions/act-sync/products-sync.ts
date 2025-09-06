@@ -113,6 +113,10 @@ export function mapActProductToDb(
       // User context
       user_id: connection.user_id,
       
+      // CRITICAL: Explicitly set act_deleted_at to null to restore soft-deleted items
+      // This prevents the bug where previously deleted items remain deleted after sync
+      act_deleted_at: null,
+      
       // Timestamps (will be set by database)
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -354,13 +358,26 @@ async function processSingleProduct(
     }
 
     // Step 4: Upsert to database using act_reference for matching
+    // CRITICAL LOGGING: Track what we're upserting
+    console.warn('🟡 UPSERT OPERATION:', {
+      act_reference: mappingResult.dbRecord.act_reference,
+      opportunity_id: mappingResult.dbRecord.opportunity_id,
+      act_deleted_at: mappingResult.dbRecord.act_deleted_at,
+      description: mappingResult.dbRecord.description,
+      existingRecord: existingRecord ? {
+        id: existingRecord.id,
+        act_deleted_at: existingRecord.act_deleted_at,
+        description: existingRecord.description
+      } : null
+    });
+    
     const { data, error } = await supabase
       .from('invoice_line_items')
       .upsert(mappingResult.dbRecord, {
         onConflict: 'act_reference',
         ignoreDuplicates: false
       })
-      .select('id')
+      .select('id, act_deleted_at')
       .single();
 
     if (error) {
@@ -380,6 +397,14 @@ async function processSingleProduct(
 
     // Determine if this was create or update based on response
     const wasCreated = data && !mappingResult.dbRecord.id;
+    
+    // CRITICAL LOGGING: Verify what was actually saved
+    console.warn('🟢 UPSERT RESULT:', {
+      act_reference: mappingResult.dbRecord.act_reference,
+      result_act_deleted_at: data?.act_deleted_at,
+      was_created: wasCreated,
+      description: actProduct.name
+    });
     
     console.log(`${wasCreated ? 'Created' : 'Updated'} invoice line item for product ${actProduct.id}: "${actProduct.name}"`);
     

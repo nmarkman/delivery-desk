@@ -46,28 +46,20 @@
   - [x] 3.6 Test navigation flow from dashboard to invoice page, ensuring proper invoice filtering/display
   - [x] 3.7 on the `/invoices/{invoice_number}` page, we should persist the same actions and status display we have on the main invoices table. A user should be able to see the status of an invoice from the specific invoice page and be able to take the same actions on an invoice that they can from the invoice line item table (mark as sent, mark as paid, etc), using the same UI buttons/elements from the invoice line item page. 
 
-- [ ] 4.0 Add Never Truncate Product Names Option for Dashboard
-  - [ ] 4.1 Add user preference toggle (localStorage-based) for displaying full product/deliverable names
-  - [ ] 4.2 Identify current text truncation logic in OpportunityCard component
-  - [ ] 4.3 Modify OpportunityCard to conditionally remove text truncation based on user preference
-  - [ ] 4.4 Update CSS classes to handle variable card heights gracefully in the dashboard grid layout
-  - [ ] 4.5 Add toggle control to dashboard header or settings area for user preference
-  - [ ] 4.6 Ensure this change only affects dashboard display, not invoice page tooltips (which use separate implementation)
-  - [ ] 4.7 Test with opportunities containing multiple long deliverable names
+- [ ] 4.0 Update Dashboard Metrics Calculations
+  - [ ] 4.1 Locate current metrics calculation in Dashboard.tsx around lines 243-258
+  - [ ] 4.2 Modify "Total Outstanding" calculation (line ~246) to be ACV (sum of all line_total) minus sum of paid invoices
+  - [ ] 4.3 Change "Pending" tile label and calculation to "Billed & Unpaid" using existing `outstandingInvoices` logic
+  - [ ] 4.4 Create `src/utils/dashboardCalculations.ts` utility for cleaner calculation logic
+  - [ ] 4.5 Update dashboard tiles JSX to use new calculation methods and labels
+  - [ ] 4.6 Ensure metrics update correctly when search filtering is applied (currently uses `opportunities` vs `filteredOpportunities`)
+  - [ ] 4.7 make sure that upon deletion or addition of a new line item to the `OpportunityCard`, that the dashboard metrics update after that action. I currently notice that when I delete an invoice line item, the dashboard metrics don't update until I refresh the page.
 
-- [ ] 5.0 Update Dashboard Metrics Calculations
-  - [ ] 5.1 Locate current metrics calculation in Dashboard.tsx around lines 243-258
-  - [ ] 5.2 Modify "Total Outstanding" calculation (line ~246) to be ACV (sum of all line_total) minus sum of paid invoices
-  - [ ] 5.3 Change "Pending" tile label and calculation to "Billed & Unpaid" using existing `outstandingInvoices` logic
-  - [ ] 5.4 Create `src/utils/dashboardCalculations.ts` utility for cleaner calculation logic
-  - [ ] 5.5 Update dashboard tiles JSX to use new calculation methods and labels
-  - [ ] 5.6 Ensure metrics update correctly when search filtering is applied (currently uses `opportunities` vs `filteredOpportunities`)
-
-- [ ] 6.0 Add ACT Data Refresh Button to Dashboard  
-  - [ ] 6.1 Create reusable RefreshButton component using `useActConnection.ts` hook
-  - [ ] 6.2 Import `triggerSync()` method from `useActConnection` hook (see SyncDashboard.tsx line 34 for reference)
-  - [ ] 6.3 Add refresh button to dashboard header area with RefreshCw icon and appropriate styling
-  - [ ] 6.4 Implement click handler that calls `triggerSync('sync')` for full sync (opportunities and products)
-  - [ ] 6.5 Add loading states using existing `isLoading` from useActConnection hook
-  - [ ] 6.6 Add success/error feedback using toast notifications (see SyncTrigger.tsx lines 27-43 for pattern)
-  - [ ] 6.7 Call dashboard's `fetchData()` method after successful sync to refresh dashboard data
+- [ ] 5.0 Add ACT Data Refresh Button to Dashboard  
+  - [ ] 5.1 Create reusable RefreshButton component using `useActConnection.ts` hook
+  - [ ] 5.2 Import `triggerSync()` method from `useActConnection` hook (see SyncDashboard.tsx line 34 for reference)
+  - [ ] 5.3 Add refresh button to dashboard header area with RefreshCw icon and appropriate styling
+  - [ ] 5.4 Implement click handler that calls `triggerSync('sync')` for full sync (opportunities and products)
+  - [ ] 5.5 Add loading states using existing `isLoading` from useActConnection hook
+  - [ ] 5.6 Add success/error feedback using toast notifications (see SyncTrigger.tsx lines 27-43 for pattern)
+  - [ ] 5.7 Call dashboard's `fetchData()` method after successful sync to refresh dashboard data
