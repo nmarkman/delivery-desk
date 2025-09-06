@@ -273,9 +273,9 @@ export default function ContractUploadModal({
       opportunityId,
       lineItemCount: lineItems.length,
       lineItems: lineItems.map(item => ({
-        description: item.description,
-        quantity: item.quantity,
-        unit_price: item.unit_price
+        name: item.name,
+        amount: 'amount' in item ? item.amount : item.total,
+        type: 'amount' in item ? item.type : item.type
       })),
       timestamp: new Date().toISOString()
     });
@@ -394,6 +394,10 @@ export default function ContractUploadModal({
           <DialogTitle>Add Line Items</DialogTitle>
           <DialogDescription>
             For <strong>{opportunityName}</strong> at <strong>{companyName}</strong>
+            <br />
+            <span className="text-sm text-blue-600 mt-1 block">
+              Step 1: Add your line items • Step 2: Review and confirm to create products
+            </span>
           </DialogDescription>
         </DialogHeader>
         

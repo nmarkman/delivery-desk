@@ -131,10 +131,7 @@ export default function LineItemsTable({
     });
     setShowAddForm(false);
     
-    toast({
-      title: "Line Item Added",
-      description: "New item has been added successfully",
-    });
+    // Removed misleading toast - items aren't actually created until final confirmation
   };
 
   const handleCancelAdd = () => {
@@ -306,6 +303,15 @@ export default function LineItemsTable({
           </Card>
         )}
 
+        {/* Confirmation Message - Show when items exist but aren't confirmed yet */}
+        {lineItems.length > 0 && showActionButtons && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Step 1 Complete:</strong> Review your line items below, then click "Confirm & Create Products" to finalize.
+            </p>
+          </div>
+        )}
+
         {/* Line Items Table - Only show when there are items */}
         {lineItems.length > 0 && (
           <div className="border rounded-lg overflow-hidden">
@@ -452,7 +458,7 @@ export default function LineItemsTable({
                       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polygon points="5,3 19,12 5,21" fill="currentColor"/>
                       </svg>
-                      <span>Create & Assign Products</span>
+                      <span>Confirm & Create Products</span>
                     </>
                   )}
                 </Button>

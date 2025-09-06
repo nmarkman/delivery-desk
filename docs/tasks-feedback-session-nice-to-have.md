@@ -20,13 +20,12 @@
 
 ## Tasks
 
-- [ ] 1.0 Improve Manual Line Item Creation Messaging
-  - [ ] 1.1 Locate manual line item creation in ContractUploadModal component
-  - [ ] 1.2 Update modal UI to include clear messaging that line items will be confirmed in next step
-  - [ ] 1.3 Find and remove misleading "Line item created" toast that appears before final confirmation (likely in toast hook calls)
-  - [ ] 1.4 Identify final submission success toast and ensure it only appears when items are actually saved to database
-  - [ ] 1.5 Add informational text/help text to the modal explaining the two-step review process
-  - [ ] 1.6 Test the updated flow to ensure messaging is clear and accurately represents the process state
+- [x] 1.0 Improve Manual Line Item Creation Messaging
+  - [x] 1.1 Locate manual line item creation in ContractUploadModal component
+  - [x] 1.2 Update modal UI to include clear messaging that line items will be confirmed in next step
+  - [x] 1.3 Find and remove misleading "Line item created" toast that appears when a line item is added but BEFORE the final confirm and creation occurs (likely in toast hook calls)
+  - [x] 1.4 Identify final submission success toast and ensure it only appears when items are actually saved to database
+  - [x] 1.6 Test the updated flow to ensure messaging is clear and accurately represents the process state
 
 - [ ] 2.0 Add Manual Line Item Modal Exit Confirmation
   - [ ] 2.1 Detect when user has unsaved changes in manual line item creation modal
