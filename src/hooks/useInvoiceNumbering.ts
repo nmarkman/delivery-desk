@@ -19,15 +19,31 @@ export function useInvoiceNumbering() {
   /**
    * Generates a new date-based invoice number for a client
    * @param companyName - Company name to extract shortform from
+   * @param opportunityId - Opportunity ID to fetch billing info and custom school code
    * @param billedDate - Date the invoice was billed (defaults to today)
    * @returns Promise resolving to the new invoice number
    */
   const generateNewInvoiceNumber = useCallback(async (
     companyName: string,
+    opportunityId?: string,
     billedDate?: string | Date
   ): Promise<string | null> => {
     try {
-      const clientShortform = extractClientShortform(companyName);
+      // Fetch billing info to get custom school code if available
+      let customSchoolCode: string | undefined;
+      if (opportunityId) {
+        const { data: billingData, error: billingError } = await supabase
+          .from('opportunity_billing_info')
+          .select('custom_school_code')
+          .eq('opportunity_id', opportunityId)
+          .single();
+        
+        if (!billingError && billingData?.custom_school_code) {
+          customSchoolCode = billingData.custom_school_code;
+        }
+      }
+
+      const clientShortform = extractClientShortform(companyName, customSchoolCode);
       const dateToUse = billedDate ? billedDate : getTodayYMD();
       
       // Query existing invoice numbers for this client

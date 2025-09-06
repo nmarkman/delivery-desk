@@ -21,13 +21,13 @@
 
 ## Tasks
 
-- [ ] 1.0 Add Custom Invoice School Code Override
-  - [ ] 1.1 Create database migration to add optional `custom_school_code` field to opportunity_billing_info table
-  - [ ] 1.2 Update BillingDetailsModal to include new custom school code input field
-  - [ ] 1.3 Modify `extractClientShortform()` in `src/utils/invoiceHelpers.ts` to check for custom school code from billing info first
-  - [ ] 1.4 Update `useInvoiceNumbering.ts` hook to pass billing info to shortform extraction
-  - [ ] 1.5 Update form validation in BillingDetailsModal and submission handling for the new field
-  - [ ] 1.6 Test with various school names and custom overrides (e.g., "CSN" for College of Southern Nevada)
+- [x] 1.0 Add Custom Invoice School Code Override
+  - [x] 1.1 Create database migration to add optional `custom_school_code` field to opportunity_billing_info table
+  - [x] 1.2 Update BillingDetailsModal to include new custom school code input field
+  - [x] 1.3 Modify `extractClientShortform()` in `src/utils/invoiceHelpers.ts` to check for custom school code from billing info first
+  - [x] 1.4 Update `useInvoiceNumbering.ts` hook to pass billing info to shortform extraction
+  - [x] 1.5 Update form validation in BillingDetailsModal and submission handling for the new field
+  - [x] 1.6 Test with various school names and custom overrides (e.g., "CSN" for College of Southern Nevada)
 
 - [ ] 2.0 Add Custom Payment Terms Text Field
   - [ ] 2.1 Create database migration to add optional `custom_payment_terms_text` field to opportunity_billing_info table

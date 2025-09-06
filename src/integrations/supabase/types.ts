@@ -625,6 +625,7 @@ export type Database = {
           bill_to_contact_name: string
           bill_to_name: string
           created_at: string
+          custom_school_code: string | null
           id: string
           opportunity_id: string
           organization_address: string
@@ -642,6 +643,7 @@ export type Database = {
           bill_to_contact_name: string
           bill_to_name: string
           created_at?: string
+          custom_school_code?: string | null
           id?: string
           opportunity_id: string
           organization_address: string
@@ -659,6 +661,7 @@ export type Database = {
           bill_to_contact_name?: string
           bill_to_name?: string
           created_at?: string
+          custom_school_code?: string | null
           id?: string
           opportunity_id?: string
           organization_address?: string
@@ -726,11 +729,13 @@ export type Database = {
           daily_sync_error: string | null
           daily_sync_status: string | null
           daily_sync_time: string | null
+          encryption_key_version: number | null
           id: string
           is_active: boolean | null
           is_default: boolean | null
           last_connection_test: string | null
           last_daily_sync_at: string | null
+          last_key_rotation_at: string | null
           last_sync_at: string | null
           next_sync_at: string | null
           token_expires_at: string | null
@@ -754,11 +759,13 @@ export type Database = {
           daily_sync_error?: string | null
           daily_sync_status?: string | null
           daily_sync_time?: string | null
+          encryption_key_version?: number | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
           last_connection_test?: string | null
           last_daily_sync_at?: string | null
+          last_key_rotation_at?: string | null
           last_sync_at?: string | null
           next_sync_at?: string | null
           token_expires_at?: string | null
@@ -782,11 +789,13 @@ export type Database = {
           daily_sync_error?: string | null
           daily_sync_status?: string | null
           daily_sync_time?: string | null
+          encryption_key_version?: number | null
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
           last_connection_test?: string | null
           last_daily_sync_at?: string | null
+          last_key_rotation_at?: string | null
           last_sync_at?: string | null
           next_sync_at?: string | null
           token_expires_at?: string | null
@@ -943,6 +952,10 @@ export type Database = {
       update_overdue_invoices: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      validate_credential_access: {
+        Args: { requested_connection_id: string; requested_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

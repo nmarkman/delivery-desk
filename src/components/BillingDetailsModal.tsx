@@ -13,6 +13,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Building2, CreditCard, Copy } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { extractClientShortform } from '@/utils/invoiceHelpers';
+import { generateDateBasedInvoiceNumber } from '@/utils/dateBasedInvoiceNumbering';
+import { useToast } from '@/hooks/use-toast';
 
 interface BillingInfo {
   id?: string;
@@ -27,6 +31,7 @@ interface BillingInfo {
   bill_to_contact_email: string;
   payment_terms: number;
   po_number: string;
+  custom_school_code?: string;
 }
 
 interface BillingDetailsModalProps {
@@ -58,10 +63,12 @@ export default function BillingDetailsModal({
     bill_to_contact_email: '',
     payment_terms: 30,
     po_number: '',
+    custom_school_code: '',
   });
 
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { toast } = useToast();
 
   // Initialize form data when modal opens or billingInfo changes
   useEffect(() => {
@@ -81,6 +88,7 @@ export default function BillingDetailsModal({
         bill_to_contact_email: '',
         payment_terms: 30,
         po_number: '',
+        custom_school_code: '',
       });
     }
     setErrors({});
@@ -132,6 +140,18 @@ export default function BillingDetailsModal({
       newErrors.payment_terms = 'Payment terms must be between 0 and 365 days';
     }
 
+    // Custom school code validation (optional but must be valid format if provided)
+    if (formData.custom_school_code && formData.custom_school_code.trim()) {
+      const schoolCode = formData.custom_school_code.trim();
+      
+      // Check for valid format: alphanumeric characters only, 2-10 characters
+      if (!/^[A-Za-z0-9]+$/.test(schoolCode)) {
+        newErrors.custom_school_code = 'School code must contain only letters and numbers';
+      } else if (schoolCode.length < 2 || schoolCode.length > 10) {
+        newErrors.custom_school_code = 'School code must be between 2-10 characters';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -143,9 +163,19 @@ export default function BillingDetailsModal({
 
     setIsSaving(true);
     try {
+      // Save the billing information first
       if (onSave) {
         await onSave(formData);
       }
+      
+      // If a custom school code was provided and is different from the existing one, update existing invoice numbers
+      const newCustomCode = formData.custom_school_code?.trim() || '';
+      const existingCustomCode = billingInfo?.custom_school_code?.trim() || '';
+      
+      if (newCustomCode && newCustomCode !== existingCustomCode) {
+        await updateExistingInvoiceNumbers(newCustomCode);
+      }
+      
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving billing information:', error);
@@ -163,6 +193,96 @@ export default function BillingDetailsModal({
       bill_to_contact_name: prev.organization_contact_name,
       bill_to_contact_email: prev.organization_contact_email,
     }));
+  };
+
+  const updateExistingInvoiceNumbers = async (customSchoolCode: string) => {
+    try {
+      // Get all existing invoice line items for this opportunity that have invoice numbers
+      const { data: existingItems, error: fetchError } = await supabase
+        .from('invoice_line_items')
+        .select('id, invoice_number, billed_at')
+        .eq('opportunity_id', opportunityId)
+        .not('invoice_number', 'is', null)
+        .not('billed_at', 'is', null)
+        .is('act_deleted_at', null);
+
+      if (fetchError) {
+        console.error('Error fetching existing invoice items:', fetchError);
+        return;
+      }
+
+      if (!existingItems || existingItems.length === 0) {
+        console.log('No existing invoice items to update');
+        return;
+      }
+
+      console.log(`Updating ${existingItems.length} existing invoice numbers with custom school code: ${customSchoolCode}`);
+      
+      // Show toast notification that updates are in progress
+      toast({
+        title: "Updating Invoice Numbers",
+        description: `Updating ${existingItems.length} existing invoice numbers with custom school code...`,
+      });
+
+      // Get the new shortform using the custom school code
+      const newShortform = extractClientShortform(companyName, customSchoolCode);
+      
+      // Get all existing invoice numbers for this shortform to avoid duplicates
+      const { data: existingNumbers, error: numbersError } = await supabase
+        .from('invoice_line_items')
+        .select('invoice_number')
+        .not('invoice_number', 'is', null)
+        .like('invoice_number', `${newShortform}-%`);
+
+      if (numbersError) {
+        console.error('Error fetching existing invoice numbers:', numbersError);
+        return;
+      }
+
+      const existingNumbersList = existingNumbers?.map(item => item.invoice_number).filter(Boolean) as string[] || [];
+      
+      // Update each item with new invoice number
+      for (const item of existingItems) {
+        if (!item.billed_at) continue;
+        
+        // Generate new invoice number with the custom school code
+        const newInvoiceNumber = generateDateBasedInvoiceNumber(
+          newShortform,
+          item.billed_at,
+          existingNumbersList
+        );
+        
+        // Add this number to the list to avoid duplicates in the same batch
+        existingNumbersList.push(newInvoiceNumber);
+        
+        // Update the database
+        const { error: updateError } = await supabase
+          .from('invoice_line_items')
+          .update({ invoice_number: newInvoiceNumber })
+          .eq('id', item.id);
+          
+        if (updateError) {
+          console.error(`Error updating invoice number for item ${item.id}:`, updateError);
+        } else {
+          console.log(`Updated invoice number: ${item.invoice_number} → ${newInvoiceNumber}`);
+        }
+      }
+      
+      console.log('Completed updating existing invoice numbers');
+      
+      // Show success toast
+      toast({
+        title: "Invoice Numbers Updated",
+        description: `Successfully updated ${existingItems.length} existing invoice numbers with custom school code "${customSchoolCode}".`,
+      });
+    } catch (error) {
+      console.error('Error in updateExistingInvoiceNumbers:', error);
+      toast({
+        title: "Error Updating Invoice Numbers",
+        description: "Failed to update existing invoice numbers. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCancel = () => {
@@ -371,6 +491,26 @@ export default function BillingDetailsModal({
                   onChange={(e) => handleInputChange('po_number', e.target.value)}
                   placeholder="Enter PO number if applicable"
                 />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="custom-school-code">Custom School Code (optional)</Label>
+                <Input
+                  id="custom-school-code"
+                  value={formData.custom_school_code || ''}
+                  onChange={(e) => handleInputChange('custom_school_code', e.target.value)}
+                  placeholder="e.g., CSN, WSU, etc."
+                  maxLength={10}
+                  className={errors.custom_school_code ? 'border-red-300' : ''}
+                />
+                {errors.custom_school_code && (
+                  <p className="text-sm text-red-600">{errors.custom_school_code}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Override auto-generated abbreviation for invoice numbers
+                </p>
               </div>
             </div>
           </div>

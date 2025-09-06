@@ -14,6 +14,7 @@ interface BillingInfo {
   bill_to_contact_email: string;
   payment_terms: number;
   po_number: string;
+  custom_school_code?: string;
   created_at?: string;
   updated_at?: string;
   user_id?: string;
