@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import OpportunityCard from '@/components/OpportunityCard';
 import OpportunityFilter from '@/components/OpportunityFilter';
+import { RefreshButton } from '@/components/RefreshButton';
 import { formatCurrency, calculateOverdueStatus } from '@/utils/invoiceHelpers';
 import { calculateDashboardMetrics } from '@/utils/dashboardCalculations';
 
@@ -297,9 +298,16 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your business metrics</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">Overview of your business metrics</p>
+        </div>
+        <RefreshButton 
+          onSyncComplete={fetchData} 
+          variant="secondary"
+          size="default"
+        />
       </div>
 
       {/* Metrics Cards */}

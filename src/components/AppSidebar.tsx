@@ -33,11 +33,12 @@ const navigation = [
     url: '/invoices',
     icon: Receipt,
   },
-  {
-    title: 'Act! CRM Sync',
-    url: '/act-sync',
-    icon: RefreshCw,
-  },
+  // COMMENTED OUT: Dashboard refresh button replaces need for separate sync page
+  // {
+  //   title: 'Act! CRM Sync',
+  //   url: '/act-sync',
+  //   icon: RefreshCw,
+  // },
 ];
 
 export function AppSidebar() {

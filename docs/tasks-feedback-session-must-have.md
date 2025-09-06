@@ -55,11 +55,11 @@
   - [x] 4.6 Ensure metrics update correctly when search filtering is applied (currently uses `opportunities` vs `filteredOpportunities`)
   - [x] 4.7 make sure that upon deletion or addition of a new line item to the `OpportunityCard`, that the dashboard metrics update after that action. I currently notice that when I delete an invoice line item, the dashboard metrics don't update until I refresh the page.
 
-- [ ] 5.0 Add ACT Data Refresh Button to Dashboard  
-  - [ ] 5.1 Create reusable RefreshButton component using `useActConnection.ts` hook
-  - [ ] 5.2 Import `triggerSync()` method from `useActConnection` hook (see SyncDashboard.tsx line 34 for reference)
-  - [ ] 5.3 Add refresh button to dashboard header area with RefreshCw icon and appropriate styling
-  - [ ] 5.4 Implement click handler that calls `triggerSync('sync')` for full sync (opportunities and products)
-  - [ ] 5.5 Add loading states using existing `isLoading` from useActConnection hook
-  - [ ] 5.6 Add success/error feedback using toast notifications (see SyncTrigger.tsx lines 27-43 for pattern)
-  - [ ] 5.7 Call dashboard's `fetchData()` method after successful sync to refresh dashboard data
+- [x] 5.0 Add ACT Data Refresh Button to Dashboard  
+  - [x] 5.1 Create reusable RefreshButton component using `useActConnection.ts` hook
+  - [x] 5.2 Import `triggerSync()` method from `useActConnection` hook (see SyncDashboard.tsx line 34 for reference)
+  - [x] 5.3 Add refresh button to dashboard header area with RefreshCw icon and appropriate styling
+  - [x] 5.4 Implement click handler that calls `triggerSync('sync')` for full sync (opportunities and products)
+  - [x] 5.5 Add loading states using existing `isLoading` from useActConnection hook
+  - [x] 5.6 Add success/error feedback using toast notifications (see SyncTrigger.tsx lines 27-43 for pattern)
+  - [x] 5.7 Call dashboard's `fetchData()` method after successful sync to refresh dashboard data
