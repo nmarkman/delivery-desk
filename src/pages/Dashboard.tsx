@@ -8,7 +8,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import OpportunityCard from '@/components/OpportunityCard';
 import OpportunityFilter from '@/components/OpportunityFilter';
+import { RefreshButton } from '@/components/RefreshButton';
 import { formatCurrency, calculateOverdueStatus } from '@/utils/invoiceHelpers';
+import { calculateDashboardMetrics } from '@/utils/dashboardCalculations';
 
 // Helper function to format currency without decimals for large amounts
 const formatCurrencyNoDecimals = (amount: number): string => {
@@ -240,42 +242,29 @@ export default function Dashboard() {
   // Use filtered opportunities for display
   const activeOpportunities = filteredOpportunities;
   
-  // Calculate metrics from ALL opportunities (not filtered)
-  const uniqueClients = new Set(opportunities.map(opp => opp.company_name)).size;
+  // Calculate metrics based on current view (filtered opportunities when search is active)
+  const metricsOpportunities = searchFilter.trim() ? filteredOpportunities : opportunities;
   
-  // Total Outstanding: sum of sent and overdue invoices
-  const outstandingInvoices = invoiceLineItems.filter(item => {
-    if (!item.billed_at || item.payment_date) return false; // Must be billed and not paid
-    const status = item.invoice_status || 'draft';
-    if (status === 'sent' || status === 'overdue') return true;
-    
-    // Also check if it should be calculated as overdue
-    const billingInfo = item.opportunities?.opportunity_billing_info;
-    const paymentTerms = Array.isArray(billingInfo) && billingInfo.length > 0 ? billingInfo[0].payment_terms || 30 : 30;
-    return calculateOverdueStatus(status, item.billed_at, item.payment_date, paymentTerms);
-  });
+  // For filtering, we also need to filter lineItems and invoiceLineItems to match filtered opportunities
+  const filteredOpportunityIds = new Set(metricsOpportunities.map(opp => opp.id));
+  const filteredLineItems = searchFilter.trim() 
+    ? lineItems.filter(item => filteredOpportunityIds.has(item.opportunity_id))
+    : lineItems;
+  const filteredInvoiceLineItems = searchFilter.trim()
+    ? invoiceLineItems.filter(item => filteredOpportunityIds.has(item.opportunity_id))
+    : invoiceLineItems;
   
-  const totalOutstanding = outstandingInvoices.reduce((sum, item) => sum + item.line_total, 0);
-  const outstandingCount = outstandingInvoices.length;
-  
-  // Total Active Contract Value: sum of all line items unit rates for ALL opportunities
-  const allOpportunityIds = new Set(opportunities.map(opp => opp.id));
-  const totalActiveContractValue = lineItems
-    .filter(item => allOpportunityIds.has(item.opportunity_id))
-    .reduce((sum, item) => sum + (item.unit_rate || 0), 0);
-  
-  // Pending Invoices: count of draft invoices (line items with billed_at dates but no invoice status or draft status)
-  const pendingInvoices = invoiceLineItems.filter(item => 
-    item.billed_at && (!item.invoice_status || item.invoice_status === 'draft')
-  );
-  const pendingCount = pendingInvoices.length;
+  const {
+    uniqueClients,
+    totalActiveContractValue,
+    totalOutstanding,
+    outstandingCount,
+    billedUnpaidAmount,
+    billedUnpaidCount
+  } = calculateDashboardMetrics(filteredLineItems, filteredInvoiceLineItems, metricsOpportunities);
 
   // Click handlers for navigating to invoices with filters
-  const handlePendingInvoicesClick = () => {
-    navigate('/invoices?status=draft');
-  };
-
-  const handleOutstandingClick = () => {
+  const handleBilledUnpaidClick = () => {
     navigate('/invoices?status=sent');
   };
 
@@ -309,9 +298,16 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your business metrics</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">Overview of your business metrics</p>
+        </div>
+        <RefreshButton 
+          onSyncComplete={fetchData} 
+          variant="secondary"
+          size="default"
+        />
       </div>
 
       {/* Metrics Cards */}
@@ -337,31 +333,28 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrencyNoDecimals(totalActiveContractValue)}</div>
             <p className="text-xs text-muted-foreground">
-              From {opportunities.length} active contract{opportunities.length !== 1 ? 's' : ''}
+              From {metricsOpportunities.length} active opportunit{metricsOpportunities.length !== 1 ? 'ies' : 'y'}
             </p>
           </CardContent>
         </Card>
 
         <Card 
           className="cursor-pointer transition-all duration-200 hover:shadow-md hover:ring-4 hover:ring-purple-300 hover:ring-opacity-80" 
-          onClick={handlePendingInvoicesClick}
+          onClick={handleBilledUnpaidClick}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Invoices</CardTitle>
+            <CardTitle className="text-sm font-medium">Billed & Unpaid</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingCount}</div>
+            <div className="text-2xl font-bold">{formatCurrencyNoDecimals(billedUnpaidAmount)}</div>
             <p className="text-xs text-muted-foreground">
-              Ready to send
+              Awaiting collection ({billedUnpaidCount} invoice{billedUnpaidCount !== 1 ? 's' : ''})
             </p>
           </CardContent>
         </Card>
 
-        <Card 
-          className="cursor-pointer transition-all duration-200 hover:shadow-md hover:ring-4 hover:ring-purple-300 hover:ring-opacity-80" 
-          onClick={handleOutstandingClick}
-        >
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -369,7 +362,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrencyNoDecimals(totalOutstanding)}</div>
             <p className="text-xs text-muted-foreground">
-              From {outstandingCount} invoice{outstandingCount !== 1 ? 's' : ''}
+              Total ACV minus Paid
             </p>
           </CardContent>
         </Card>
@@ -411,6 +404,7 @@ export default function Dashboard() {
                   key={opportunity.id}
                   opportunity={opportunity}
                   defaultExpanded={true}
+                  onDataChange={fetchData}
                 />
               ))}
             </div>

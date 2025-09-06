@@ -239,6 +239,16 @@ export const useLineItemCrud = () => {
       // Soft delete by setting act_deleted_at timestamp
       const deletedAt = new Date().toISOString();
       
+      // CRITICAL LOGGING: Track deletion request
+      console.warn('🔴 DELETION REQUEST:', {
+        timestamp: deletedAt,
+        itemId,
+        opportunityId,
+        actReference,
+        actOpportunityId,
+        stack: new Error().stack?.split('\n').slice(1, 5).join('\n')
+      });
+      
       const { error: updateError } = await supabase
         .from('invoice_line_items')
         .update({ act_deleted_at: deletedAt })

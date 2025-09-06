@@ -5,9 +5,15 @@
 /**
  * Extracts a 2-4 character shortform from an organization name for invoice numbering
  * @param organizationName - The full organization name
+ * @param customSchoolCode - Optional custom school code override
  * @returns A 2-4 character uppercase abbreviation
  */
-export function extractClientShortform(organizationName: string): string {
+export function extractClientShortform(organizationName: string, customSchoolCode?: string): string {
+  // If custom school code is provided, use it directly
+  if (customSchoolCode && customSchoolCode.trim().length > 0) {
+    return customSchoolCode.trim().toUpperCase();
+  }
+
   if (!organizationName || organizationName.trim().length === 0) {
     return 'UNK';
   }

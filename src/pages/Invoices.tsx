@@ -71,6 +71,7 @@ interface InvoiceLineItem {
       bill_to_contact_email: string;
       payment_terms: number;
       po_number?: string;
+      custom_payment_terms_text?: string;
     } | null;
   } | null;
 }
@@ -249,7 +250,8 @@ export default function Invoices() {
               bill_to_contact_name,
               bill_to_contact_email,
               payment_terms,
-              po_number
+              po_number,
+              custom_payment_terms_text
             )
           )
         `)
@@ -308,9 +310,26 @@ export default function Invoices() {
     // Generate date-based invoice numbers for each company
     for (const [companyName, companyItems] of Object.entries(itemsByCompany)) {
       try {
-        // Get the shortform for this company
-        const clientShortform = extractClientShortform(companyName);
-        console.log(`Processing ${companyItems.length} items for ${companyName} (${clientShortform}) with date-based numbering`);
+        // Get custom school code from billing info for this opportunity
+        let customSchoolCode: string | undefined;
+        if (companyItems.length > 0) {
+          const opportunityId = companyItems[0].opportunity_id;
+          if (opportunityId) {
+            const { data: billingData, error: billingError } = await supabase
+              .from('opportunity_billing_info')
+              .select('custom_school_code')
+              .eq('opportunity_id', opportunityId)
+              .single();
+            
+            if (!billingError && billingData?.custom_school_code) {
+              customSchoolCode = billingData.custom_school_code;
+            }
+          }
+        }
+
+        // Get the shortform for this company (with custom override if available)
+        const clientShortform = extractClientShortform(companyName, customSchoolCode);
+        console.log(`Processing ${companyItems.length} items for ${companyName} (${clientShortform}) with date-based numbering${customSchoolCode ? ` using custom code: ${customSchoolCode}` : ''}`);
         
         // Find existing invoice numbers for this shortform (both old and new formats)
         const { data: existingData } = await supabase
@@ -551,7 +570,8 @@ export default function Invoices() {
         bill_to_contact_name: billingInfo?.bill_to_contact_name || '',
         bill_to_contact_email: billingInfo?.bill_to_contact_email || '',
         payment_terms: billingInfo?.payment_terms || 30,
-        po_number: billingInfo?.po_number || ''
+        po_number: billingInfo?.po_number || '',
+        custom_payment_terms_text: billingInfo?.custom_payment_terms_text || ''
       },
       line_items: [{
         id: item.id,
@@ -627,12 +647,33 @@ export default function Invoices() {
               >
                 ← Back to Invoices
               </Button>
-              <h1 className="text-3xl font-bold text-foreground">
-                Invoice {selectedInvoice.invoice_number}
-              </h1>
-              <p className="text-muted-foreground">
-                {selectedInvoice.billing_info.organization_name}
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-foreground">
+                  Invoice {selectedInvoice.invoice_number}
+                </h1>
+                {(() => {
+                  const currentItem = invoiceLineItems.find(item => item.id === invoiceId);
+                  return currentItem ? getStatusBadge(currentItem) : null;
+                })()}
+              </div>
+              <p className="text-muted-foreground mb-2">
+                {selectedInvoice.billing_info.organization_name} • {formatCurrency((() => {
+                  const currentItem = invoiceLineItems.find(item => item.id === invoiceId);
+                  return currentItem?.line_total || 0;
+                })())}
               </p>
+              {(() => {
+                const currentItem = invoiceLineItems.find(item => item.id === invoiceId);
+                if (currentItem?.billed_at) {
+                  return (
+                    <p className="text-sm text-muted-foreground">
+                      Billed: {formatDateSafe(currentItem.billed_at)}
+                      {currentItem.payment_date && ` • Paid: ${formatDateSafe(currentItem.payment_date)}`}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
             </div>
             <div className="flex items-center gap-2">
               <Button 
@@ -648,10 +689,30 @@ export default function Invoices() {
                 <Download className="h-4 w-4" />
                 Download PDF
               </Button>
+              {(() => {
+                const currentItem = invoiceLineItems.find(item => item.id === invoiceId);
+                return currentItem ? (
+                  <PaymentStatusButton 
+                    invoiceId={currentItem.id}
+                    currentStatus={currentItem.invoice_status}
+                    invoiceNumber={currentItem.invoice_number || 'DRAFT'}
+                    onStatusChange={() => fetchInvoiceData()}
+                  />
+                ) : null;
+              })()}
             </div>
           </div>
           
-          <Card>
+          <Card className={(() => {
+            const currentItem = invoiceLineItems.find(item => item.id === invoiceId);
+            if (currentItem) {
+              const billingInfo = currentItem.opportunities?.opportunity_billing_info;
+              const paymentTerms = Array.isArray(billingInfo) && billingInfo.length > 0 ? billingInfo[0].payment_terms || 30 : 30;
+              const isOverdue = calculateOverdueStatus(currentItem.invoice_status, currentItem.billed_at, currentItem.payment_date, paymentTerms);
+              return isOverdue ? 'border-red-200 bg-red-50/50' : '';
+            }
+            return '';
+          })()}>
             <CardContent className="p-6">
               <InvoiceTemplate invoice={selectedInvoice} showDownloadButton={false} />
             </CardContent>

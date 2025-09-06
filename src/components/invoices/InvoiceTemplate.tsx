@@ -29,6 +29,7 @@ export interface BillingInfo {
   bill_to_contact_email: string;
   payment_terms: number;
   po_number?: string;
+  custom_payment_terms_text?: string;
 }
 
 export interface InvoiceData {
@@ -244,7 +245,12 @@ export function InvoiceTemplate({ invoice, className = "", showDownloadButton = 
 
         {/* Payment Terms */}
         <div className="text-center text-xs print:text-xs mt-2 print:mt-1 pb-8 print:pb-6">
-          <div className="font-semibold">Net {billing.payment_terms}</div>
+          <div className="font-semibold">
+            {billing.custom_payment_terms_text && billing.custom_payment_terms_text.trim() 
+              ? billing.custom_payment_terms_text.trim()
+              : `Net ${billing.payment_terms}`
+            }
+          </div>
         </div>
       </div>
     </div>

@@ -268,6 +268,18 @@ export default function ContractUploadModal({
       return;
     }
 
+    // CRITICAL LOGGING: Track submission
+    console.warn('🔵 LINE ITEM SUBMISSION START:', {
+      opportunityId,
+      lineItemCount: lineItems.length,
+      lineItems: lineItems.map(item => ({
+        name: item.name,
+        amount: 'amount' in item ? item.amount : item.total,
+        type: 'amount' in item ? item.type : item.type
+      })),
+      timestamp: new Date().toISOString()
+    });
+
     setUploadState(prev => ({ ...prev, isProcessing: true, error: null }));
 
     try {
@@ -382,6 +394,10 @@ export default function ContractUploadModal({
           <DialogTitle>Add Line Items</DialogTitle>
           <DialogDescription>
             For <strong>{opportunityName}</strong> at <strong>{companyName}</strong>
+            <br />
+            <span className="text-sm text-blue-600 mt-1 block">
+              Step 1: Add your line items • Step 2: Review and confirm to create products
+            </span>
           </DialogDescription>
         </DialogHeader>
         

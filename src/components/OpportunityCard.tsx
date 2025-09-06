@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Settings, Calendar, Edit3, Check, X, AlertCircle, Loader2, Trash2 } from 'lucide-react';
+import { Settings, Calendar, Edit3, Check, X, AlertCircle, Loader2, Trash2, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useLineItems } from '@/hooks/useLineItems';
 import { useOpportunityBilling } from '@/hooks/useOpportunityBilling';
 import BillingDetailsModal from './BillingDetailsModal';
@@ -20,6 +21,7 @@ interface LineItem {
   line_total: number | null;
   details: string | null;
   act_reference: string | null;
+  invoice_number: string | null;
 }
 
 interface Opportunity {
@@ -38,9 +40,11 @@ interface Opportunity {
 interface OpportunityCardProps {
   opportunity: Opportunity;
   defaultExpanded?: boolean;
+  onDataChange?: () => void;
 }
 
-export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
+export default function OpportunityCard({ opportunity, onDataChange }: OpportunityCardProps) {
+  const navigate = useNavigate();
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingDescription, setEditingDescription] = useState<string>('');
   const [editingDate, setEditingDate] = useState<string>('');
@@ -96,8 +100,12 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
       toast.success('Line item updated successfully', {
         description: 'Changes have been saved and synced with Act! CRM'
       });
+      // Trigger dashboard data refresh
+      if (onDataChange) {
+        onDataChange();
+      }
     }
-  }, [isUpdateSuccess]);
+  }, [isUpdateSuccess, onDataChange]);
 
   useEffect(() => {
     if (isDeleteSuccess) {
@@ -105,8 +113,12 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
         description: 'Item has been removed and synced with Act! CRM'
       });
       setDeletingItemId(null); // Clear delete loading state
+      // Trigger dashboard data refresh
+      if (onDataChange) {
+        onDataChange();
+      }
     }
-  }, [isDeleteSuccess]);
+  }, [isDeleteSuccess, onDataChange]);
 
   // Clear update loading state when update completes
   useEffect(() => {
@@ -325,6 +337,19 @@ export default function OpportunityCard({ opportunity }: OpportunityCardProps) {
                               >
                                 <Edit3 className="h-3 w-3 text-blue-600" />
                               </Button>
+                              {/* Invoice Connection Button - only show for billed items with billing info */}
+                              {item.billed_at && billingInfo && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 rounded-full bg-green-100 hover:bg-green-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => navigate(`/invoices/${item.id}`)}
+                                  title="View invoice"
+                                  disabled={updatingItemId === item.id || deletingItemId === item.id}
+                                >
+                                  <FileText className="h-3 w-3 text-green-600" />
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"

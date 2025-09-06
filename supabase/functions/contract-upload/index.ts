@@ -1209,6 +1209,18 @@ Cost Proposal:
 
         console.log(`Step 3: Syncing products to database...`);
         
+        // CRITICAL LOGGING: Track what products are being synced
+        console.warn('🟣 EDGE FUNCTION SYNC START:', {
+          opportunityId: opportunity_id,
+          productCount: actProductsResult.data.length,
+          products: actProductsResult.data.map(p => ({
+            id: p.id,
+            name: p.name,
+            opportunityID: p.opportunityID
+          })),
+          timestamp: new Date().toISOString()
+        });
+        
         // Step 3: Sync products to database using existing Act! sync logic
         const { syncProducts } = await import('../act-sync/products-sync.ts');
         const syncResult = await syncProducts(
