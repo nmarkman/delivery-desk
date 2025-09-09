@@ -212,9 +212,19 @@ export default function Dashboard() {
     }
   };
 
+  // Track if this is the first mount
+  const isFirstMount = useRef(true);
+  const prevUserId = useRef<string | undefined>();
+
   useEffect(() => {
+    // Only fetch data on first mount or if user ID actually changes
+    // This prevents refetching when Supabase refreshes the auth token on tab focus
     if (user) {
-      fetchData();
+      if (isFirstMount.current || prevUserId.current !== user.id) {
+        fetchData();
+        prevUserId.current = user.id;
+        isFirstMount.current = false;
+      }
     }
   }, [user]);
 

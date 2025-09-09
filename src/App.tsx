@@ -12,7 +12,17 @@ import InvoiceGenerator from "./pages/InvoiceGenerator";
 import DeliverablesReport from "./pages/DeliverablesReport";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Prevent refetch when window regains focus
+      refetchOnReconnect: false, // Prevent refetch on network reconnect
+      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+      cacheTime: 10 * 60 * 1000, // Keep data in cache for 10 minutes
+      retry: 1, // Retry failed requests once
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

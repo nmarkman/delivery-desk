@@ -98,7 +98,7 @@ export default function BillingDetailsModal({
   }, [billingInfo, opportunityId, companyName]);
 
   const handleInputChange = (field: keyof BillingInfo, value: string | number) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value as any }));
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: '' }));
@@ -139,7 +139,10 @@ export default function BillingDetailsModal({
     }
 
     // Payment terms validation
-    if (formData.payment_terms < 0 || formData.payment_terms > 365) {
+    const paymentTerms = formData.payment_terms;
+    if (paymentTerms === '' || paymentTerms === undefined || paymentTerms === null) {
+      newErrors.payment_terms = 'Payment terms is required';
+    } else if (typeof paymentTerms === 'number' && (paymentTerms < 0 || paymentTerms > 365)) {
       newErrors.payment_terms = 'Payment terms must be between 0 and 365 days';
     }
 
@@ -175,9 +178,17 @@ export default function BillingDetailsModal({
 
     setIsSaving(true);
     try {
+      // Ensure payment_terms is a number before saving
+      const dataToSave = {
+        ...formData,
+        payment_terms: typeof formData.payment_terms === 'string' && formData.payment_terms === '' 
+          ? 30 // Default to 30 if empty
+          : Number(formData.payment_terms)
+      };
+      
       // Save the billing information first
       if (onSave) {
-        await onSave(formData);
+        await onSave(dataToSave);
       }
       
       // If a custom school code was provided and is different from the existing one, update existing invoice numbers
@@ -485,14 +496,17 @@ export default function BillingDetailsModal({
                   min="0"
                   max="365"
                   value={formData.payment_terms}
-                  onChange={(e) => handleInputChange('payment_terms', parseInt(e.target.value) || 0)}
-                  placeholder="30"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty string during editing, otherwise parse the number
+                    handleInputChange('payment_terms', value === '' ? '' : parseInt(value) || 0);
+                  }}
                   className={errors.payment_terms ? 'border-red-300' : ''}
                 />
                 {errors.payment_terms && (
                   <p className="text-sm text-red-600">{errors.payment_terms}</p>
                 )}
-                <p className="text-xs text-muted-foreground">Default is 30 days (Net 30)</p>
+                <p className="text-xs text-muted-foreground">Enter number of days (e.g., 30 for Net 30)</p>
               </div>
 
               <div className="space-y-2">
