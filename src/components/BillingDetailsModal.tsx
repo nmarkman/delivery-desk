@@ -197,12 +197,22 @@ export default function BillingDetailsModal({
       
       if (newCustomCode && newCustomCode !== existingCustomCode) {
         await updateExistingInvoiceNumbers(newCustomCode);
+      } else {
+        // Show success toast only if we're not updating invoice numbers (which shows its own toast)
+        toast({
+          title: "Billing Details Saved",
+          description: "The billing information has been successfully updated.",
+        });
       }
       
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving billing information:', error);
-      // Handle error - could add error state here
+      toast({
+        title: "Error Saving Billing Details",
+        description: "Failed to save billing information. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsSaving(false);
     }
