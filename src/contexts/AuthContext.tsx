@@ -21,24 +21,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    let mounted = true;
+    let sessionRefreshTimer: NodeJS.Timeout | null = null;
+
+    // Function to safely update state only if component is mounted
+    const safeSetState = (newSession: Session | null) => {
+      if (!mounted) return;
+      
+      // Only update if session actually changed
+      if (newSession?.access_token !== session?.access_token) {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+      }
+      setLoading(false);
+    };
+
+    // Set up auth state listener with better handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+      (event, newSession) => {
+        // Ignore token refresh events to prevent unnecessary re-renders
+        if (event === 'TOKEN_REFRESHED' && session?.user?.id === newSession?.user?.id) {
+          return;
+        }
+        
+        safeSetState(newSession);
+        
+        // Set up proactive session refresh before expiry
+        if (newSession?.expires_at) {
+          const expiresAt = new Date(newSession.expires_at * 1000);
+          const refreshTime = expiresAt.getTime() - Date.now() - (5 * 60 * 1000); // Refresh 5 minutes before expiry
+          
+          if (sessionRefreshTimer) {
+            clearTimeout(sessionRefreshTimer);
+          }
+          
+          if (refreshTime > 0) {
+            sessionRefreshTimer = setTimeout(() => {
+              supabase.auth.refreshSession();
+            }, refreshTime);
+          }
+        }
       }
     );
 
-    // THEN check for existing session
+    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      safeSetState(session);
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      mounted = false;
+      if (sessionRefreshTimer) {
+        clearTimeout(sessionRefreshTimer);
+      }
+      subscription.unsubscribe();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const signIn = async (email: string, password: string) => {
     try {

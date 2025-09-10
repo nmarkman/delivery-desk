@@ -13,5 +13,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'delivery-desk'
+    }
+  },
+  db: {
+    schema: 'public'
+  },
+  multiTab: false // Disable multi-tab support to prevent session conflicts
 });
