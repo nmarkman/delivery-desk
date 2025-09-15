@@ -12,6 +12,16 @@ import { RefreshButton } from '@/components/RefreshButton';
 import { formatCurrency, calculateOverdueStatus } from '@/utils/invoiceHelpers';
 import { calculateDashboardMetrics } from '@/utils/dashboardCalculations';
 
+// Enable debug logging for troubleshooting
+const DEBUG_DASHBOARD = true;
+
+function logDashboardEvent(event: string, details?: unknown) {
+  if (DEBUG_DASHBOARD) {
+    const timestamp = new Date().toISOString();
+    console.log(`[Dashboard ${timestamp}] ${event}`, details || '');
+  }
+}
+
 // Helper function to format currency without decimals for large amounts
 const formatCurrencyNoDecimals = (amount: number): string => {
   return new Intl.NumberFormat('en-US', {
@@ -77,6 +87,19 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Log component mount
+  useEffect(() => {
+    logDashboardEvent('DASHBOARD_MOUNT', {
+      userId: user?.id,
+      timestamp: Date.now(),
+      url: window.location.href
+    });
+    
+    return () => {
+      logDashboardEvent('DASHBOARD_UNMOUNT');
+    };
+  }, []);
+  
   // Infinite scroll state
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -104,6 +127,12 @@ export default function Dashboard() {
   }, [opportunities, searchFilter]);
 
   const fetchOpportunities = useCallback(async (pageNum: number = 0, reset: boolean = false) => {
+    logDashboardEvent('FETCH_OPPORTUNITIES_START', {
+      pageNum,
+      reset,
+      userId: user?.id
+    });
+    
     try {
       if (reset) {
         setLoading(true);
@@ -130,6 +159,12 @@ export default function Dashboard() {
 
       const newOpportunities = opportunitiesResult.data || [];
       
+      logDashboardEvent('FETCH_OPPORTUNITIES_SUCCESS', {
+        count: newOpportunities.length,
+        pageNum,
+        reset
+      });
+      
       if (reset) {
         setOpportunities(newOpportunities);
       } else {
@@ -140,6 +175,7 @@ export default function Dashboard() {
       setHasMore(newOpportunities.length === OPPORTUNITIES_PER_PAGE);
       setPage(pageNum);
     } catch (error) {
+      logDashboardEvent('FETCH_OPPORTUNITIES_ERROR', { error, pageNum, reset });
       console.error('Error fetching opportunities:', error);
       setError(error instanceof Error ? error.message : 'Failed to load opportunities');
     } finally {
@@ -149,6 +185,11 @@ export default function Dashboard() {
   }, [user?.id, OPPORTUNITIES_PER_PAGE]);
 
   const fetchData = async () => {
+    logDashboardEvent('FETCH_DATA_START', {
+      userId: user?.id,
+      timestamp: Date.now()
+    });
+    
     try {
       setLoading(true);
       setError(null);
@@ -205,7 +246,14 @@ export default function Dashboard() {
       
       // Fetch first page of opportunities
       await fetchOpportunities(0, true);
+      
+      logDashboardEvent('FETCH_DATA_COMPLETE', {
+        clientCount: clients.length,
+        invoiceLineItemCount: invoiceLineItems.length,
+        lineItemCount: lineItems.length
+      });
     } catch (error) {
+      logDashboardEvent('FETCH_DATA_ERROR', { error });
       console.error('Error fetching data:', error);
       setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
       setLoading(false);
@@ -219,11 +267,29 @@ export default function Dashboard() {
   useEffect(() => {
     // Only fetch data on first mount or if user ID actually changes
     // This prevents refetching when Supabase refreshes the auth token on tab focus
+    logDashboardEvent('USER_EFFECT_TRIGGERED', {
+      user: !!user,
+      userId: user?.id,
+      isFirstMount: isFirstMount.current,
+      prevUserId: prevUserId.current,
+      willFetch: user && (isFirstMount.current || prevUserId.current !== user.id)
+    });
+    
     if (user) {
       if (isFirstMount.current || prevUserId.current !== user.id) {
+        logDashboardEvent('TRIGGERING_DATA_FETCH', {
+          reason: isFirstMount.current ? 'first_mount' : 'user_changed',
+          oldUserId: prevUserId.current,
+          newUserId: user.id
+        });
         fetchData();
         prevUserId.current = user.id;
         isFirstMount.current = false;
+      } else {
+        logDashboardEvent('SKIPPING_DATA_FETCH', {
+          reason: 'same_user',
+          userId: user.id
+        });
       }
     }
   }, [user]);

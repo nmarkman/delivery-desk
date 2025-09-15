@@ -8,6 +8,22 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Enable debug logging for troubleshooting
+const DEBUG_SUPABASE = true;
+
+function logSupabaseEvent(event: string, details?: unknown) {
+  if (DEBUG_SUPABASE) {
+    const timestamp = new Date().toISOString();
+    console.log(`[Supabase ${timestamp}] ${event}`, details || '');
+  }
+}
+
+logSupabaseEvent('CLIENT_INIT', {
+  url: SUPABASE_URL,
+  multiTab: false,
+  timestamp: Date.now()
+});
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
@@ -25,4 +41,15 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     schema: 'public'
   },
   multiTab: false // Disable multi-tab support to prevent session conflicts
+});
+
+// Add auth state change listener for debugging
+supabase.auth.onAuthStateChange((event, session) => {
+  logSupabaseEvent('AUTH_STATE_CHANGE', {
+    event,
+    hasSession: !!session,
+    userId: session?.user?.id,
+    expiresAt: session?.expires_at,
+    accessTokenPreview: session?.access_token ? session.access_token.substring(0, 20) + '...' : null
+  });
 });

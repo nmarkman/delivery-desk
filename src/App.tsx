@@ -6,6 +6,16 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { initTabVisibilityHandler, cleanupTabVisibilityHandler } from "@/utils/tabVisibilityHandler";
+
+// Enable debug logging for troubleshooting
+const DEBUG_APP = true;
+
+function logAppEvent(event: string, details?: unknown) {
+  if (DEBUG_APP) {
+    const timestamp = new Date().toISOString();
+    console.log(`[App ${timestamp}] ${event}`, details || '');
+  }
+}
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ActSync from "./pages/ActSync";
@@ -27,14 +37,41 @@ const queryClient = new QueryClient({
   },
 });
 
+logAppEvent('QUERY_CLIENT_INITIALIZED', {
+  staleTime: 60 * 60 * 1000,
+  cacheTime: 2 * 60 * 60 * 1000,
+  refetchOnWindowFocus: false,
+  refetchOnMount: false
+});
+
 const App = () => {
   useEffect(() => {
+    logAppEvent('APP_MOUNT', {
+      timestamp: Date.now(),
+      url: window.location.href,
+      userAgent: navigator.userAgent
+    });
+    
     // Initialize tab visibility handler on mount
     initTabVisibilityHandler();
+    logAppEvent('TAB_VISIBILITY_HANDLER_INITIALIZED');
+    
+    // Add route change listener
+    const handleRouteChange = () => {
+      logAppEvent('ROUTE_CHANGE', {
+        url: window.location.href,
+        pathname: window.location.pathname,
+        hash: window.location.hash
+      });
+    };
+    
+    window.addEventListener('popstate', handleRouteChange);
     
     // Cleanup on unmount
     return () => {
+      logAppEvent('APP_UNMOUNT');
       cleanupTabVisibilityHandler();
+      window.removeEventListener('popstate', handleRouteChange);
     };
   }, []);
 
