@@ -55,8 +55,11 @@ export function AppSidebar() {
   };
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
+    const { error } = await signOut();
+    if (!error) {
+      // Force navigation to auth page after successful sign out
+      navigate('/auth', { replace: true });
+    }
   };
 
   const getNavClassName = ({ isActive }: { isActive: boolean }) =>
