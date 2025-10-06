@@ -164,8 +164,7 @@ export default function Dashboard() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  
+
   const OPPORTUNITIES_PER_PAGE = 10;
 
   // Filter opportunities based on search term
@@ -175,6 +174,9 @@ export default function Dashboard() {
 
   // Update filtered opportunities when opportunities or search filter changes
   useEffect(() => {
+    // Save current scroll position
+    const scrollY = window.scrollY;
+
     if (!searchFilter.trim()) {
       setFilteredOpportunities(opportunities);
     } else {
@@ -184,6 +186,11 @@ export default function Dashboard() {
       );
       setFilteredOpportunities(filtered);
     }
+
+    // Restore scroll position after state update
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY);
+    });
   }, [opportunities, searchFilter]);
 
   const fetchOpportunities = useCallback(async (pageNum: number = 0, reset: boolean = false) => {
@@ -357,22 +364,20 @@ export default function Dashboard() {
   // Infinite scroll effect
   useEffect(() => {
     const handleScroll = () => {
-      if (!scrollRef.current || loadingMore || !hasMore) return;
+      if (loadingMore || !hasMore) return;
 
-      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-      
+      const { scrollY, innerHeight } = window;
+      const { scrollHeight } = document.documentElement;
+
       // Load more when user scrolls to within 100px of bottom
-      if (scrollTop + clientHeight >= scrollHeight - 100) {
+      if (scrollY + innerHeight >= scrollHeight - 100) {
         setLoadingMore(true);
         fetchOpportunities(page + 1, false);
       }
     };
 
-    const scrollElement = scrollRef.current;
-    if (scrollElement) {
-      scrollElement.addEventListener('scroll', handleScroll);
-      return () => scrollElement.removeEventListener('scroll', handleScroll);
-    }
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [loadingMore, hasMore, page, fetchOpportunities]);
 
   // Use filtered opportunities for display
@@ -508,13 +513,11 @@ export default function Dashboard() {
 
       {/* Opportunities Section */}
       <div>
-        <div className="mb-4 space-y-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-2xl font-semibold">Opportunity Management</h2>
-            </div>
-          </div>
+        <div className="mb-4">
+          <h2 className="text-2xl font-semibold">Opportunity Management</h2>
+        </div>
 
+        <div className="sticky top-16 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-3 mb-4 border-b">
           <div className="flex gap-3 items-center">
             <Button
               variant="outline"
@@ -541,7 +544,7 @@ export default function Dashboard() {
             />
           </div>
         </div>
-        
+
         {activeOpportunities.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
@@ -554,10 +557,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ) : (
-          <div
-            ref={scrollRef}
-            className="max-h-[800px] overflow-y-auto pr-2"
-          >
+          <div>
             <div className="flex flex-col gap-6">
               {activeOpportunities.map((opportunity) => (
                 <OpportunityCard
@@ -571,7 +571,7 @@ export default function Dashboard() {
                 />
               ))}
             </div>
-            
+
             {/* Loading indicator for infinite scroll */}
             {loadingMore && (
               <div className="flex items-center justify-center py-6">
@@ -579,7 +579,7 @@ export default function Dashboard() {
                 <span className="text-muted-foreground">Loading more opportunities...</span>
               </div>
             )}
-            
+
             {/* End of data indicator */}
             {!hasMore && activeOpportunities.length > 0 && (
               <div className="text-center py-6 text-muted-foreground text-sm">
