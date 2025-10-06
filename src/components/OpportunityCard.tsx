@@ -3,7 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Settings, Calendar, Edit3, Check, X, AlertCircle, Loader2, Trash2, FileText } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Settings, Calendar, Edit3, Check, X, AlertCircle, Loader2, Trash2, FileText, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLineItems } from '@/hooks/useLineItems';
 import { useOpportunityBilling } from '@/hooks/useOpportunityBilling';
@@ -40,10 +46,12 @@ interface Opportunity {
 interface OpportunityCardProps {
   opportunity: Opportunity;
   defaultExpanded?: boolean;
+  isExpanded?: boolean;
+  onExpandToggle?: (opportunityId: string, expanded: boolean) => void;
   onDataChange?: () => void;
 }
 
-export default function OpportunityCard({ opportunity, onDataChange }: OpportunityCardProps) {
+export default function OpportunityCard({ opportunity, defaultExpanded = false, isExpanded, onExpandToggle, onDataChange }: OpportunityCardProps) {
   const navigate = useNavigate();
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingDescription, setEditingDescription] = useState<string>('');
@@ -53,6 +61,19 @@ export default function OpportunityCard({ opportunity, onDataChange }: Opportuni
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+
+  // Collapse/expand state - controlled from parent or local
+  const [localExpanded, setLocalExpanded] = useState(defaultExpanded);
+  const expanded = isExpanded !== undefined ? isExpanded : localExpanded;
+
+  const handleToggleExpand = () => {
+    const newExpanded = !expanded;
+    if (onExpandToggle) {
+      onExpandToggle(opportunity.id, newExpanded);
+    } else {
+      setLocalExpanded(newExpanded);
+    }
+  };
   
   // Use React Query hook for optimistic updates
   const { 
@@ -187,32 +208,119 @@ export default function OpportunityCard({ opportunity, onDataChange }: Opportuni
     return sum + (item.unit_rate || 0);
   }, 0);
 
+  // Calculate invoice status counts (this would come from invoice_line_items in real implementation)
+  // For now, using placeholder logic - this will need to be passed from Dashboard
+  const invoiceStatusCounts = {
+    draft: 0,
+    sent: 0,
+    paid: 0,
+    overdue: 0
+  };
+
   return (
-    <Card className="w-full transition-all duration-200 hover:shadow-md min-h-[300px] flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg truncate">{opportunity.company_name}</CardTitle>
-            <CardDescription className="mt-1 text-sm">
-              {opportunity.name}
-            </CardDescription>
-          </div>
-          <div className="flex flex-col items-end gap-1 ml-4">
-            <Badge variant={opportunity.status === 'Project Stage' ? "default" : "secondary"}>
-              {opportunity.status}
-            </Badge>
-            {/* Contract Value - calculated from active line items */}
-            {calculatedContractValue > 0 && (
+    <TooltipProvider>
+      <Card className="w-full transition-all duration-200 hover:shadow-md flex flex-col">
+        <CardHeader className="pb-3">
+          {/* Top row: Company name, contract value, gear icon, + icon */}
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-lg truncate">{opportunity.company_name}</CardTitle>
+            </div>
+            <div className="flex items-center gap-2 ml-4">
               <div className="text-sm font-medium">
                 ${calculatedContractValue.toLocaleString()}
               </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={`h-8 w-8 relative ${!billingInfo && !loadingBillingInfo ? 'animate-pulse border-orange-600' : ''}`}
+                    onClick={() => setBillingModalOpen(true)}
+                  >
+                    <Settings className={`h-4 w-4 ${!billingInfo && !loadingBillingInfo ? 'text-orange-600' : ''}`} />
+                    {!billingInfo && !loadingBillingInfo && (
+                      <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-orange-600 text-[8px] font-bold text-white">
+                        !
+                      </span>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{!billingInfo && !loadingBillingInfo ? 'Billing Configuration Missing' : 'Billing Configuration'}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setUploadModalOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add Products</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+
+        {/* Second row: Invoice status badges and View Invoices button */}
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 flex-wrap">
+            {invoiceStatusCounts.draft > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {invoiceStatusCounts.draft} Draft
+              </Badge>
+            )}
+            {invoiceStatusCounts.sent > 0 && (
+              <Badge variant="default" className="text-xs bg-blue-500">
+                {invoiceStatusCounts.sent} Sent
+              </Badge>
+            )}
+            {invoiceStatusCounts.paid > 0 && (
+              <Badge variant="default" className="text-xs bg-green-500">
+                {invoiceStatusCounts.paid} Paid
+              </Badge>
+            )}
+            {invoiceStatusCounts.overdue > 0 && (
+              <Badge variant="destructive" className="text-xs">
+                {invoiceStatusCounts.overdue} Overdue
+              </Badge>
             )}
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleToggleExpand}
+            className="flex items-center gap-1"
+          >
+            {expanded ? (
+              <>
+                <ChevronUp className="h-4 w-4" />
+                Hide Invoices
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4" />
+                View Invoices
+              </>
+            )}
+          </Button>
         </div>
       </CardHeader>
-      
-      <CardContent className="pt-0 flex-1 flex flex-col">
-        <div className="flex-1 space-y-3">
+
+      {/* Collapsible content with smooth transition */}
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          expanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <CardContent className="pt-0 flex-1 flex flex-col">
+          <div className="flex-1 space-y-3">
             
             {/* Contract Dates */}
             {(opportunity.contract_start_date || opportunity.contract_end_date) && (
@@ -238,33 +346,6 @@ export default function OpportunityCard({ opportunity, onDataChange }: Opportuni
             
             {/* Line Items Table */}
             <div className="pt-3 border-t border-gray-100">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground font-medium">
-                    Line Items ({lineItems.length})
-                  </span>
-                  {deliverablesMissingDates > 0 && (
-                    <Badge variant="outline" className="text-xs text-orange-600 border-orange-300 bg-orange-50">
-                      Missing dates:{deliverablesMissingDates} 
-                    </Badge>
-                  )}
-                  {hasError && (
-                    <Badge variant="outline" className="text-xs text-red-600 border-red-300 bg-red-50 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      Error occurred
-                    </Badge>
-                  )}
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700"
-                  onClick={() => setUploadModalOpen(true)}
-                >
-                  Add Line Items
-                </Button>
-              </div>
-              
               {loadingLineItems ? (
                 <div className="flex items-center justify-center py-4">
                   <div className="text-xs text-muted-foreground">Loading line items...</div>
@@ -274,7 +355,7 @@ export default function OpportunityCard({ opportunity, onDataChange }: Opportuni
                   No line items found for this opportunity
                 </div>
               ) : (
-                <div className="space-y-2 max-h-80 overflow-y-auto">
+                <div className="space-y-2">
                   {lineItems.map((item) => (
                     <div key={item.id} className={`border rounded-lg p-3 group relative ${getItemHighlightClass(item)}`}>
                       {/* Header with Description and Action Buttons */}
@@ -459,7 +540,8 @@ export default function OpportunityCard({ opportunity, onDataChange }: Opportuni
           </div>
         </div>
       </CardContent>
-      
+    </div>
+
       {/* Billing Details Modal */}
       <BillingDetailsModal
         open={billingModalOpen}
@@ -479,6 +561,7 @@ export default function OpportunityCard({ opportunity, onDataChange }: Opportuni
         companyName={opportunity.company_name}
         onUploadSuccess={() => refetchLineItems()}
       />
-    </Card>
+      </Card>
+    </TooltipProvider>
   );
 }

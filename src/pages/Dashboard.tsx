@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Users, FileText, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { DollarSign, Users, FileText, Clock, AlertCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
@@ -85,7 +85,53 @@ export default function Dashboard() {
   const [searchFilter, setSearchFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
+  // Expand/collapse state management with localStorage
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('deliverydesk_expanded_cards');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [allExpanded, setAllExpanded] = useState(() => {
+    try {
+      const saved = localStorage.getItem('deliverydesk_expand_all_state');
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Persist expand/collapse state to localStorage
+  useEffect(() => {
+    localStorage.setItem('deliverydesk_expanded_cards', JSON.stringify(expandedCards));
+  }, [expandedCards]);
+
+  useEffect(() => {
+    localStorage.setItem('deliverydesk_expand_all_state', String(allExpanded));
+  }, [allExpanded]);
+
+  // Handle individual card expand/collapse
+  const handleCardExpandToggle = (opportunityId: string, expanded: boolean) => {
+    setExpandedCards(prev => ({
+      ...prev,
+      [opportunityId]: expanded
+    }));
+  };
+
+  // Handle expand/collapse all
+  const handleExpandAll = () => {
+    const newExpandedState = !allExpanded;
+    setAllExpanded(newExpandedState);
+    const newExpandedCards: Record<string, boolean> = {};
+    activeOpportunities.forEach(opp => {
+      newExpandedCards[opp.id] = newExpandedState;
+    });
+    setExpandedCards(newExpandedCards);
+  };
+
   // Log component mount
   useEffect(() => {
     logDashboardEvent('DASHBOARD_MOUNT', {
@@ -445,18 +491,40 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Opportunities Grid - Two Column Layout */}
+      {/* Opportunities Section */}
       <div>
-        <div className="mb-4 flex justify-between items-start">
-          <div>
-            <h2 className="text-2xl font-semibold">Opportunities</h2>
-            <p className="text-muted-foreground">Manage your active opportunities and their details</p>
+        <div className="mb-4 space-y-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-2xl font-semibold">Opportunity Management</h2>
+            </div>
           </div>
-          <OpportunityFilter
-            onFilterChange={handleFilterChange}
-            placeholder="Search by company or opportunity name..."
-            className="mt-1"
-          />
+
+          <div className="flex gap-3 items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExpandAll}
+              className="flex items-center gap-1"
+            >
+              {allExpanded ? (
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  Collapse All
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4" />
+                  Expand All
+                </>
+              )}
+            </Button>
+            <OpportunityFilter
+              onFilterChange={handleFilterChange}
+              placeholder="Search by company or opportunity name..."
+              className="flex-1"
+            />
+          </div>
         </div>
         
         {activeOpportunities.length === 0 ? (
@@ -480,7 +548,9 @@ export default function Dashboard() {
                 <OpportunityCard
                   key={opportunity.id}
                   opportunity={opportunity}
-                  defaultExpanded={true}
+                  defaultExpanded={false}
+                  isExpanded={expandedCards[opportunity.id] ?? false}
+                  onExpandToggle={handleCardExpandToggle}
                   onDataChange={fetchData}
                 />
               ))}

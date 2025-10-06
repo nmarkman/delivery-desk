@@ -73,17 +73,19 @@ Change the opportunity cards layout from a two-column grid to a single-column li
 - Maintains current infinite scroll functionality
 
 ### Acceptance Criteria
-- [ ] Dashboard grid changed to single column layout
-- [ ] Opportunity cards span full width of content area
-- [ ] Spacing and padding adjusted for single column view
-- [ ] Infinite scroll continues to work correctly
-- [ ] Loading states display properly
+- [X] Dashboard grid changed to single column layout
+- [X] Opportunity cards span full width of content area
+- [X] Spacing and padding adjusted for single column view
+- [X] Infinite scroll continues to work correctly
+- [X] Loading states display properly
 
 ### Files to Modify
 - Modify: `src/pages/Dashboard.tsx` (line 477 - grid classes)
 
 ### Design Reference
 See mock showing single-column opportunity card layout
+
+**✅ Completed** - Git commit: `62fdbdb`
 
 ---
 
