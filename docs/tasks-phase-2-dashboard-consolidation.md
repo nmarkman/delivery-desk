@@ -622,7 +622,7 @@ Add a new "Total Paid" metric card to the dashboard, reorder existing metrics, u
 - Cleaner, less verbose presentation
 
 ### Acceptance Criteria
-- [X] "Total Clients" changed to "Total Active Clients"
+- [ ] "Total Clients" changed to "Total Active Clients"
 - [ ] New "Total Paid" metric card added
 - [ ] Metrics reordered: Clients, ACV, Paid, Billed & Unpaid, Total Outstanding
 - [ ] ACV subtitle removed

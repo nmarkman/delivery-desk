@@ -224,12 +224,33 @@ export default function OpportunityCard({
     return sum + (item.unit_rate || 0);
   }, 0);
 
+  // Sort line items chronologically by billing date
+  const sortedLineItems = [...lineItems].sort((a, b) => {
+    // Items with billing dates come first, sorted chronologically (earliest first)
+    if (a.billed_at && b.billed_at) {
+      return new Date(a.billed_at).getTime() - new Date(b.billed_at).getTime();
+    }
+    // Items with billing dates come before items without
+    if (a.billed_at && !b.billed_at) return -1;
+    if (!a.billed_at && b.billed_at) return 1;
+    // If both don't have billing dates, maintain original order
+    return 0;
+  });
+
   // Calculate actual invoice status counts from displayed line items
   const actualInvoiceStatusCounts = {
     draft: lineItems.filter(item => item.invoice_status === 'draft').length,
     sent: lineItems.filter(item => item.invoice_status === 'sent').length,
     paid: lineItems.filter(item => item.invoice_status === 'paid').length,
     overdue: lineItems.filter(item => item.invoice_status === 'overdue').length,
+  };
+
+  // Calculate total dollar amounts by status
+  const statusTotals = {
+    draft: lineItems.filter(item => item.invoice_status === 'draft').reduce((sum, item) => sum + (item.unit_rate || 0), 0),
+    sent: lineItems.filter(item => item.invoice_status === 'sent').reduce((sum, item) => sum + (item.unit_rate || 0), 0),
+    paid: lineItems.filter(item => item.invoice_status === 'paid').reduce((sum, item) => sum + (item.unit_rate || 0), 0),
+    overdue: lineItems.filter(item => item.invoice_status === 'overdue').reduce((sum, item) => sum + (item.unit_rate || 0), 0),
   };
 
   // Use actual counts if available, otherwise fall back to passed counts
@@ -290,24 +311,60 @@ export default function OpportunityCard({
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
             {displayStatusCounts.draft > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {displayStatusCounts.draft} Draft
-              </Badge>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Badge variant="secondary" className="text-xs cursor-help">
+                      {displayStatusCounts.draft} Draft
+                    </Badge>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>${statusTotals.draft.toLocaleString()} in draft invoices</p>
+                </TooltipContent>
+              </Tooltip>
             )}
             {displayStatusCounts.sent > 0 && (
-              <Badge variant="default" className="text-xs bg-blue-500">
-                {displayStatusCounts.sent} Sent
-              </Badge>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Badge variant="default" className="text-xs bg-blue-500 hover:bg-blue-500 cursor-help">
+                      {displayStatusCounts.sent} Sent
+                    </Badge>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>${statusTotals.sent.toLocaleString()} in sent invoices</p>
+                </TooltipContent>
+              </Tooltip>
             )}
             {displayStatusCounts.paid > 0 && (
-              <Badge variant="default" className="text-xs bg-green-500">
-                {displayStatusCounts.paid} Paid
-              </Badge>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Badge variant="default" className="text-xs bg-green-500 hover:bg-green-500 cursor-help">
+                      {displayStatusCounts.paid} Paid
+                    </Badge>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>${statusTotals.paid.toLocaleString()} in paid invoices</p>
+                </TooltipContent>
+              </Tooltip>
             )}
             {displayStatusCounts.overdue > 0 && (
-              <Badge variant="destructive" className="text-xs">
-                {displayStatusCounts.overdue} Overdue
-              </Badge>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Badge variant="destructive" className="text-xs hover:bg-destructive cursor-help">
+                      {displayStatusCounts.overdue} Overdue
+                    </Badge>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>${statusTotals.overdue.toLocaleString()} in overdue invoices</p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
           <Button
@@ -374,7 +431,7 @@ export default function OpportunityCard({
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {lineItems.map((item) => (
+                  {sortedLineItems.map((item) => (
                     <div key={item.id} className={`border-b last:border-b-0 py-2 px-2 group relative hover:bg-gray-50 ${needsDueDate(item) ? 'bg-orange-50/30' : ''}`}>
                       {/* Single row layout with Description, Date, Price, Status */}
                       <div className="flex items-center justify-between gap-4">
@@ -448,7 +505,7 @@ export default function OpportunityCard({
                                     item.invoice_status === 'paid' ? 'bg-green-500' : ''
                                   }`}
                                 >
-                                  {item.invoice_status}
+                                  {item.invoice_status.charAt(0).toUpperCase() + item.invoice_status.slice(1)}
                                 </Badge>
                               )}
                             </>
