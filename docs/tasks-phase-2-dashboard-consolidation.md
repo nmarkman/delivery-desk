@@ -304,17 +304,22 @@ Update the sort order for invoice line items within opportunity cards to display
 - Sort order consistent across collapsed and expanded states
 
 ### Acceptance Criteria
-- [ ] Line items sorted chronologically by billing date (earliest first)
-- [ ] Line items without billing dates appear at end of list
-- [ ] Sort order consistent across collapsed and expanded states
-- [ ] Remove color change hover effect on invoice status badges
-- [ ] Add hover tooltips to each status badge
-- [ ] Tooltips display total dollar amount with context (e.g., "$5,000 in draft invoices")
-- [ ] Tooltip positioning works correctly within card layout
+- [x] Line items sorted chronologically by billing date (earliest first)
+- [x] Line items without billing dates appear at end of list
+- [x] Sort order consistent across collapsed and expanded states
+- [x] Remove color change hover effect on invoice status badges
+- [x] Add hover tooltips to each status badge
+- [x] Tooltips display total dollar amount with context (e.g., "$5,000 in draft invoices")
+- [x] Tooltip positioning works correctly within card layout
+- [x] Line item status labels use proper case formatting (Draft, Sent, Paid, Overdue)
 
 ### Files to Modify
 - Modify: `src/components/OpportunityCard.tsx` (update line item sort logic and status badge tooltips)
 - Potentially modify: `src/pages/Dashboard.tsx` (if sort logic is there)
+
+### Completion
+**Status**: ✅ Completed
+**Commit**: bafc56a - feat: improve invoice status badges and line item sorting
 
 ### Design Reference
 See mock showing chronological line item ordering and status badge tooltips
