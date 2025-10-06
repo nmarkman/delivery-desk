@@ -283,7 +283,45 @@ See mock demonstrating sticky filter bar behavior during scroll
 
 ---
 
-## Task 7: Implement Invoice Status Filter Dropdown
+## Task 7: Invoice Line Item and Status Badge Improvements
+
+**Priority**: High | **Estimated Effort**: Medium
+
+### Description
+Update the sort order for invoice line items within opportunity cards to display chronologically by billing date, with items that don't have billing dates appearing at the end of the list. Additionally, improve invoice status badges in opportunity card headers with hover tooltips showing dollar amounts and remove color change hover effects.
+
+### Current State
+- Invoice line items may not be sorted optimally
+- Line items without billing dates appear at beginning of list
+- Status badges in card header have color change on hover
+- No tooltips showing dollar amounts for status badges
+
+### Target State
+- Line items sorted chronologically by billing date (earliest first)
+- Items without billing dates appear at end of list
+- Status badges have hover tooltips showing total dollar value
+- Color change hover effect removed from status badges
+- Sort order consistent across collapsed and expanded states
+
+### Acceptance Criteria
+- [ ] Line items sorted chronologically by billing date (earliest first)
+- [ ] Line items without billing dates appear at end of list
+- [ ] Sort order consistent across collapsed and expanded states
+- [ ] Remove color change hover effect on invoice status badges
+- [ ] Add hover tooltips to each status badge
+- [ ] Tooltips display total dollar amount with context (e.g., "$5,000 in draft invoices")
+- [ ] Tooltip positioning works correctly within card layout
+
+### Files to Modify
+- Modify: `src/components/OpportunityCard.tsx` (update line item sort logic and status badge tooltips)
+- Potentially modify: `src/pages/Dashboard.tsx` (if sort logic is there)
+
+### Design Reference
+See mock showing chronological line item ordering and status badge tooltips
+
+---
+
+## Task 8: Implement Invoice Status Filter Dropdown
 
 **Priority**: High | **Estimated Effort**: Medium
 
@@ -319,7 +357,7 @@ See mock showing "All invoice statuses" dropdown in filter bar
 
 ---
 
-## Task 8: Implement Client Filter Dropdown
+## Task 9: Implement Client Filter Dropdown
 
 **Priority**: Medium | **Estimated Effort**: Small
 
@@ -353,7 +391,7 @@ See mock showing "All clients" dropdown in filter bar
 
 ---
 
-## Task 9: Redesign Invoice Line Item Actions with Hover Effects
+## Task 10: Redesign Invoice Line Item Actions with Hover Effects
 
 **Priority**: High | **Estimated Effort**: Large
 
@@ -400,7 +438,7 @@ See mock screenshots showing hover state with sliding price and action buttons f
 
 ---
 
-## Task 10: Implement Invoice Preview Modal
+## Task 11: Implement Invoice Preview Modal
 
 **Priority**: High | **Estimated Effort**: Medium
 
@@ -444,7 +482,7 @@ See mock screenshot showing full invoice modal with header actions
 
 ---
 
-## Task 11: Rename "Add Line Items" to "Add Products"
+## Task 12: Rename "Add Line Items" to "Add Products"
 
 **Priority**: Low | **Estimated Effort**: Trivial
 
@@ -474,7 +512,7 @@ See mock showing + icon next to gear icon with "Add Products" tooltip
 
 ---
 
-## Task 12: Move School Code Field in Billing Configuration Modal
+## Task 13: Move School Code Field in Billing Configuration Modal
 
 **Priority**: Low | **Estimated Effort**: Trivial
 
@@ -500,7 +538,7 @@ Reorganize the billing configuration modal to move "School Code" field into the 
 
 ---
 
-## Task 13: Remove Redundant "Retainer/Deliverable" Text from Cards
+## Task 14: Remove Redundant "Retainer/Deliverable" Text from Cards
 
 **Priority**: Low | **Estimated Effort**: Small
 
@@ -528,7 +566,7 @@ Review mock to confirm simplified line item display without redundant labels
 
 ---
 
-## Task 14: Update Contract Upload AI Prompt for Retainer Invoice Descriptions
+## Task 15: Update Contract Upload AI Prompt for Retainer Invoice Descriptions
 
 **Priority**: Medium | **Estimated Effort**: Small
 
@@ -560,33 +598,46 @@ See mock showing invoice line items with format "July 2025 - Consulting Services
 
 ---
 
-## Task 15: Update Dashboard Metric Subtitles
+## Task 16: Update Dashboard Metrics and Add Paid Metric
 
-**Priority**: Low | **Estimated Effort**: Trivial
+**Priority**: Low | **Estimated Effort**: Small
 
 ### Description
-Simplify dashboard metric card subtitles for cleaner presentation.
+Add a new "Total Paid" metric card to the dashboard, reorder existing metrics, update metric subtitles for cleaner presentation, and make metric cards clickable to apply invoice status filters.
 
 ### Current State
 - Metrics show various subtitle texts ([src/pages/Dashboard.tsx](../src/pages/Dashboard.tsx):390-444)
+- No "Total Paid" metric displayed
+- Metrics not clickable to apply filters
+- "Total Clients" label instead of "Total Active Clients"
 
 ### Target State
-- Keep "Awaiting collection (X invoices)" for "Billed & Unpaid" metric
-- Simplify or remove subtitles on other metric cards
+- New "Total Paid" metric card added
+- Metrics reordered: Clients → ACV → Paid → Billed & Unpaid → Total Outstanding
+- "Total Clients" changed to "Total Active Clients"
+- ACV subtitle removed entirely
+- "Billed & Unpaid" keeps "Awaiting collection (X invoices)" subtitle
+- New Paid metric shows count subtitle (e.g., "X invoices paid")
+- Clicking metric cards applies corresponding invoice status filter
 - Cleaner, less verbose presentation
 
 ### Acceptance Criteria
-- [ ] "Billed & Unpaid" subtitle kept as "Awaiting collection (X invoices)"
-- [ ] Other metric subtitles simplified or removed
+- [X] "Total Clients" changed to "Total Active Clients"
+- [ ] New "Total Paid" metric card added
+- [ ] Metrics reordered: Clients, ACV, Paid, Billed & Unpaid, Total Outstanding
+- [ ] ACV subtitle removed
+- [ ] Paid metric shows count subtitle (e.g., "X invoices paid")
+- [ ] Billed & Unpaid keeps "Awaiting collection (X invoices)"
+- [ ] Clicking metric cards applies corresponding invoice status filter
 - [ ] Card layout remains balanced and readable
 - [ ] Typography consistent across cards
 
 ### Files to Modify
-- Modify: `src/pages/Dashboard.tsx` (metric card subtitle text)
+- Modify: `src/pages/Dashboard.tsx` (add Paid metric, reorder metrics, update subtitles, add click handlers)
 
 ---
 
-## Task 16: Pull and Display Estimated Close Date from Act! Opportunity
+## Task 17: Pull and Display Estimated Close Date from Act! Opportunity
 
 **Priority**: Medium | **Estimated Effort**: Medium
 
@@ -626,7 +677,7 @@ See mock showing "Estimated Close Date: 12/15/2025" below company name
 
 ---
 
-## Task 17: Ensure Long Deliverable Names Fully Visible
+## Task 18: Ensure Long Deliverable Names Fully Visible
 
 **Priority**: Medium | **Estimated Effort**: Small
 
@@ -656,7 +707,7 @@ Adjust invoice line item layout to ensure long deliverable/product names are ful
 
 ---
 
-## Task 18: Visual Polish and Final QA
+## Task 19: Visual Polish and Final QA
 
 **Priority**: High | **Estimated Effort**: Medium
 
@@ -679,6 +730,7 @@ Final pass to ensure all visual details match the mock design and polish the use
 - [ ] Focus states accessible and visible
 - [ ] Test all interactions end-to-end
 - [ ] Cross-browser testing (Chrome, Firefox, Safari)
+- [ ] Replace all instances of "line items" with "products" in user-facing UI text
 
 ### Files to Review
 - All modified components
@@ -695,32 +747,33 @@ Focus on major layout changes first:
 2. Single column layout
 3. Collapse/expand functionality
 
-### Phase 2: Card Enhancements (Tasks 4-6, 11-13)
+### Phase 2: Card Enhancements (Tasks 4-6, 12-14)
 Enhance opportunity cards:
 4. Invoice status badges
 5. Gear icon repositioning
 6. Sticky filters
-11. Rename to "Add Products"
-12. School code field move
-13. Remove redundant labels
+12. Rename to "Add Products"
+13. School code field move
+14. Remove redundant labels
 
-### Phase 3: Filtering & Search (Tasks 7-8)
-Add filtering capabilities:
-7. Invoice status filter
-8. Client filter
+### Phase 3: Improvements & Filtering (Tasks 7-9)
+Add filtering capabilities and improvements:
+7. Invoice line item and status badge improvements
+8. Invoice status filter
+9. Client filter
 
-### Phase 4: Invoice Actions (Tasks 9-10)
+### Phase 4: Invoice Actions (Tasks 10-11)
 Implement invoice interactions:
-9. Hover-based line item actions
-10. Invoice preview modal
+10. Hover-based line item actions
+11. Invoice preview modal
 
-### Phase 5: Polish & Data (Tasks 14-18)
+### Phase 5: Polish & Data (Tasks 15-19)
 Final touches and data improvements:
-14. AI prompt updates
-15. Metric subtitle cleanup
-16. Estimated close date integration
-17. Long name visibility
-18. Visual polish and QA
+15. AI prompt updates
+16. Metric updates and Paid metric
+17. Estimated close date integration
+18. Long name visibility
+19. Visual polish and QA
 
 ---
 
