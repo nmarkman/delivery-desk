@@ -1,3 +1,10 @@
+/*
+ * COMMENTED OUT - OLD SIDEBAR COMPONENT (Phase 2: Dashboard Consolidation)
+ * Preserved for potential design revert
+ * Replaced by TopNavigation.tsx
+ */
+
+/*
 import { LayoutDashboard, FileText, Truck, LogOut, User, Receipt, RefreshCw } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -136,3 +143,4 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+*/
