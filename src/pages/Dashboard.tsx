@@ -132,6 +132,21 @@ export default function Dashboard() {
     setExpandedCards(newExpandedCards);
   };
 
+  // Calculate invoice status counts per opportunity
+  const getInvoiceStatusCounts = (opportunityId: string) => {
+    // Only count items that have invoice_status set (billed items)
+    const oppInvoices = invoiceLineItems.filter(item =>
+      item.opportunity_id === opportunityId && item.invoice_status
+    );
+
+    return {
+      draft: oppInvoices.filter(item => item.invoice_status === 'draft').length,
+      sent: oppInvoices.filter(item => item.invoice_status === 'sent').length,
+      paid: oppInvoices.filter(item => item.invoice_status === 'paid').length,
+      overdue: oppInvoices.filter(item => item.invoice_status === 'overdue').length,
+    };
+  };
+
   // Log component mount
   useEffect(() => {
     logDashboardEvent('DASHBOARD_MOUNT', {
@@ -552,6 +567,7 @@ export default function Dashboard() {
                   isExpanded={expandedCards[opportunity.id] ?? false}
                   onExpandToggle={handleCardExpandToggle}
                   onDataChange={fetchData}
+                  invoiceStatusCounts={getInvoiceStatusCounts(opportunity.id)}
                 />
               ))}
             </div>

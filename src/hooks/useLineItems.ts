@@ -13,6 +13,7 @@ interface LineItem {
   details: string | null;
   act_reference: string | null;
   invoice_number: string | null;
+  invoice_status?: 'draft' | 'sent' | 'paid' | 'overdue' | null;
 }
 
 interface UpdateLineItemDueDateParams {
@@ -55,7 +56,7 @@ export const useLineItems = (opportunityId: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('invoice_line_items')
-        .select('id, description, item_type, billed_at, unit_rate, quantity, line_total, details, act_reference, invoice_number')
+        .select('id, description, item_type, billed_at, unit_rate, quantity, line_total, details, act_reference, invoice_number, invoice_status')
         .eq('opportunity_id', opportunityId)
         .is('act_deleted_at', null)
         .order('line_number', { ascending: true });

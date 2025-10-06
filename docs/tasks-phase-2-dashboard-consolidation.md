@@ -109,14 +109,14 @@ Implement collapsible opportunity cards with expand/collapse toggle and "Expand 
 - Smooth animation transitions
 
 ### Acceptance Criteria
-- [ ] Individual cards can collapse/expand via "View Invoices" button
-- [ ] Collapsed cards show: company name, estimated close date, contract value, invoice status badges, gear icon, and + icon
-- [ ] Expanded cards show all current details including invoice line items
-- [ ] "Expand All" button toggles all cards at once
-- [ ] Button label changes: "Expand All" ↔ "Collapse All"
-- [ ] User's expand/collapse state persisted in localStorage
-- [ ] Smooth CSS transitions for expand/collapse animations
-- [ ] State restored on page reload
+- [X] Individual cards can collapse/expand via "View Invoices" button
+- [X] Collapsed cards show: company name, estimated close date, contract value, invoice status badges, gear icon, and + icon
+- [X] Expanded cards show all current details including invoice line items
+- [X] "Expand All" button toggles all cards at once
+- [X] Button label changes: "Expand All" ↔ "Collapse All"
+- [X] User's expand/collapse state persisted in localStorage
+- [X] Smooth CSS transitions for expand/collapse animations
+- [X] State restored on page reload
 
 ### Files to Modify
 - Modify: `src/components/OpportunityCard.tsx` (add collapse state management)
@@ -125,6 +125,8 @@ Implement collapsible opportunity cards with expand/collapse toggle and "Expand 
 
 ### Design Reference
 See mock showing collapsed and expanded card states, "View Invoices" toggle, and "Expand All" button
+
+**✅ Completed** - Git commit: `d545384`
 
 ---
 

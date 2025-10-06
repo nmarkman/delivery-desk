@@ -28,6 +28,7 @@ interface LineItem {
   details: string | null;
   act_reference: string | null;
   invoice_number: string | null;
+  invoice_status?: 'draft' | 'sent' | 'paid' | 'overdue' | null;
 }
 
 interface Opportunity {
@@ -43,15 +44,30 @@ interface Opportunity {
   created_at: string | null;
 }
 
+interface InvoiceStatusCounts {
+  draft: number;
+  sent: number;
+  paid: number;
+  overdue: number;
+}
+
 interface OpportunityCardProps {
   opportunity: Opportunity;
   defaultExpanded?: boolean;
   isExpanded?: boolean;
   onExpandToggle?: (opportunityId: string, expanded: boolean) => void;
   onDataChange?: () => void;
+  invoiceStatusCounts?: InvoiceStatusCounts;
 }
 
-export default function OpportunityCard({ opportunity, defaultExpanded = false, isExpanded, onExpandToggle, onDataChange }: OpportunityCardProps) {
+export default function OpportunityCard({
+  opportunity,
+  defaultExpanded = false,
+  isExpanded,
+  onExpandToggle,
+  onDataChange,
+  invoiceStatusCounts = { draft: 0, sent: 0, paid: 0, overdue: 0 }
+}: OpportunityCardProps) {
   const navigate = useNavigate();
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingDescription, setEditingDescription] = useState<string>('');
@@ -208,19 +224,21 @@ export default function OpportunityCard({ opportunity, defaultExpanded = false, 
     return sum + (item.unit_rate || 0);
   }, 0);
 
-  // Calculate invoice status counts (this would come from invoice_line_items in real implementation)
-  // For now, using placeholder logic - this will need to be passed from Dashboard
-  const invoiceStatusCounts = {
-    draft: 0,
-    sent: 0,
-    paid: 0,
-    overdue: 0
+  // Calculate actual invoice status counts from displayed line items
+  const actualInvoiceStatusCounts = {
+    draft: lineItems.filter(item => item.invoice_status === 'draft').length,
+    sent: lineItems.filter(item => item.invoice_status === 'sent').length,
+    paid: lineItems.filter(item => item.invoice_status === 'paid').length,
+    overdue: lineItems.filter(item => item.invoice_status === 'overdue').length,
   };
+
+  // Use actual counts if available, otherwise fall back to passed counts
+  const displayStatusCounts = lineItems.length > 0 ? actualInvoiceStatusCounts : invoiceStatusCounts;
 
   return (
     <TooltipProvider>
       <Card className="w-full transition-all duration-200 hover:shadow-md flex flex-col">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 bg-gray-50">
           {/* Top row: Company name, contract value, gear icon, + icon */}
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
@@ -271,24 +289,24 @@ export default function OpportunityCard({ opportunity, defaultExpanded = false, 
         {/* Second row: Invoice status badges and View Invoices button */}
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
-            {invoiceStatusCounts.draft > 0 && (
+            {displayStatusCounts.draft > 0 && (
               <Badge variant="secondary" className="text-xs">
-                {invoiceStatusCounts.draft} Draft
+                {displayStatusCounts.draft} Draft
               </Badge>
             )}
-            {invoiceStatusCounts.sent > 0 && (
+            {displayStatusCounts.sent > 0 && (
               <Badge variant="default" className="text-xs bg-blue-500">
-                {invoiceStatusCounts.sent} Sent
+                {displayStatusCounts.sent} Sent
               </Badge>
             )}
-            {invoiceStatusCounts.paid > 0 && (
+            {displayStatusCounts.paid > 0 && (
               <Badge variant="default" className="text-xs bg-green-500">
-                {invoiceStatusCounts.paid} Paid
+                {displayStatusCounts.paid} Paid
               </Badge>
             )}
-            {invoiceStatusCounts.overdue > 0 && (
+            {displayStatusCounts.overdue > 0 && (
               <Badge variant="destructive" className="text-xs">
-                {invoiceStatusCounts.overdue} Overdue
+                {displayStatusCounts.overdue} Overdue
               </Badge>
             )}
           </div>
@@ -355,30 +373,90 @@ export default function OpportunityCard({ opportunity, defaultExpanded = false, 
                   No line items found for this opportunity
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {lineItems.map((item) => (
-                    <div key={item.id} className={`border rounded-lg p-3 group relative ${getItemHighlightClass(item)}`}>
-                      {/* Header with Description and Action Buttons */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0 pr-16">
+                    <div key={item.id} className={`border-b last:border-b-0 py-2 px-2 group relative hover:bg-gray-50 ${needsDueDate(item) ? 'bg-orange-50/30' : ''}`}>
+                      {/* Single row layout with Description, Date, Price, Status */}
+                      <div className="flex items-center justify-between gap-4">
+                        {/* Description - takes most space */}
+                        <div className="flex-1 min-w-0">
                           {editingItemId === item.id ? (
                             <textarea
                               value={editingDescription}
                               onChange={(e) => setEditingDescription(e.target.value)}
-                              className="text-sm font-medium border border-gray-300 rounded-md px-3 py-2 w-full min-h-[60px] resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="text-sm font-medium border border-gray-300 rounded-md px-2 py-1 w-full min-h-[40px] resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="Enter description..."
                               disabled={updatingItemId === item.id}
-                              rows={2}
+                              rows={1}
                             />
                           ) : (
-                            <div className="text-sm font-medium text-gray-900 line-clamp-2">
+                            <div className="text-sm text-gray-900 truncate">
                               {item.description}
                             </div>
                           )}
                         </div>
-                        
-                        {/* Circular Action Buttons in top-right */}
-                        <div className="absolute top-3 right-3 flex gap-1">
+
+                        {/* Date */}
+                        <div className="flex items-center gap-1 text-xs text-gray-600 w-32 justify-end">
+                          {editingItemId === item.id ? (
+                            <Input
+                              type="date"
+                              value={editingDate}
+                              onChange={(e) => setEditingDate(e.target.value)}
+                              className="h-7 w-full text-xs"
+                              disabled={updatingItemId === item.id}
+                            />
+                          ) : (
+                            <span className="text-right">
+                              {item.billed_at
+                                ? new Date(item.billed_at + 'T00:00:00').toLocaleDateString()
+                                : <span className={needsDueDate(item) ? "text-orange-600 font-semibold" : "text-orange-600"}>
+                                    {needsDueDate(item) ? "⚠ Not set" : "Not set"}
+                                  </span>
+                              }
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Price and Status */}
+                        <div className="flex items-center gap-2 w-48 justify-end">
+                          {editingItemId === item.id ? (
+                            <Input
+                              type="number"
+                              value={editingPrice}
+                              onChange={(e) => setEditingPrice(e.target.value)}
+                              className="h-7 w-28 text-xs text-right"
+                              placeholder="0"
+                              step="0.01"
+                              disabled={updatingItemId === item.id}
+                            />
+                          ) : (
+                            <>
+                              <span className="text-sm font-medium">
+                                ${item.unit_rate?.toLocaleString() || '0'}
+                              </span>
+                              {item.invoice_status && (
+                                <Badge
+                                  variant={
+                                    item.invoice_status === 'draft' ? 'secondary' :
+                                    item.invoice_status === 'sent' ? 'default' :
+                                    item.invoice_status === 'paid' ? 'default' :
+                                    'destructive'
+                                  }
+                                  className={`text-xs ${
+                                    item.invoice_status === 'sent' ? 'bg-blue-500' :
+                                    item.invoice_status === 'paid' ? 'bg-green-500' : ''
+                                  }`}
+                                >
+                                  {item.invoice_status}
+                                </Badge>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        {/* Action Buttons on hover */}
+                        <div className="flex gap-1 w-20 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                           {editingItemId === item.id ? (
                             <>
                               <Button
@@ -454,67 +532,14 @@ export default function OpportunityCard({ opportunity, defaultExpanded = false, 
                           )}
                         </div>
                       </div>
-                      
-                      {/* Details Grid */}
-                      <div className="grid grid-cols-2 gap-4 text-xs">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3 text-gray-400" />
-                          <span className="text-gray-600">Billing Date:</span>
-                          
-                          {editingItemId === item.id ? (
-                            <Input
-                              type="date"
-                              value={editingDate}
-                              onChange={(e) => setEditingDate(e.target.value)}
-                              className="h-6 w-36 text-xs ml-1"
-                              disabled={updatingItemId === item.id}
-                            />
-                          ) : (
-                            <span className="font-medium ml-1">
-                              {item.billed_at 
-                                ? new Date(item.billed_at + 'T00:00:00').toLocaleDateString()
-                                : <span className={needsDueDate(item) ? "text-orange-600 font-semibold" : "text-orange-600"}>
-                                    {needsDueDate(item) ? "⚠ Not set" : "Not set"}
-                                  </span>
-                              }
-                            </span>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center justify-end gap-1">
-                          {item.details && (
-                            <>
-                              <span className="text-gray-600 capitalize">{item.details.toLowerCase()}</span>
-                              <span className="text-gray-400">|</span>
-                            </>
-                          )}
-                          <span className="text-gray-600">Price:</span>
-                          
-                          {editingItemId === item.id ? (
-                            <Input
-                              type="number"
-                              value={editingPrice}
-                              onChange={(e) => setEditingPrice(e.target.value)}
-                              className="h-6 w-32 text-xs text-right ml-1"
-                              placeholder="0"
-                              step="0.01"
-                              disabled={updatingItemId === item.id}
-                            />
-                          ) : (
-                            <span className="font-medium ml-1">
-                              ${item.unit_rate?.toLocaleString() || '0'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
         </div>
-        
-        {/* Billing Status - Always at bottom as card footer */}
+
+        {/* COMMENTED OUT - Billing Status footer (Phase 2: Task 5 - moved to gear icon in header)
         <div className="pt-3 border-t border-gray-100 mt-auto">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground font-medium">Billing Details:</span>
@@ -526,8 +551,8 @@ export default function OpportunityCard({ opportunity, defaultExpanded = false, 
               ) : (
                 <span className="text-xs text-orange-600 font-medium">Not configured</span>
               )}
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 className="h-6 px-2 text-xs"
                 onClick={() => setBillingModalOpen(true)}
@@ -539,6 +564,7 @@ export default function OpportunityCard({ opportunity, defaultExpanded = false, 
             </div>
           </div>
         </div>
+        */}
       </CardContent>
     </div>
 
