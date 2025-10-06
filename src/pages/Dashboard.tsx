@@ -471,11 +471,11 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ) : (
-          <div 
+          <div
             ref={scrollRef}
             className="max-h-[800px] overflow-y-auto pr-2"
           >
-            <div className="grid gap-6 md:grid-cols-2 grid-cols-1">
+            <div className="flex flex-col gap-6">
               {activeOpportunities.map((opportunity) => (
                 <OpportunityCard
                   key={opportunity.id}
