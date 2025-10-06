@@ -132,14 +132,16 @@ See mock showing collapsed and expanded card states, "View Invoices" toggle, and
 
 ## Task 4: Add Invoice Status Labels to Opportunity Card Headers
 
-**Priority**: High | **Estimated Effort**: Medium
+**Priority**: High | **Estimated Effort**: Medium (Expanded to Large - included major line item redesign)
 
 ### Description
-Display aggregate invoice status counts (Draft, Sent, Paid, Overdue) as badges in the opportunity card header.
+Display aggregate invoice status counts (Draft, Sent, Paid, Overdue) as badges in the opportunity card header. Also includes comprehensive redesign of line item display to match mock design.
 
 ### Current State
 - No invoice status summary visible on collapsed cards
 - Individual invoice statuses only visible in expanded line item view
+- Line items displayed with gray backgrounds in multi-row format
+- Line items include redundant labels (Retainer/Deliverable, "Price:")
 
 ### Target State
 - Status badges displayed below company name in card header
@@ -147,20 +149,42 @@ Display aggregate invoice status counts (Draft, Sent, Paid, Overdue) as badges i
 - Color-coded badges (gray for Draft, blue for Sent, green for Paid, red for Overdue)
 - Only show status types that have count > 0
 - Visible in both collapsed and expanded states
+- Compact table-like line item rows for better space efficiency
 
 ### Acceptance Criteria
-- [ ] Invoice line items aggregated by status per opportunity
-- [ ] Status count badges displayed in card header
-- [ ] Correct badge colors applied per status type
-- [ ] Only non-zero counts displayed
-- [ ] Badges layout horizontally with appropriate spacing
-- [ ] Status counts update when invoice statuses change
+- [X] Invoice line items aggregated by status per opportunity
+- [X] Status count badges displayed in card header
+- [X] Correct badge colors applied per status type
+- [X] Only non-zero counts displayed
+- [X] Badges layout horizontally with appropriate spacing
+- [X] Status counts update when invoice statuses change
+- [X] Status counts calculated from actual displayed line items (not external data)
+- [X] Line items redesigned as compact single-row table format
+- [X] Gray background added to card header
+- [X] Line item backgrounds changed to white with border separators
+- [X] Invoice status badge added next to price on each line item
+- [X] Date, price, and status right-aligned for clean columns
+- [X] "Price:" label prefix removed
+- [X] Retainer/Deliverable type labels commented out (Task 13)
+- [X] Billing details footer section commented out (moved to gear icon)
+- [X] Added invoice_status field to LineItem interface and useLineItems query
 
-### Files to Modify
-- Modify: `src/components/OpportunityCard.tsx` (add status aggregation logic and badge display)
+### Files Modified
+- Modified: `src/components/OpportunityCard.tsx` (major redesign of line item layout and status aggregation)
+- Modified: `src/hooks/useLineItems.ts` (added invoice_status to query)
+- Modified: `src/pages/Dashboard.tsx` (pass status counts to cards)
 
 ### Design Reference
-See mock showing "2 Draft", "1 Paid", "1 Overdue" badges in card header
+See mock showing "2 Draft", "1 Paid", "1 Overdue" badges in card header and compact line item rows
+
+### Implementation Notes
+Task 4 expanded significantly beyond original scope to include:
+- Complete line item visual redesign to match mock
+- Implementation of Task 5 (gear icon already in header)
+- Partial implementation of Task 13 (removed Retainer/Deliverable labels)
+- Major layout improvements for better space efficiency and visual hierarchy
+
+**✅ Completed** - Git commit: `3f173de`
 
 ---
 
@@ -184,14 +208,26 @@ Replace the bottom-row "Billing Details" section with a gear icon in the top rig
 - Opens same billing configuration modal when clicked
 
 ### Acceptance Criteria
-- [ ] Gear icon added to card header (top right corner)
-- [ ] Tooltip displays "Billing Settings" on hover
-- [ ] Icon color changes to orange when billing not configured
-- [ ] Small exclamation badge appears when billing incomplete
-- [ ] Clicking icon opens BillingDetailsModal
-- [ ] Old billing details section at bottom removed/commented out
-- [ ] Modal functionality remains unchanged
-- [ ] Visual states match mock design
+- [x] Gear icon added to card header (top right corner)
+- [x] Tooltip displays "Billing Settings" on hover (shows "Billing Configuration Missing" when not configured)
+- [x] Icon color changes to orange when billing not configured
+- [x] Small exclamation badge appears when billing incomplete
+- [x] Clicking icon opens BillingDetailsModal
+- [x] Old billing details section at bottom removed/commented out
+- [x] Modal functionality remains unchanged
+- [x] Visual states match mock design
+
+**Status**: ✅ COMPLETE
+
+**Git Commit**: `d545384` (Task 3) - Gear icon with warning states implemented during Task 3
+
+**Implementation Notes**:
+This task was completed as part of Task 3 (Collapse/Expand Functionality). The gear icon was moved to the card header with all requested functionality:
+- Outline variant button with tooltip
+- Orange pulsing animation when billing not configured
+- Exclamation badge (!) on orange background when billing missing
+- Opens existing BillingDetailsModal on click
+- Billing footer section commented out with preservation note
 
 ### Files to Modify
 - Modify: `src/components/OpportunityCard.tsx` (move gear icon to header, remove footer section)
@@ -214,25 +250,36 @@ Make the "Opportunity Management" header with filters and search bar sticky, rem
 
 ### Target State
 - "Opportunity Management" header section remains fixed when scrolling
-- Section includes: title, invoice count, "Expand All" button, search bar, status filter dropdown, client filter dropdown
+- Section includes: title, "Expand All" button, search bar, status filter dropdown, client filter dropdown
 - Smooth scroll behavior with appropriate z-index layering
 - Background styling to maintain readability over scrolling content
 
 ### Acceptance Criteria
-- [ ] Filter section uses `position: sticky` or similar approach
-- [ ] Section stays at top of viewport when scrolling opportunity list
-- [ ] Background color/blur prevents content showing through
-- [ ] Z-index properly layered (below top nav, above cards)
-- [ ] Smooth scrolling behavior maintained
-- [ ] Filter changes work correctly while sticky
-- [ ] Responsive design maintained
+- [X] Filter section uses `position: sticky` or similar approach
+- [X] Section stays at top of viewport when scrolling opportunity list
+- [X] Background color/blur prevents content showing through
+- [X] Z-index properly layered (below top nav, above cards)
+- [X] Smooth scrolling behavior maintained
+- [X] Filter changes work correctly while sticky
+- [X] Responsive design maintained
+- [X] "Opportunity Management" heading scrolls away, only filters remain sticky
+- [X] Removed nested scroll container for natural page scrolling
+- [X] Updated infinite scroll to use window-level events
+- [X] Scroll position preserved when filtering (no jumping)
 
-### Files to Modify
-- Modify: `src/pages/Dashboard.tsx` (add sticky positioning to filter section)
-- Update CSS for proper layering and background
+### Files Modified
+- Modified: `src/pages/Dashboard.tsx`
+  - Added sticky positioning at `top-16` (below nav bar) to filter controls
+  - Moved "Opportunity Management" heading outside sticky container
+  - Removed nested scroll container (`max-h-[800px] overflow-y-auto`)
+  - Updated infinite scroll to listen to window scroll events
+  - Added scroll position preservation in filter effect
+  - Removed unused `scrollRef` variable
 
 ### Design Reference
 See mock demonstrating sticky filter bar behavior during scroll
+
+**✅ Completed** - Git commit: `f73dfa6`
 
 ---
 
