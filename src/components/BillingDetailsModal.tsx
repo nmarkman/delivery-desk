@@ -404,6 +404,24 @@ export default function BillingDetailsModal({
                 )}
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="custom-school-code">Custom School Code (optional)</Label>
+              <Input
+                id="custom-school-code"
+                value={formData.custom_school_code || ''}
+                onChange={(e) => handleInputChange('custom_school_code', e.target.value)}
+                placeholder="e.g., CSN, WSU, etc."
+                maxLength={10}
+                className={errors.custom_school_code ? 'border-red-300' : ''}
+              />
+              {errors.custom_school_code && (
+                <p className="text-sm text-red-600">{errors.custom_school_code}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Override auto-generated abbreviation for invoice numbers
+              </p>
+            </div>
           </div>
 
           <Separator />
@@ -530,43 +548,23 @@ export default function BillingDetailsModal({
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="custom-school-code">Custom School Code (optional)</Label>
-                <Input
-                  id="custom-school-code"
-                  value={formData.custom_school_code || ''}
-                  onChange={(e) => handleInputChange('custom_school_code', e.target.value)}
-                  placeholder="e.g., CSN, WSU, etc."
-                  maxLength={10}
-                  className={errors.custom_school_code ? 'border-red-300' : ''}
-                />
-                {errors.custom_school_code && (
-                  <p className="text-sm text-red-600">{errors.custom_school_code}</p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Override auto-generated abbreviation for invoice numbers
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="custom-payment-terms">Custom Payment Terms (optional)</Label>
-                <Textarea
-                  id="custom-payment-terms"
-                  value={formData.custom_payment_terms_text || ''}
-                  onChange={(e) => handleInputChange('custom_payment_terms_text', e.target.value)}
-                  placeholder="e.g., 1% 10 net 30, Due upon receipt, etc."
-                  rows={3}
-                  maxLength={200}
-                  className={errors.custom_payment_terms_text ? 'border-red-300' : ''}
-                />
-                {errors.custom_payment_terms_text && (
-                  <p className="text-sm text-red-600">{errors.custom_payment_terms_text}</p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  When provided, replaces "Net {'{payment_terms}'}" on invoices. Leave blank to use default format.
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="custom-payment-terms">Custom Payment Terms (optional)</Label>
+              <Textarea
+                id="custom-payment-terms"
+                value={formData.custom_payment_terms_text || ''}
+                onChange={(e) => handleInputChange('custom_payment_terms_text', e.target.value)}
+                placeholder="e.g., 1% 10 net 30, Due upon receipt, etc."
+                rows={3}
+                maxLength={200}
+                className={errors.custom_payment_terms_text ? 'border-red-300' : ''}
+              />
+              {errors.custom_payment_terms_text && (
+                <p className="text-sm text-red-600">{errors.custom_payment_terms_text}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                When provided, replaces "Net {'{payment_terms}'}" on invoices. Leave blank to use default format.
+              </p>
             </div>
           </div>
         </div>
