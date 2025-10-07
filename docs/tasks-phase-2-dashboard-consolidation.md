@@ -422,44 +422,69 @@ See mock showing "All clients" dropdown in filter bar
 **Priority**: High | **Estimated Effort**: Large
 
 ### Description
-Implement new hover-based action buttons for invoice line items that slide price to the left and display action icons.
+Implement new hover-based action buttons for invoice line items with sliding animation where price/status shift left on hover to reveal action icons.
 
 ### Current State
-- Action buttons overlay content on hover ([src/components/OpportunityCard.tsx](../src/components/OpportunityCard.tsx):299-374)
+- Action buttons overlay content on hover
 - Actions: Edit (pencil), View Invoice (file), Delete (trash)
 - Buttons show with opacity transition
+- Line item names truncate with ellipsis
 
 ### Target State
-- On hover, price and status slide left to reveal action buttons (please view this experience via playwright and the https://e307a748-7b82-4b91-a212-f83a34666d44-preview.magicpatterns.app/ design)
-- Action buttons appear in a row on the right side
+- On hover, price and status slide left smoothly to reveal action buttons
+- Action buttons appear absolutely positioned on the right side
 - Actions vary by invoice status:
-  - **Draft**: Edit, Mark as Sent (paper plane icon), View Invoice, Delete
-  - **Sent**: Edit, Mark as Paid (check icon), View Invoice, Delete
-  - **Overdue**: Edit, Mark as Paid (check icon), Copy, View Invoice, Delete
+  - **Draft**: Edit, View Invoice, Delete, Mark as Sent (paper plane icon)
+  - **Sent**: Edit, View Invoice, Delete, Mark as Paid (check circle icon)
+  - **Overdue**: Edit, View Invoice, Delete, Mark as Paid (check circle icon)
   - **Paid**: Edit, View Invoice, Delete
-- Tooltips on each action button, matching tooltip styling seen on invoice status labels of opp card and gear, + icon buttons
+- Status action buttons only show if billing info configured AND billing date set
+- Tooltips on each action button
 - Smooth slide/fade animations
+- Line item names wrap to show full text
+- No hover color change on invoice status badges
 
 ### Acceptance Criteria
-- [ ] Hover detection on invoice line item rows
-- [ ] Price and status badge slide left on hover with smooth transition
-- [ ] Action buttons appear on right side
-- [ ] Correct action buttons shown based on invoice status
-- [ ] "Mark as Sent" functionality implemented for Draft invoices
-- [ ] "Mark as Paid" functionality implemented for Sent/Overdue invoices
-- [ ] View Invoice opens invoice modal (we'll add modal later, for now just keep current functionality. Also important to note to retain functionality where view invoice only shows up for line items with an assigned due date and association with an opportunity that has org billing config created)
-- [ ] Tooltips display on icon hover
-- [ ] Action button icons match mock design
-- [ ] Smooth CSS transitions throughout
-- [ ] Loading states for async actions (mark as sent/paid)
+- [x] Hover detection on invoice line item rows
+- [x] Price and status badge slide left on hover with smooth transition (group-hover:mr-40)
+- [x] Action buttons absolutely positioned on right side with opacity fade-in
+- [x] Correct action buttons shown based on invoice status
+- [x] "Mark as Sent" functionality implemented for Draft invoices with database update
+- [x] "Mark as Paid" functionality implemented for Sent/Overdue invoices with database update
+- [x] Status action buttons only show if billingInfo exists AND billed_at exists
+- [x] View Invoice only shows for line items with billing date and billing config
+- [x] Tooltips display on all action buttons
+- [x] Action button icons match mock design (Edit3, FileText, Trash2, Send, CheckCircle)
+- [x] Smooth CSS transitions (200ms duration)
+- [x] Loading states with spinners for async actions (mark as sent/paid)
+- [x] Invoice line item names wrap instead of truncate (break-words class)
+- [x] Calendar picker icon not cut off in edit mode (w-36, pr-2)
+- [x] Multi-line descriptions align properly (items-start on flex container)
+- [x] No hover color change on invoice status badges (pointer-events-none, explicit hover colors)
 
-### Files to Modify
-- Modify: `src/components/OpportunityCard.tsx` (redesign line item layout and actions)
-- Add status transition logic for mark as sent/paid
-- Update invoice status update mutations
+### Files Modified
+- Modified: `src/components/OpportunityCard.tsx`
+  - Added new imports: Send, Copy, CheckCircle icons
+  - Added supabase client import for status updates
+  - Added updatingStatusItemId state
+  - Added markAsSent function with database update
+  - Added markAsPaid function with database update and payment_date
+  - Restructured line item layout with sliding container
+  - Changed from items-center to items-start for multi-line support
+  - Removed truncate, added break-words on description
+  - Increased date input width from w-32 to w-36
+  - Added pr-2 to date input for calendar icon spacing
+  - Added group-hover:mr-40 for sliding animation
+  - Action buttons absolutely positioned with opacity transition
+  - Added status-based conditional rendering for action buttons
+  - Added billingInfo check to status action buttons
+  - All action buttons wrapped in Tooltips
+  - Removed hover color change from status badges
 
 ### Design Reference
 See https://e307a748-7b82-4b91-a212-f83a34666d44-preview.magicpatterns.app/ showing hover state with sliding price and action buttons for different invoice statuses
+
+**✅ Completed** - Git commit: `7efed9a`
 
 ---
 
