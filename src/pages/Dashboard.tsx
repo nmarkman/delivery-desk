@@ -2,13 +2,14 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Users, FileText, Clock, AlertCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { DollarSign, Users, FileText, Clock, AlertCircle, Loader2, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import OpportunityCard from '@/components/OpportunityCard';
 import OpportunityFilter from '@/components/OpportunityFilter';
 import InvoiceStatusFilter from '@/components/InvoiceStatusFilter';
+import ClientFilter from '@/components/ClientFilter';
 import { formatCurrency, calculateOverdueStatus } from '@/utils/invoiceHelpers';
 import { calculateDashboardMetrics } from '@/utils/dashboardCalculations';
 
@@ -85,6 +86,7 @@ export default function Dashboard() {
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [searchFilter, setSearchFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [clientFilter, setClientFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -174,7 +176,17 @@ export default function Dashboard() {
     setSearchFilter(searchTerm);
   }, []);
 
-  // Update filtered opportunities when opportunities, search filter, or status filter changes
+  // Clear all filters
+  const handleClearFilters = useCallback(() => {
+    setSearchFilter('');
+    setStatusFilter('all');
+    setClientFilter('all');
+  }, []);
+
+  // Check if any filters are active
+  const hasActiveFilters = searchFilter.trim() !== '' || statusFilter !== 'all' || clientFilter !== 'all';
+
+  // Update filtered opportunities when opportunities, search filter, status filter, or client filter changes
   useEffect(() => {
     // Save current scroll position
     const scrollY = window.scrollY;
@@ -186,6 +198,13 @@ export default function Dashboard() {
       filtered = filtered.filter((opp) =>
         opp.company_name.toLowerCase().includes(searchFilter.toLowerCase()) ||
         opp.name.toLowerCase().includes(searchFilter.toLowerCase())
+      );
+    }
+
+    // Apply client filter
+    if (clientFilter !== 'all') {
+      filtered = filtered.filter((opp) =>
+        opp.company_name.trim().replace(/\s+/g, ' ') === clientFilter
       );
     }
 
@@ -205,7 +224,7 @@ export default function Dashboard() {
     requestAnimationFrame(() => {
       window.scrollTo(0, scrollY);
     });
-  }, [opportunities, searchFilter, statusFilter, invoiceLineItems]);
+  }, [opportunities, searchFilter, statusFilter, clientFilter, invoiceLineItems]);
 
   const fetchOpportunities = useCallback(async (pageNum: number = 0, reset: boolean = false) => {
     logDashboardEvent('FETCH_OPPORTUNITIES_START', {
@@ -396,9 +415,15 @@ export default function Dashboard() {
 
   // Use filtered opportunities for display
   const activeOpportunities = filteredOpportunities;
-  
-  // Calculate metrics based on filtered opportunities (by search and/or status filter)
-  const metricsOpportunities = searchFilter.trim() || statusFilter !== 'all' ? filteredOpportunities : opportunities;
+
+  // Calculate metrics based on filtered opportunities (by search and/or status filter and/or client filter)
+  const metricsOpportunities = searchFilter.trim() || statusFilter !== 'all' || clientFilter !== 'all' ? filteredOpportunities : opportunities;
+
+  // Extract unique client names for the client filter dropdown
+  // Clean client names to remove extra whitespace and normalize spacing
+  const uniqueClientNames = Array.from(
+    new Set(opportunities.map(opp => opp.company_name.trim().replace(/\s+/g, ' ')))
+  );
 
   // Filter line items to match ONLY the filtered opportunities, but include ALL statuses
   // This way metrics reflect total value of filtered opportunities, not filtered line items
@@ -529,12 +554,12 @@ export default function Dashboard() {
         </div>
 
         <div className="sticky top-16 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-3 mb-4 border-b">
-          <div className="flex gap-3 items-center">
+          <div className="flex gap-3 items-center w-full">
             <Button
               variant="outline"
               size="sm"
               onClick={handleExpandAll}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 flex-shrink-0 whitespace-nowrap"
             >
               {allExpanded ? (
                 <>
@@ -548,15 +573,35 @@ export default function Dashboard() {
                 </>
               )}
             </Button>
-            <InvoiceStatusFilter
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-            />
+            <div className="w-[240px] flex-shrink-0">
+              <InvoiceStatusFilter
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+              />
+            </div>
+            <div className="w-[280px] flex-shrink-0">
+              <ClientFilter
+                value={clientFilter}
+                onValueChange={setClientFilter}
+                clients={uniqueClientNames}
+              />
+            </div>
             <OpportunityFilter
               onFilterChange={handleFilterChange}
               placeholder="Search by company or opportunity name..."
-              className="flex-1"
+              className="flex-1 min-w-[300px]"
             />
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="flex items-center gap-1 flex-shrink-0 whitespace-nowrap"
+              >
+                <X className="h-4 w-4" />
+                Clear Filters
+              </Button>
+            )}
           </div>
         </div>
 

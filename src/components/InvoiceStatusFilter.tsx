@@ -20,7 +20,7 @@ export default function InvoiceStatusFilter({
 }: InvoiceStatusFilterProps) {
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className={`w-[200px] ${className}`}>
+      <SelectTrigger className={`w-full ${className}`}>
         <SelectValue placeholder="All invoice statuses" />
       </SelectTrigger>
       <SelectContent>
