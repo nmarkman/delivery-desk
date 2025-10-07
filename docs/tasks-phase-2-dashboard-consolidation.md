@@ -344,19 +344,26 @@ Add a status filter dropdown to filter invoice line items within opportunities b
 - Works in combination with search filter and client filter
 
 ### Acceptance Criteria
-- [ ] Status filter dropdown component created
-- [ ] Filter options match design: All, Draft, Sent, Paid, Overdue
-- [ ] Selecting status filters opportunity list accordingly
-- [ ] Shows opportunities with at least one matching invoice status
-- [ ] Shows only line items matching invoice status filter
-- [ ] Works together with existing search filter
-- [ ] Filter state preserved during expand/collapse actions
-- [ ] Dropdown styling matches mock design
-- [ ] Filter resets appropriately
+- [x] Status filter dropdown component created
+- [x] Filter options match design: All, Draft, Sent, Paid, Overdue
+- [x] Selecting status filters opportunity list accordingly
+- [x] Shows opportunities with at least one matching invoice status
+- [x] Shows only line items matching invoice status filter
+- [x] Works together with existing search filter
+- [x] Filter state preserved during expand/collapse actions
+- [x] Dropdown styling matches mock design
+- [x] Filter resets appropriately
+- [x] Opportunity card total reflects filtered line items
+- [x] Non-matching status badges hidden when filter active
+- [x] Dashboard metrics filter by opportunities (all line items from filtered opps)
 
 ### Files to Modify
 - Create new: `src/components/InvoiceStatusFilter.tsx` or extend existing filter component
 - Modify: `src/pages/Dashboard.tsx` (add filter logic and state management)
+
+### Completion
+**Status**: ✅ Completed
+**Commit**: 23e3229 - feat: implement invoice status filter dropdown
 
 ### Design Reference
 See mock showing "All invoice statuses" dropdown in filter bar
