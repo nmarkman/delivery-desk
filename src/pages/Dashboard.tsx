@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Users, FileText, Clock, AlertCircle, Loader2, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { DollarSign, Users, FileText, Clock, AlertCircle, Loader2, ChevronDown, ChevronUp, X, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
@@ -416,33 +416,39 @@ export default function Dashboard() {
   // Use filtered opportunities for display
   const activeOpportunities = filteredOpportunities;
 
-  // Calculate metrics based on filtered opportunities (by search and/or status filter and/or client filter)
-  const metricsOpportunities = searchFilter.trim() || statusFilter !== 'all' || clientFilter !== 'all' ? filteredOpportunities : opportunities;
-
   // Extract unique client names for the client filter dropdown
   // Clean client names to remove extra whitespace and normalize spacing
   const uniqueClientNames = Array.from(
     new Set(opportunities.map(opp => opp.company_name.trim().replace(/\s+/g, ' ')))
   );
 
-  // Filter line items to match ONLY the filtered opportunities, but include ALL statuses
-  // This way metrics reflect total value of filtered opportunities, not filtered line items
-  const filteredOpportunityIds = new Set(metricsOpportunities.map(opp => opp.id));
+  // Filter line items to match ONLY the filtered opportunities (including status filter),
+  // but include ALL line item statuses for those opportunities
+  // This way:
+  // - Total Active Clients reflects the filtered opportunity count
+  // - Dollar metrics (ACV, Paid, Billed & Unpaid, Outstanding) show full amounts for those opportunities
+  const filteredOpportunityIds = new Set(filteredOpportunities.map(opp => opp.id));
   const filteredLineItems = lineItems.filter(item => filteredOpportunityIds.has(item.opportunity_id));
   const filteredInvoiceLineItems = invoiceLineItems.filter(item => filteredOpportunityIds.has(item.opportunity_id));
-  
+
   const {
     uniqueClients,
     totalActiveContractValue,
     totalOutstanding,
     outstandingCount,
     billedUnpaidAmount,
-    billedUnpaidCount
-  } = calculateDashboardMetrics(filteredLineItems, filteredInvoiceLineItems, metricsOpportunities);
+    billedUnpaidCount,
+    totalPaid,
+    paidCount
+  } = calculateDashboardMetrics(filteredLineItems, filteredInvoiceLineItems, filteredOpportunities);
 
-  // Click handlers for navigating to invoices with filters
+  // Click handlers for applying invoice status filters
+  const handlePaidClick = () => {
+    setStatusFilter('paid');
+  };
+
   const handleBilledUnpaidClick = () => {
-    navigate('/invoices?status=sent');
+    setStatusFilter('sent');
   };
 
   if (loading) {
@@ -490,35 +496,49 @@ export default function Dashboard() {
       */}
 
       {/* Metrics Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+        {/* 1. Total Active Clients */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Active Clients</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{uniqueClients}</div>
-            <p className="text-xs text-muted-foreground">
-              Active clients
-            </p>
           </CardContent>
         </Card>
 
+        {/* 2. Total ACV */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Active Contract Value</CardTitle>
+            <CardTitle className="text-sm font-medium">Total ACV</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrencyNoDecimals(totalActiveContractValue)}</div>
+          </CardContent>
+        </Card>
+
+        {/* 3. Total Paid */}
+        <Card
+          className="cursor-pointer transition-all duration-200 hover:shadow-md hover:ring-4 hover:ring-green-300 hover:ring-opacity-80"
+          onClick={handlePaidClick}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrencyNoDecimals(totalPaid)}</div>
             <p className="text-xs text-muted-foreground">
-              From {metricsOpportunities.length} active opportunit{metricsOpportunities.length !== 1 ? 'ies' : 'y'}
+              {paidCount} invoice{paidCount !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>
 
-        <Card 
-          className="cursor-pointer transition-all duration-200 hover:shadow-md hover:ring-4 hover:ring-purple-300 hover:ring-opacity-80" 
+        {/* 4. Billed & Unpaid */}
+        <Card
+          className="cursor-pointer transition-all duration-200 hover:shadow-md hover:ring-4 hover:ring-purple-300 hover:ring-opacity-80"
           onClick={handleBilledUnpaidClick}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -528,11 +548,12 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrencyNoDecimals(billedUnpaidAmount)}</div>
             <p className="text-xs text-muted-foreground">
-              Awaiting collection ({billedUnpaidCount} invoice{billedUnpaidCount !== 1 ? 's' : ''})
+              {billedUnpaidCount} invoice{billedUnpaidCount !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>
 
+        {/* 5. Total Outstanding */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
@@ -540,9 +561,6 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrencyNoDecimals(totalOutstanding)}</div>
-            <p className="text-xs text-muted-foreground">
-              Total ACV minus Paid
-            </p>
           </CardContent>
         </Card>
       </div>

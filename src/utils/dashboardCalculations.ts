@@ -7,6 +7,8 @@ export interface DashboardMetrics {
   outstandingCount: number;
   billedUnpaidAmount: number;
   billedUnpaidCount: number;
+  totalPaid: number;
+  paidCount: number;
   uniqueClients: number;
 }
 
@@ -104,6 +106,24 @@ export function calculateUniqueClients(opportunities: Opportunity[]): number {
 }
 
 /**
+ * Calculate total paid amount (sum of all paid invoices)
+ */
+export function calculateTotalPaid(invoiceLineItems: InvoiceLineItem[]): number {
+  return invoiceLineItems
+    .filter(item => item.billed_at && item.payment_date && item.invoice_status === 'paid')
+    .reduce((sum, item) => sum + (item.line_total || 0), 0);
+}
+
+/**
+ * Calculate paid invoices count
+ */
+export function calculatePaidCount(invoiceLineItems: InvoiceLineItem[]): number {
+  return invoiceLineItems.filter(
+    item => item.billed_at && item.payment_date && item.invoice_status === 'paid'
+  ).length;
+}
+
+/**
  * Calculate all dashboard metrics at once
  */
 export function calculateDashboardMetrics(
@@ -112,13 +132,15 @@ export function calculateDashboardMetrics(
   opportunities: Opportunity[]
 ): DashboardMetrics {
   const outstandingInvoices = getOutstandingInvoices(invoiceLineItems);
-  
+
   return {
     totalActiveContractValue: calculateTotalActiveContractValue(lineItems, opportunities),
     totalOutstanding: calculateTotalOutstanding(lineItems, invoiceLineItems, opportunities),
     outstandingCount: outstandingInvoices.length,
     billedUnpaidAmount: calculateBilledUnpaidAmount(invoiceLineItems),
     billedUnpaidCount: outstandingInvoices.length,
+    totalPaid: calculateTotalPaid(invoiceLineItems),
+    paidCount: calculatePaidCount(invoiceLineItems),
     uniqueClients: calculateUniqueClients(opportunities),
   };
 }
