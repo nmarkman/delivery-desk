@@ -9,13 +9,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Settings, Calendar, Edit3, Check, X, AlertCircle, Loader2, Trash2, FileText, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { Settings, Calendar, Edit3, Check, X, AlertCircle, Loader2, Trash2, FileText, ChevronDown, ChevronUp, Plus, Send, Copy, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLineItems } from '@/hooks/useLineItems';
 import { useOpportunityBilling } from '@/hooks/useOpportunityBilling';
 import BillingDetailsModal from './BillingDetailsModal';
 import ContractUploadModal from './ContractUploadModal';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LineItem {
   id: string;
@@ -79,6 +80,7 @@ export default function OpportunityCard({
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [updatingStatusItemId, setUpdatingStatusItemId] = useState<string | null>(null);
 
   // Collapse/expand state - controlled from parent or local
   const [localExpanded, setLocalExpanded] = useState(defaultExpanded);
@@ -192,7 +194,7 @@ export default function OpportunityCard({
   const saveItem = (itemId: string) => {
     // Set loading state for this specific item
     setUpdatingItemId(itemId);
-    
+
     // Use the enhanced updateLineItem function with all fields
     updateLineItem(itemId, {
       description: editingDescription,
@@ -202,6 +204,70 @@ export default function OpportunityCard({
 
     // Clear editing state
     cancelEditing();
+  };
+
+  // Mark invoice as sent
+  const markAsSent = async (itemId: string) => {
+    setUpdatingStatusItemId(itemId);
+    try {
+      const { error } = await supabase
+        .from('invoice_line_items')
+        .update({ invoice_status: 'sent' })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      toast.success('Invoice marked as sent');
+      refetchLineItems();
+      if (onDataChange) onDataChange();
+    } catch (error) {
+      console.error('Error marking invoice as sent:', error);
+      toast.error('Failed to mark invoice as sent');
+    } finally {
+      setUpdatingStatusItemId(null);
+    }
+  };
+
+  // Mark invoice as paid
+  const markAsPaid = async (itemId: string) => {
+    setUpdatingStatusItemId(itemId);
+    try {
+      const { error } = await supabase
+        .from('invoice_line_items')
+        .update({
+          invoice_status: 'paid',
+          payment_date: new Date().toISOString().split('T')[0]
+        })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      toast.success('Invoice marked as paid');
+      refetchLineItems();
+      if (onDataChange) onDataChange();
+    } catch (error) {
+      console.error('Error marking invoice as paid:', error);
+      toast.error('Failed to mark invoice as paid');
+    } finally {
+      setUpdatingStatusItemId(null);
+    }
+  };
+
+  // Copy invoice details to clipboard
+  const copyInvoiceDetails = async (item: LineItem) => {
+    const invoiceText = `Invoice #${item.invoice_number || 'Draft'}
+Description: ${item.description}
+Amount: $${item.unit_rate?.toLocaleString() || '0'}
+Date: ${item.billed_at ? new Date(item.billed_at + 'T00:00:00').toLocaleDateString() : 'Not set'}
+Status: ${item.invoice_status || 'Draft'}`;
+
+    try {
+      await navigator.clipboard.writeText(invoiceText);
+      toast.success('Invoice details copied to clipboard');
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast.error('Failed to copy to clipboard');
+    }
   };
 
   const isDeliverable = (item: LineItem): boolean => {
@@ -447,8 +513,8 @@ export default function OpportunityCard({
                   {filteredAndSortedLineItems.map((item) => (
                     <div key={item.id} className={`border-b last:border-b-0 py-2 px-2 group relative hover:bg-gray-50 ${needsDueDate(item) ? 'bg-orange-50/30' : ''}`}>
                       {/* Single row layout with Description, Date, Price, Status */}
-                      <div className="flex items-center justify-between gap-4">
-                        {/* Description - takes most space */}
+                      <div className="flex items-start gap-4">
+                        {/* Description - takes most space, wraps to show full text */}
                         <div className="flex-1 min-w-0">
                           {editingItemId === item.id ? (
                             <textarea
@@ -460,144 +526,212 @@ export default function OpportunityCard({
                               rows={1}
                             />
                           ) : (
-                            <div className="text-sm text-gray-900 truncate">
+                            <div className="text-sm text-gray-900 break-words">
                               {item.description}
                             </div>
                           )}
                         </div>
 
-                        {/* Date */}
-                        <div className="flex items-center gap-1 text-xs text-gray-600 w-32 justify-end">
-                          {editingItemId === item.id ? (
-                            <Input
-                              type="date"
-                              value={editingDate}
-                              onChange={(e) => setEditingDate(e.target.value)}
-                              className="h-7 w-full text-xs"
-                              disabled={updatingItemId === item.id}
-                            />
-                          ) : (
-                            <span className="text-right">
-                              {item.billed_at
-                                ? new Date(item.billed_at + 'T00:00:00').toLocaleDateString()
-                                : <span className={needsDueDate(item) ? "text-orange-600 font-semibold" : "text-orange-600"}>
-                                    {needsDueDate(item) ? "⚠ Not set" : "Not set"}
-                                  </span>
-                              }
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Price and Status */}
-                        <div className="flex items-center gap-2 w-48 justify-end">
-                          {editingItemId === item.id ? (
-                            <Input
-                              type="number"
-                              value={editingPrice}
-                              onChange={(e) => setEditingPrice(e.target.value)}
-                              className="h-7 w-28 text-xs text-right"
-                              placeholder="0"
-                              step="0.01"
-                              disabled={updatingItemId === item.id}
-                            />
-                          ) : (
-                            <>
-                              <span className="text-sm font-medium">
-                                ${item.unit_rate?.toLocaleString() || '0'}
-                              </span>
-                              {item.invoice_status && (
-                                <Badge
-                                  variant={
-                                    item.invoice_status === 'draft' ? 'secondary' :
-                                    item.invoice_status === 'sent' ? 'default' :
-                                    item.invoice_status === 'paid' ? 'default' :
-                                    'destructive'
-                                  }
-                                  className={`text-xs ${
-                                    item.invoice_status === 'sent' ? 'bg-blue-500' :
-                                    item.invoice_status === 'paid' ? 'bg-green-500' : ''
-                                  }`}
-                                >
-                                  {item.invoice_status.charAt(0).toUpperCase() + item.invoice_status.slice(1)}
-                                </Badge>
-                              )}
-                            </>
-                          )}
-                        </div>
-
-                        {/* Action Buttons on hover */}
-                        <div className="flex gap-1 w-20 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                          {editingItemId === item.id ? (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 rounded-full bg-green-100 hover:bg-green-200"
-                                onClick={() => saveItem(item.id)}
+                        {/* Right side container - slides left on hover to make room for action buttons */}
+                        <div className="flex items-center gap-4 transition-all duration-200 group-hover:mr-40">
+                          {/* Date */}
+                          <div className="flex items-center gap-1 text-xs text-gray-600 w-36 justify-end flex-shrink-0">
+                            {editingItemId === item.id ? (
+                              <Input
+                                type="date"
+                                value={editingDate}
+                                onChange={(e) => setEditingDate(e.target.value)}
+                                className="h-7 w-full text-xs pr-2"
                                 disabled={updatingItemId === item.id}
-                                title="Save changes"
-                              >
-                                {updatingItemId === item.id ? (
-                                  <Loader2 className="h-3 w-3 text-green-600 animate-spin" />
-                                ) : (
-                                  <Check className="h-3 w-3 text-green-600" />
+                              />
+                            ) : (
+                              <span className="text-right">
+                                {item.billed_at
+                                  ? new Date(item.billed_at + 'T00:00:00').toLocaleDateString()
+                                  : <span className={needsDueDate(item) ? "text-orange-600 font-semibold" : "text-orange-600"}>
+                                      {needsDueDate(item) ? "⚠ Not set" : "Not set"}
+                                    </span>
+                                }
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Price and Status */}
+                          <div className="flex items-center gap-2 justify-end flex-shrink-0 min-w-[180px]">
+                            {editingItemId === item.id ? (
+                              <Input
+                                type="number"
+                                value={editingPrice}
+                                onChange={(e) => setEditingPrice(e.target.value)}
+                                className="h-7 w-28 text-xs text-right"
+                                placeholder="0"
+                                step="0.01"
+                                disabled={updatingItemId === item.id}
+                              />
+                            ) : (
+                              <>
+                                <span className="text-sm font-medium">
+                                  ${item.unit_rate?.toLocaleString() || '0'}
+                                </span>
+                                {item.invoice_status && (
+                                  <Badge
+                                    variant={
+                                      item.invoice_status === 'draft' ? 'secondary' :
+                                      item.invoice_status === 'sent' ? 'default' :
+                                      item.invoice_status === 'paid' ? 'default' :
+                                      'destructive'
+                                    }
+                                    className={`text-xs pointer-events-none ${
+                                      item.invoice_status === 'sent' ? 'bg-blue-500 hover:bg-blue-500' :
+                                      item.invoice_status === 'paid' ? 'bg-green-500 hover:bg-green-500' :
+                                      item.invoice_status === 'overdue' ? 'hover:bg-destructive' : ''
+                                    }`}
+                                  >
+                                    {item.invoice_status.charAt(0).toUpperCase() + item.invoice_status.slice(1)}
+                                  </Badge>
                                 )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 rounded-full bg-gray-100 hover:bg-gray-200"
-                                onClick={cancelEditing}
-                                disabled={updatingItemId !== null}
-                                title="Cancel editing"
-                              >
-                                <X className="h-3 w-3 text-gray-600" />
-                              </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons - absolute positioned on the right, appear on hover */}
+                        <div className="absolute right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          {editingItemId === item.id ? (
+                            <>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => saveItem(item.id)}
+                                    disabled={updatingItemId === item.id}
+                                  >
+                                    {updatingItemId === item.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Check className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Save changes</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={cancelEditing}
+                                    disabled={updatingItemId !== null}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Cancel</p></TooltipContent>
+                              </Tooltip>
                             </>
                           ) : (
                             <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 rounded-full bg-blue-100 hover:bg-blue-200 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => startEditingItem(item)}
-                                title="Edit line item"
-                                disabled={updatingItemId === item.id || deletingItemId === item.id}
-                              >
-                                <Edit3 className="h-3 w-3 text-blue-600" />
-                              </Button>
-                              {/* Invoice Connection Button - only show for billed items with billing info */}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => startEditingItem(item)}
+                                    disabled={updatingItemId === item.id || deletingItemId === item.id || updatingStatusItemId === item.id}
+                                  >
+                                    <Edit3 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Edit</p></TooltipContent>
+                              </Tooltip>
+
                               {item.billed_at && billingInfo && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 rounded-full bg-green-100 hover:bg-green-200 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() => navigate(`/invoices/${item.id}`)}
-                                  title="View invoice"
-                                  disabled={updatingItemId === item.id || deletingItemId === item.id}
-                                >
-                                  <FileText className="h-3 w-3 text-green-600" />
-                                </Button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => navigate(`/invoices/${item.id}`)}
+                                      disabled={updatingItemId === item.id || deletingItemId === item.id || updatingStatusItemId === item.id}
+                                    >
+                                      <FileText className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>View Invoice</p></TooltipContent>
+                                </Tooltip>
                               )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 rounded-full bg-red-100 hover:bg-red-200 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => {
-                                  if (confirm('Are you sure you want to delete this line item? This will also remove it from Act! CRM.')) {
-                                    setDeletingItemId(item.id);
-                                    deleteLineItem(item.id, item.act_reference);
-                                  }
-                                }}
-                                title="Delete line item"
-                                disabled={updatingItemId === item.id || deletingItemId === item.id}
-                              >
-                                {deletingItemId === item.id ? (
-                                  <Loader2 className="h-3 w-3 text-red-600 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-3 w-3 text-red-600" />
-                                )}
-                              </Button>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => {
+                                      if (confirm('Are you sure you want to delete this line item? This will also remove it from Act! CRM.')) {
+                                        setDeletingItemId(item.id);
+                                        deleteLineItem(item.id, item.act_reference);
+                                      }
+                                    }}
+                                    disabled={updatingItemId === item.id || deletingItemId === item.id || updatingStatusItemId === item.id}
+                                  >
+                                    {deletingItemId === item.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Delete</p></TooltipContent>
+                              </Tooltip>
+
+                              {/* Status-based action buttons - only show if billing info is set AND billing date is set */}
+                              {billingInfo && item.billed_at && item.invoice_status === 'draft' && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => markAsSent(item.id)}
+                                      disabled={updatingItemId === item.id || deletingItemId === item.id || updatingStatusItemId === item.id}
+                                    >
+                                      {updatingStatusItemId === item.id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Send className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Mark as Sent</p></TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              {billingInfo && item.billed_at && (item.invoice_status === 'sent' || item.invoice_status === 'overdue') && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => markAsPaid(item.id)}
+                                      disabled={updatingItemId === item.id || deletingItemId === item.id || updatingStatusItemId === item.id}
+                                    >
+                                      {updatingStatusItemId === item.id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <CheckCircle className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Mark as Paid</p></TooltipContent>
+                                </Tooltip>
+                              )}
                             </>
                           )}
                         </div>

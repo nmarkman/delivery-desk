@@ -375,32 +375,45 @@ See mock showing "All invoice statuses" dropdown in filter bar
 **Priority**: Medium | **Estimated Effort**: Small
 
 ### Description
-Add a client filter dropdown to filter opportunities by company name.
+Add a client filter dropdown to filter opportunities by company name, plus a "Clear Filters" button to reset all filters.
 
 ### Current State
 - No client-based filtering dropdown exists
+- No way to clear all filters at once
 
 ### Target State
 - Client dropdown filter in sticky header section
 - Options: "All clients" + list of all unique company names
 - Filters opportunities to show only selected client
 - Works in combination with search filter and status filter
+- "Clear Filters" button appears when any filter is active
+- Better horizontal space utilization for filter controls
 
 ### Acceptance Criteria
-- [ ] Client filter dropdown component created
-- [ ] Dropdown populated with "All clients" + unique company names
-- [ ] Selecting client filters opportunity list accordingly
-- [ ] Works together with search and status filters
-- [ ] Filter state preserved during expand/collapse actions
-- [ ] Dropdown styling matches mock design
-- [ ] Alphabetically sorted client list
+- [x] Client filter dropdown component created
+- [x] Dropdown populated with "All clients" + unique company names
+- [x] Selecting client filters opportunity list accordingly
+- [x] Works together with search and status filters
+- [x] Filter state preserved during expand/collapse actions
+- [x] Dropdown styling matches mock design
+- [x] Alphabetically sorted client list
+- [x] Clear Filters button added (shows only when filters active)
+- [x] Clear Filters resets all three filters (search, status, client)
+- [x] Client names normalized to fix spacing/tab issues
+- [x] Filter bar layout optimized for better space usage
+- [x] Status filter: 240px width
+- [x] Client filter: 280px width
+- [x] Search bar: flex-1 with 300px minimum
 
-### Files to Modify
-- Create new: `src/components/ClientFilter.tsx` or extend existing filter component
-- Modify: `src/pages/Dashboard.tsx` (add filter logic and state management)
+### Files Modified
+- Created: `src/components/ClientFilter.tsx`
+- Modified: `src/components/InvoiceStatusFilter.tsx` (responsive width)
+- Modified: `src/pages/Dashboard.tsx` (filter logic, Clear Filters button, layout improvements)
 
 ### Design Reference
 See mock showing "All clients" dropdown in filter bar
+
+**✅ Completed** - Git commit: `18be90e`
 
 ---
 
@@ -417,14 +430,14 @@ Implement new hover-based action buttons for invoice line items that slide price
 - Buttons show with opacity transition
 
 ### Target State
-- On hover, price and status slide left to reveal action buttons
+- On hover, price and status slide left to reveal action buttons (please view this experience via playwright and the https://e307a748-7b82-4b91-a212-f83a34666d44-preview.magicpatterns.app/ design)
 - Action buttons appear in a row on the right side
 - Actions vary by invoice status:
-  - **Draft**: Edit, Mark as Sent (paper plane icon), Copy, Delete
-  - **Sent**: Edit, Mark as Paid (check icon), Copy, View Invoice, Delete
+  - **Draft**: Edit, Mark as Sent (paper plane icon), View Invoice, Delete
+  - **Sent**: Edit, Mark as Paid (check icon), View Invoice, Delete
   - **Overdue**: Edit, Mark as Paid (check icon), Copy, View Invoice, Delete
-  - **Paid**: Edit, Copy, View Invoice, Delete
-- Tooltips on each action button
+  - **Paid**: Edit, View Invoice, Delete
+- Tooltips on each action button, matching tooltip styling seen on invoice status labels of opp card and gear, + icon buttons
 - Smooth slide/fade animations
 
 ### Acceptance Criteria
@@ -434,8 +447,7 @@ Implement new hover-based action buttons for invoice line items that slide price
 - [ ] Correct action buttons shown based on invoice status
 - [ ] "Mark as Sent" functionality implemented for Draft invoices
 - [ ] "Mark as Paid" functionality implemented for Sent/Overdue invoices
-- [ ] Copy invoice functionality added (copies invoice details or link)
-- [ ] View Invoice opens invoice modal (not separate page)
+- [ ] View Invoice opens invoice modal (we'll add modal later, for now just keep current functionality. Also important to note to retain functionality where view invoice only shows up for line items with an assigned due date and association with an opportunity that has org billing config created)
 - [ ] Tooltips display on icon hover
 - [ ] Action button icons match mock design
 - [ ] Smooth CSS transitions throughout
@@ -447,7 +459,7 @@ Implement new hover-based action buttons for invoice line items that slide price
 - Update invoice status update mutations
 
 ### Design Reference
-See mock screenshots showing hover state with sliding price and action buttons for different invoice statuses
+See https://e307a748-7b82-4b91-a212-f83a34666d44-preview.magicpatterns.app/ showing hover state with sliding price and action buttons for different invoice statuses
 
 ---
 
