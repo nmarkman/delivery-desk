@@ -817,7 +817,7 @@ This task was completed as part of Task 10 (Invoice Line Item Actions with Hover
 
 ---
 
-## Task 19: Visual Polish and Final QA
+## Task 19: Visual Polish and Final QA ✅
 
 **Priority**: High | **Estimated Effort**: Medium
 
@@ -825,7 +825,9 @@ This task was completed as part of Task 10 (Invoice Line Item Actions with Hover
 Final pass to ensure all visual details match the mock design and polish the user experience.
 
 ### Checklist
-- [ ] Bug fix where deleting a line item from dashboard does not seem to make it all the way through to Act!
+- [x] Make sure dashboard metrics for acv, paid, outstanding, and billed and unpaid are filtering out soft deleted line items in their calculations
+- [x] Fix opportunity card border corner visual issue (added rounded-t-lg to CardHeader)
+- [x] Update estimated close date format to match billing dates (removed leading zeros)
 - [ ] Spacing and padding matches mock throughout
 - [ ] Color scheme consistent (grays, blues, oranges, reds, greens)
 - [ ] Typography sizes and weights match design
@@ -841,12 +843,90 @@ Final pass to ensure all visual details match the mock design and polish the use
 - [ ] Focus states accessible and visible
 - [ ] Test all interactions end-to-end
 - [ ] Cross-browser testing (Chrome, Firefox, Safari)
-- [ ] Replace all instances of "line items" with "products" in user-facing UI text
 
 ### Files to Review
 - All modified components
 - Global CSS/Tailwind configurations
 - Animation/transition utilities
+
+---
+
+## Task 20: Fix Line Item Delete Bug - Act! Sync Not Completing
+
+**Priority**: Critical | **Estimated Effort**: Medium
+
+### Description
+Line item deletion from the dashboard shows success toast but does not actually delete the product from Act! CRM. The soft delete (setting `act_deleted_at`) succeeds in the database, but the Act! API delete call is not completing successfully.
+
+### Current State
+- Delete operation shows success toast to user
+- Line item is soft deleted in database (`act_deleted_at` timestamp set)
+- Product remains in Act! CRM (verified via Postman that Act! API works)
+- Update and create operations to Act! work correctly
+- Issue isolated to delete operation only
+
+### Investigation Summary
+
+#### What We Know:
+1. **Database UPDATE works**: Soft delete by setting `act_deleted_at` timestamp succeeds
+2. **Act! API works**: Direct DELETE via Postman to Act! API succeeds
+3. **Edge function exists**: Delete handler in `supabase/functions/act-sync/index.ts` (lines 213-289)
+4. **Act! client function exists**: `deleteProduct()` in `act-client.ts` (lines 1196-1227)
+5. **Update mutation works**: Similar pattern to delete, but updates succeed in Act!
+
+#### Code Comparison:
+- `deleteProduct()` and `updateProduct()` in act-client.ts are structurally identical
+- Both use same endpoint pattern: `/api/opportunities/{opportunityId}/products/{productId}`
+- Only differences: HTTP method (DELETE vs PUT) and request body (none vs productData)
+- Both call `makeApiCall()` with same error handling
+
+#### Enhanced Logging Added:
+Added comprehensive logging to `src/hooks/useLineItemCrud.ts` (lines 272-294):
+- Logs full edge function response including `success` flag
+- Checks if response contains `success: false` but no error
+- Distinguishes between edge function errors and Act! API failures
+- Emojis for easy log scanning (🔴 for failures, ✅ for success)
+
+### Next Steps for Debugging
+
+1. **Test with new logging**:
+   - Attempt to delete a line item from dashboard
+   - Check browser console for detailed logs
+   - Verify whether:
+     - Soft delete UPDATE succeeds
+     - Edge function is actually called
+     - Edge function returns success or error
+     - Response includes `success: false` flag
+
+2. **Check edge function logs**:
+   - Review Supabase edge function logs for delete requests
+   - Confirm opportunity ID lookup succeeds
+   - Verify Act! API call is being made
+   - Check for any error responses from Act! API
+
+3. **Possible Issues to Investigate**:
+   - Edge function opportunity lookup may be failing silently
+   - Response handling may not check `success: false` in body
+   - Act! API may return success but not actually delete
+   - DeliveryDesk opportunity ID → Act! opportunity ID mapping issue
+
+### Acceptance Criteria
+- [ ] Line item delete from dashboard successfully removes product from Act! CRM
+- [ ] Success toast only shows when both database AND Act! operations succeed
+- [ ] Appropriate error messages shown when Act! delete fails
+- [ ] Edge function logs provide clear debugging information
+- [ ] Delete operation works as reliably as update operation
+
+### Files Involved
+- `src/hooks/useLineItemCrud.ts` (delete mutation - lines 221-298)
+- `supabase/functions/act-sync/index.ts` (delete handler - lines 213-289)
+- `supabase/functions/act-sync/act-client.ts` (deleteProduct - lines 1196-1227)
+- `src/components/OpportunityCard.tsx` (delete button trigger - line 751)
+
+### Design Reference
+N/A - Bug fix, no design changes
+
+**Status**: 🔴 IN PROGRESS - Enhanced logging added, awaiting test results
 
 ---
 
