@@ -15,6 +15,8 @@ import { useLineItems } from '@/hooks/useLineItems';
 import { useOpportunityBilling } from '@/hooks/useOpportunityBilling';
 import BillingDetailsModal from './BillingDetailsModal';
 import ContractUploadModal from './ContractUploadModal';
+import InvoicePreviewModal from './InvoicePreviewModal';
+import type { InvoiceData } from '@/components/invoices/InvoiceTemplate';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -78,6 +80,9 @@ export default function OpportunityCard({
   const [editingPrice, setEditingPrice] = useState<string>('');
   const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [invoicePreviewModalOpen, setInvoicePreviewModalOpen] = useState(false);
+  const [selectedInvoiceData, setSelectedInvoiceData] = useState<InvoiceData | null>(null);
+  const [selectedLineItemId, setSelectedLineItemId] = useState<string | null>(null);
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [updatingStatusItemId, setUpdatingStatusItemId] = useState<string | null>(null);
@@ -267,6 +272,65 @@ Status: ${item.invoice_status || 'Draft'}`;
     } catch (error) {
       console.error('Error copying to clipboard:', error);
       toast.error('Failed to copy to clipboard');
+    }
+  };
+
+  // Convert line item to invoice data for modal preview
+  const convertLineItemToInvoiceData = (item: LineItem): InvoiceData | null => {
+    if (!billingInfo) return null;
+
+    const invoiceDate = item.billed_at || new Date().toISOString().split('T')[0];
+    const dueDate = new Date(new Date(invoiceDate).getTime() + (billingInfo.payment_terms || 30) * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0];
+
+    return {
+      invoice_number: item.invoice_number || 'DRAFT',
+      invoice_date: invoiceDate,
+      due_date: dueDate,
+      status: (item.invoice_status || 'draft') as 'draft' | 'sent' | 'paid' | 'overdue',
+      billing_info: {
+        organization_name: billingInfo.organization_name || '',
+        organization_address: billingInfo.organization_address || '',
+        organization_contact_name: billingInfo.organization_contact_name || '',
+        organization_contact_email: billingInfo.organization_contact_email || '',
+        bill_to_name: billingInfo.bill_to_name || opportunity.company_name,
+        bill_to_address: billingInfo.bill_to_address || '',
+        bill_to_contact_name: billingInfo.bill_to_contact_name || '',
+        bill_to_contact_email: billingInfo.bill_to_contact_email || '',
+        payment_terms: billingInfo.payment_terms || 30,
+        po_number: billingInfo.po_number || '',
+        custom_payment_terms_text: billingInfo.custom_payment_terms_text || '',
+      },
+      line_items: [
+        {
+          id: item.id,
+          description: item.description,
+          details: item.details || undefined,
+          quantity: item.quantity || 1,
+          unit_rate: item.unit_rate,
+          line_total: item.line_total || item.unit_rate,
+        },
+      ],
+      subtotal: item.line_total || item.unit_rate,
+      tax_amount: 0,
+      total_amount: item.line_total || item.unit_rate,
+      company_name: opportunity.company_name,
+      opportunity_name: opportunity.name,
+    };
+  };
+
+  // Handle viewing invoice in modal
+  const handleViewInvoice = (item: LineItem) => {
+    const invoiceData = convertLineItemToInvoiceData(item);
+    if (invoiceData) {
+      setSelectedInvoiceData(invoiceData);
+      setSelectedLineItemId(item.id);
+      setInvoicePreviewModalOpen(true);
+    } else {
+      toast.error('Cannot view invoice', {
+        description: 'Billing information must be configured first.',
+      });
     }
   };
 
@@ -656,7 +720,7 @@ Status: ${item.invoice_status || 'Draft'}`;
                                       variant="ghost"
                                       size="icon"
                                       className="h-7 w-7"
-                                      onClick={() => navigate(`/invoices/${item.id}`)}
+                                      onClick={() => handleViewInvoice(item)}
                                       disabled={updatingItemId === item.id || deletingItemId === item.id || updatingStatusItemId === item.id}
                                     >
                                       <FileText className="h-4 w-4" />
@@ -790,6 +854,18 @@ Status: ${item.invoice_status || 'Draft'}`;
         opportunityName={opportunity.name}
         companyName={opportunity.company_name}
         onUploadSuccess={() => refetchLineItems()}
+      />
+
+      {/* Invoice Preview Modal */}
+      <InvoicePreviewModal
+        open={invoicePreviewModalOpen}
+        onOpenChange={setInvoicePreviewModalOpen}
+        invoiceData={selectedInvoiceData}
+        lineItemId={selectedLineItemId}
+        onStatusChange={() => {
+          refetchLineItems();
+          if (onDataChange) onDataChange();
+        }}
       />
       </Card>
     </TooltipProvider>
