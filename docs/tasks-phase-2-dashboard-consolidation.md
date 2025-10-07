@@ -628,16 +628,18 @@ Remove or simplify redundant item type labels displayed on invoice line items an
 - Keep essential information only
 
 ### Acceptance Criteria
-- [ ] Redundant "Retainer" or "Deliverable" labels removed from line items
-- [ ] Line item display remains clear and readable
-- [ ] No loss of critical information
-- [ ] Visual hierarchy maintained
+- [x] Redundant "Retainer" or "Deliverable" labels removed from line items
+- [x] Line item display remains clear and readable
+- [x] No loss of critical information
+- [x] Visual hierarchy maintained
 
-### Files to Modify
-- Modify: `src/components/OpportunityCard.tsx` (line item display section)
+### Files Modified
+- Modified: `src/components/OpportunityCard.tsx` (line item display section)
 
-### Design Reference
-Review mock to confirm simplified line item display without redundant labels
+### Implementation Notes
+This task was completed as part of Task 4's expanded scope during the line item redesign. The Retainer/Deliverable type labels were commented out to create a cleaner, more compact line item display focused on essential information (description, date, price, status).
+
+**✅ Completed** - Git commit: `3f173de` (as part of Task 4)
 
 ---
 
@@ -650,26 +652,28 @@ Modify the AI prompt for contract upload to generate invoice descriptions in for
 
 ### Current State
 - AI prompt generates generic "Retainer" descriptions
-- Located in contract upload functionality
+- Located in contract upload functionality and edge function where anthropic is called for parsing contract details
 
 ### Target State
 - Retainer invoices auto-generated with format: "July 2025 - Consulting Services"
 - More descriptive and professional invoice line item names
 
 ### Acceptance Criteria
-- [ ] AI prompt updated with explicit formatting instructions
-- [ ] Generated retainer descriptions follow "{Month YYYY} - Consulting Services" pattern
-- [ ] Month extracted from billing date
-- [ ] Prompt clearly specifies this format requirement
-- [ ] Test with contract upload to verify output
+- [x] AI prompt updated with explicit formatting instructions
+- [x] Generated retainer descriptions follow "{Month YYYY} - Consulting Services" pattern
+- [x] Month extracted from billing date
+- [x] Prompt clearly specifies this format requirement
+- [x] Example JSON updated to show new format
 
-### Files to Modify
-- Find and modify: Contract upload AI prompt (likely in ContractUploadModal or related edge function)
-- Check: `src/pages/ContractUpload.tsx`, `src/components/ContractUploadModal.tsx`
-- Potentially: Supabase edge function for contract processing
+### Files Modified
+- Modified: `supabase/functions/contract-upload/pdf-parser.ts`
+  - Updated AI prompt with new retainer format instructions
+  - Changed example JSON: "Monthly Retainer" → "July 2025 - Consulting Services"
+  - Updated `expandRetainerToMonthlyItems` function
+  - Format change: "Retainer – {monthName}" → "{monthName} - Consulting Services"
+  - Added note to prompt explaining auto-expansion format
 
-### Design Reference
-See mock showing invoice line items with format "July 2025 - Consulting Services"
+**✅ Completed** - Git commit: `b0b71cd`
 
 ---
 
