@@ -176,6 +176,7 @@ export interface DbOpportunity {
   retainer_start_date?: string;
   retainer_end_date?: string;
   actual_close_date?: string;
+  estimated_close_date?: string;
   status: string;
   probability?: number;
   sync_status?: string;

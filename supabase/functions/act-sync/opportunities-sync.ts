@@ -266,6 +266,15 @@ export function mapActOpportunityToDb(
       }
     }
 
+    // Parse estimated close date
+    let estimatedCloseDate: string | undefined;
+    if (actOpportunity.estimatedCloseDate) {
+      const estCloseDate = new Date(actOpportunity.estimatedCloseDate);
+      if (!isNaN(estCloseDate.getTime())) {
+        estimatedCloseDate = estCloseDate.toISOString().split('T')[0];
+      }
+    }
+
     // Ensure we have required data - use fallbacks from the Act! opportunity itself
     const finalName = actOpportunity.name || 'Unnamed Opportunity';
     const finalCompanyName = companyName || 'Unknown Company';
@@ -287,6 +296,7 @@ export function mapActOpportunityToDb(
       retainer_start_date: retainerStartDate,
       retainer_end_date: retainerEndDate,
       actual_close_date: actualCloseDate,
+      estimated_close_date: estimatedCloseDate,
       status: status,
       probability: actOpportunity.probability,
       sync_status: 'synced',

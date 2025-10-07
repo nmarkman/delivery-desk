@@ -44,6 +44,7 @@ interface Opportunity {
   status: string;
   contract_start_date: string | null;
   contract_end_date: string | null;
+  estimated_close_date: string | null;
   created_at: string | null;
 }
 
@@ -403,6 +404,14 @@ Status: ${item.invoice_status || 'Draft'}`;
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-lg truncate">{opportunity.company_name}</CardTitle>
+              {opportunity.estimated_close_date && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Est. Close: {(() => {
+                    const [year, month, day] = opportunity.estimated_close_date.split('-');
+                    return `${month}/${day}/${year}`;
+                  })()}
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2 ml-4">
               <div className="text-sm font-medium">
