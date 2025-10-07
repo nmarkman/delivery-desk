@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import OpportunityCard from '@/components/OpportunityCard';
 import OpportunityFilter from '@/components/OpportunityFilter';
+import InvoiceStatusFilter from '@/components/InvoiceStatusFilter';
 import { formatCurrency, calculateOverdueStatus } from '@/utils/invoiceHelpers';
 import { calculateDashboardMetrics } from '@/utils/dashboardCalculations';
 
@@ -83,6 +84,7 @@ export default function Dashboard() {
   const [invoiceLineItems, setInvoiceLineItems] = useState<InvoiceLineItem[]>([]);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [searchFilter, setSearchFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -172,26 +174,38 @@ export default function Dashboard() {
     setSearchFilter(searchTerm);
   }, []);
 
-  // Update filtered opportunities when opportunities or search filter changes
+  // Update filtered opportunities when opportunities, search filter, or status filter changes
   useEffect(() => {
     // Save current scroll position
     const scrollY = window.scrollY;
 
-    if (!searchFilter.trim()) {
-      setFilteredOpportunities(opportunities);
-    } else {
-      const filtered = opportunities.filter((opp) =>
+    let filtered = opportunities;
+
+    // Apply search filter
+    if (searchFilter.trim()) {
+      filtered = filtered.filter((opp) =>
         opp.company_name.toLowerCase().includes(searchFilter.toLowerCase()) ||
         opp.name.toLowerCase().includes(searchFilter.toLowerCase())
       );
-      setFilteredOpportunities(filtered);
     }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((opp) => {
+        const oppInvoices = invoiceLineItems.filter(item =>
+          item.opportunity_id === opp.id && item.invoice_status === statusFilter
+        );
+        return oppInvoices.length > 0;
+      });
+    }
+
+    setFilteredOpportunities(filtered);
 
     // Restore scroll position after state update
     requestAnimationFrame(() => {
       window.scrollTo(0, scrollY);
     });
-  }, [opportunities, searchFilter]);
+  }, [opportunities, searchFilter, statusFilter, invoiceLineItems]);
 
   const fetchOpportunities = useCallback(async (pageNum: number = 0, reset: boolean = false) => {
     logDashboardEvent('FETCH_OPPORTUNITIES_START', {
@@ -383,17 +397,14 @@ export default function Dashboard() {
   // Use filtered opportunities for display
   const activeOpportunities = filteredOpportunities;
   
-  // Calculate metrics based on current view (filtered opportunities when search is active)
-  const metricsOpportunities = searchFilter.trim() ? filteredOpportunities : opportunities;
-  
-  // For filtering, we also need to filter lineItems and invoiceLineItems to match filtered opportunities
+  // Calculate metrics based on filtered opportunities (by search and/or status filter)
+  const metricsOpportunities = searchFilter.trim() || statusFilter !== 'all' ? filteredOpportunities : opportunities;
+
+  // Filter line items to match ONLY the filtered opportunities, but include ALL statuses
+  // This way metrics reflect total value of filtered opportunities, not filtered line items
   const filteredOpportunityIds = new Set(metricsOpportunities.map(opp => opp.id));
-  const filteredLineItems = searchFilter.trim() 
-    ? lineItems.filter(item => filteredOpportunityIds.has(item.opportunity_id))
-    : lineItems;
-  const filteredInvoiceLineItems = searchFilter.trim()
-    ? invoiceLineItems.filter(item => filteredOpportunityIds.has(item.opportunity_id))
-    : invoiceLineItems;
+  const filteredLineItems = lineItems.filter(item => filteredOpportunityIds.has(item.opportunity_id));
+  const filteredInvoiceLineItems = invoiceLineItems.filter(item => filteredOpportunityIds.has(item.opportunity_id));
   
   const {
     uniqueClients,
@@ -537,6 +548,10 @@ export default function Dashboard() {
                 </>
               )}
             </Button>
+            <InvoiceStatusFilter
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+            />
             <OpportunityFilter
               onFilterChange={handleFilterChange}
               placeholder="Search by company or opportunity name..."
@@ -568,6 +583,7 @@ export default function Dashboard() {
                   onExpandToggle={handleCardExpandToggle}
                   onDataChange={fetchData}
                   invoiceStatusCounts={getInvoiceStatusCounts(opportunity.id)}
+                  statusFilter={statusFilter}
                 />
               ))}
             </div>

@@ -58,6 +58,7 @@ interface OpportunityCardProps {
   onExpandToggle?: (opportunityId: string, expanded: boolean) => void;
   onDataChange?: () => void;
   invoiceStatusCounts?: InvoiceStatusCounts;
+  statusFilter?: string;
 }
 
 export default function OpportunityCard({
@@ -66,7 +67,8 @@ export default function OpportunityCard({
   isExpanded,
   onExpandToggle,
   onDataChange,
-  invoiceStatusCounts = { draft: 0, sent: 0, paid: 0, overdue: 0 }
+  invoiceStatusCounts = { draft: 0, sent: 0, paid: 0, overdue: 0 },
+  statusFilter = 'all'
 }: OpportunityCardProps) {
   const navigate = useNavigate();
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -219,23 +221,30 @@ export default function OpportunityCard({
 
   const deliverablesMissingDates = lineItems.filter(needsDueDate).length;
 
-  // Calculate contract value from active line items
-  const calculatedContractValue = lineItems.reduce((sum, item) => {
+  // Filter and sort line items
+  const filteredAndSortedLineItems = lineItems
+    // First filter by status if a specific status is selected
+    .filter(item => {
+      if (statusFilter === 'all') return true;
+      return item.invoice_status === statusFilter;
+    })
+    // Then sort chronologically by billing date
+    .sort((a, b) => {
+      // Items with billing dates come first, sorted chronologically (earliest first)
+      if (a.billed_at && b.billed_at) {
+        return new Date(a.billed_at).getTime() - new Date(b.billed_at).getTime();
+      }
+      // Items with billing dates come before items without
+      if (a.billed_at && !b.billed_at) return -1;
+      if (!a.billed_at && b.billed_at) return 1;
+      // If both don't have billing dates, maintain original order
+      return 0;
+    });
+
+  // Calculate contract value from filtered line items
+  const calculatedContractValue = filteredAndSortedLineItems.reduce((sum, item) => {
     return sum + (item.unit_rate || 0);
   }, 0);
-
-  // Sort line items chronologically by billing date
-  const sortedLineItems = [...lineItems].sort((a, b) => {
-    // Items with billing dates come first, sorted chronologically (earliest first)
-    if (a.billed_at && b.billed_at) {
-      return new Date(a.billed_at).getTime() - new Date(b.billed_at).getTime();
-    }
-    // Items with billing dates come before items without
-    if (a.billed_at && !b.billed_at) return -1;
-    if (!a.billed_at && b.billed_at) return 1;
-    // If both don't have billing dates, maintain original order
-    return 0;
-  });
 
   // Calculate actual invoice status counts from displayed line items
   const actualInvoiceStatusCounts = {
@@ -310,7 +319,7 @@ export default function OpportunityCard({
         {/* Second row: Invoice status badges and View Invoices button */}
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
-            {displayStatusCounts.draft > 0 && (
+            {displayStatusCounts.draft > 0 && (statusFilter === 'all' || statusFilter === 'draft') && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="inline-flex">
@@ -324,7 +333,7 @@ export default function OpportunityCard({
                 </TooltipContent>
               </Tooltip>
             )}
-            {displayStatusCounts.sent > 0 && (
+            {displayStatusCounts.sent > 0 && (statusFilter === 'all' || statusFilter === 'sent') && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="inline-flex">
@@ -338,7 +347,7 @@ export default function OpportunityCard({
                 </TooltipContent>
               </Tooltip>
             )}
-            {displayStatusCounts.paid > 0 && (
+            {displayStatusCounts.paid > 0 && (statusFilter === 'all' || statusFilter === 'paid') && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="inline-flex">
@@ -352,7 +361,7 @@ export default function OpportunityCard({
                 </TooltipContent>
               </Tooltip>
             )}
-            {displayStatusCounts.overdue > 0 && (
+            {displayStatusCounts.overdue > 0 && (statusFilter === 'all' || statusFilter === 'overdue') && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="inline-flex">
@@ -429,9 +438,13 @@ export default function OpportunityCard({
                 <div className="text-xs text-muted-foreground italic py-2">
                   No line items found for this opportunity
                 </div>
+              ) : filteredAndSortedLineItems.length === 0 ? (
+                <div className="text-xs text-muted-foreground italic py-2">
+                  No {statusFilter} invoices found for this opportunity
+                </div>
               ) : (
                 <div className="space-y-1">
-                  {sortedLineItems.map((item) => (
+                  {filteredAndSortedLineItems.map((item) => (
                     <div key={item.id} className={`border-b last:border-b-0 py-2 px-2 group relative hover:bg-gray-50 ${needsDueDate(item) ? 'bg-orange-50/30' : ''}`}>
                       {/* Single row layout with Description, Date, Price, Status */}
                       <div className="flex items-center justify-between gap-4">

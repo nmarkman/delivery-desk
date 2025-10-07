@@ -331,7 +331,7 @@ See mock showing chronological line item ordering and status badge tooltips
 **Priority**: High | **Estimated Effort**: Medium
 
 ### Description
-Add a status filter dropdown to filter opportunities by invoice status (All, Draft, Sent, Paid, Overdue).
+Add a status filter dropdown to filter invoice line items within opportunities by invoice status (All, Draft, Sent, Paid, Overdue).
 
 ### Current State
 - Only search filter exists ([src/components/OpportunityFilter.tsx](../src/components/OpportunityFilter.tsx))
@@ -340,7 +340,7 @@ Add a status filter dropdown to filter opportunities by invoice status (All, Dra
 ### Target State
 - Status dropdown filter in sticky header section
 - Options: "All invoice statuses", "Draft", "Sent", "Paid", "Overdue"
-- Filters opportunities that have at least one invoice matching selected status
+- Filters opportunities that have at least one invoice matching selected status and further filter the invoice line items within the opportunity to only those matching the filtered condition
 - Works in combination with search filter and client filter
 
 ### Acceptance Criteria
@@ -348,6 +348,7 @@ Add a status filter dropdown to filter opportunities by invoice status (All, Dra
 - [ ] Filter options match design: All, Draft, Sent, Paid, Overdue
 - [ ] Selecting status filters opportunity list accordingly
 - [ ] Shows opportunities with at least one matching invoice status
+- [ ] Shows only line items matching invoice status filter
 - [ ] Works together with existing search filter
 - [ ] Filter state preserved during expand/collapse actions
 - [ ] Dropdown styling matches mock design
