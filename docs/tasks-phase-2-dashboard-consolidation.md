@@ -796,15 +796,24 @@ Adjust invoice line item layout to ensure long deliverable/product names are ful
 - Scrollable if needed within line item container
 
 ### Acceptance Criteria
-- [ ] Remove or adjust `line-clamp-2` class from descriptions
-- [ ] Long names wrap to multiple lines
-- [ ] Dates/prices layout doesn't break with long names
-- [ ] Scrolling works properly within line items container
-- [ ] Visual hierarchy maintained
-- [ ] Readable typography for wrapped text
+- [x] Remove or adjust `line-clamp-2` class from descriptions (removed `truncate`, added `break-words`)
+- [x] Long names wrap to multiple lines
+- [x] Dates/prices layout doesn't break with long names
+- [x] Scrolling works properly within line items container
+- [x] Visual hierarchy maintained (items-start for multi-line alignment)
+- [x] Readable typography for wrapped text
+- [x] Fixed calendar picker icon cutoff in edit mode
 
-### Files to Modify
-- Modify: `src/components/OpportunityCard.tsx` (line item description styling)
+### Files Modified
+- Modified: `src/components/OpportunityCard.tsx` (changed from `truncate` to `break-words`, items-start alignment, calendar width fix)
+
+### Implementation Notes
+This task was completed as part of Task 10 (Invoice Line Item Actions with Hover Effects). The line item description styling was changed from `truncate` to `break-words` to allow full text wrapping. Additional improvements included:
+- Changed flex container from `items-center` to `items-start` for proper multi-line alignment
+- Increased date input width from `w-32` to `w-36` and added `pr-2` for calendar icon spacing
+- Text now wraps naturally without truncation, maintaining readability
+
+**✅ Completed** - Git commit: `7efed9a` (as part of Task 10)
 
 ---
 
