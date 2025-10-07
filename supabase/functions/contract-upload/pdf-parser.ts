@@ -140,6 +140,7 @@ For Retainers:
 - Note the start and end dates for monthly billing
 - Set the date to the start date of the retainer period (e.g., "2025-07-01")
 - ONLY retainers should have dates
+- Retainer items will be auto-expanded into monthly invoices with format: "{Month YYYY} - Consulting Services"
 
 For Deliverables:
 - Keep EXACT contract language and text, verbatim. DO NOT SUMMARIZE OR MAKE MORE SUCCINCT.
@@ -153,7 +154,7 @@ Return your response as valid JSON with this structure:
   "line_items": [
     {
       "type": "retainer",
-      "name": "Monthly Retainer",
+      "name": "July 2025 - Consulting Services",
       "amount": 1000,
       "date": "2025-07-01",
       "original_text": "Monthly retainer fee",
@@ -216,14 +217,14 @@ function expandRetainerToMonthlyItems(
   let currentDate = new Date(startDate);
   
   while (currentDate <= endDate && monthCount < maxMonths) {
-    const monthName = currentDate.toLocaleDateString('en-US', { 
-      month: 'long', 
-      year: 'numeric' 
+    const monthName = currentDate.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric'
     });
-    
+
     monthlyItems.push({
       type: LINE_ITEM_TYPES.RETAINER,
-      name: `Retainer – ${monthName}`,
+      name: `${monthName} - Consulting Services`,
       amount: monthlyAmount,
       date: currentDate.toISOString().split('T')[0], // YYYY-MM-DD format
       original_text: retainerItem.original_text
