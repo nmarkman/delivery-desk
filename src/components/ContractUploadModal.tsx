@@ -18,7 +18,7 @@ interface LineItem {
   original_text: string;
 }
 
-// Act! Product interface for processed line items
+// Act! Product interface for processed products
 interface ActProduct {
   id: string;
   name: string;
@@ -264,7 +264,7 @@ export default function ContractUploadModal({
 
   const handleSubmit = async () => {
     if (lineItems.length === 0) {
-      setUploadState(prev => ({ ...prev, error: 'No line items to process' }));
+      setUploadState(prev => ({ ...prev, error: 'No products to process' }));
       return;
     }
 
@@ -391,12 +391,12 @@ export default function ContractUploadModal({
     <Dialog open={isOpen} onOpenChange={handleModalOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Line Items</DialogTitle>
+          <DialogTitle>Add Products</DialogTitle>
           <DialogDescription>
             For <strong>{opportunityName}</strong> at <strong>{companyName}</strong>
             <br />
             <span className="text-sm text-blue-600 mt-1 block">
-              Step 1: Add your line items • Step 2: Review and confirm to create products
+              Step 1: Add your products • Step 2: Review and confirm
             </span>
           </DialogDescription>
         </DialogHeader>
@@ -407,7 +407,7 @@ export default function ContractUploadModal({
             <div className="border-t pt-3">
               <div className="text-center mb-2">
                 <span className="text-sm font-medium text-gray-900">Upload a PDF</span>
-                <p className="text-xs text-gray-600">Extract line items automatically from your contract</p>
+                <p className="text-xs text-gray-600">Extract products automatically from your contract</p>
               </div>
               <div className="space-y-3">
                 <div 
@@ -490,7 +490,7 @@ export default function ContractUploadModal({
             </div>
           )}
 
-          {/* Line Items Table - Always show for manual addition or extracted items */}
+          {/* Products Table - Always show for manual addition or extracted items */}
           <LineItemsTable
             lineItems={lineItems}
             onLineItemsChange={setLineItems}
@@ -520,7 +520,7 @@ export default function ContractUploadModal({
                   <div className="text-xs text-gray-600 text-center">
                     {uploadState.progress < 30 && "Uploading your contract..."}
                     {uploadState.progress >= 30 && uploadState.progress < 70 && "Analyzing contract content..."}
-                    {uploadState.progress >= 70 && uploadState.progress < 85 && "Retrieving line items..."}
+                    {uploadState.progress >= 70 && uploadState.progress < 85 && "Retrieving products..."}
                     {uploadState.progress >= 85 && "Almost done..."}
                   </div>
                 </div>
