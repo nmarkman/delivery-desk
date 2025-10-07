@@ -549,28 +549,35 @@ See https://e307a748-7b82-4b91-a212-f83a34666d44-preview.magicpatterns.app/ show
 **Priority**: Low | **Estimated Effort**: Trivial
 
 ### Description
-Update button text from "Add Line Items" to "Add Products" throughout the application.
+Update user-facing text in app from "Line Items" to "Products" throughout the application.
 
 ### Current State
 - Button labeled "Add Line Items" ([src/components/OpportunityCard.tsx](../src/components/OpportunityCard.tsx):264)
 
 ### Target State
 - Button labeled "Add Products"
+- Contract upload modal and invoice line item creation tool says "line item" or "line items" in several places
 - Now appears as a plus (+) icon next to gear icon in card header
 - Tooltip displays "Add Products" on hover
 
 ### Acceptance Criteria
-- [ ] Button text changed to "Add Products"
-- [ ] Plus icon moved to card header (top right, next to gear icon)
-- [ ] Tooltip added showing "Add Products"
-- [ ] Button maintains same functionality (opens ContractUploadModal)
-- [ ] Icon styling matches mock design
+- [x] Button text changed to "Add Products"
+- [x] Plus icon moved to card header (top right, next to gear icon)
+- [x] Tooltip added showing "Add Products"
+- [x] Button maintains same functionality (opens ContractUploadModal)
+- [x] ContractUploadModal text says Product(s) instead of line item(s)
 
-### Files to Modify
-- Modify: `src/components/OpportunityCard.tsx` (update button text and position)
+### Files Modified
+- Modified: `src/components/ContractUploadModal.tsx`
+  - Dialog title: "Add Line Items" → "Add Products"
+  - Step description: "Add your line items" → "Add your products"
+  - Upload helper text: "Extract line items" → "Extract products"
+  - Progress message: "Retrieving line items" → "Retrieving products"
+  - Error message: "No line items to process" → "No products to process"
+  - Code comments updated
+- No change needed: `src/components/OpportunityCard.tsx` (tooltip already said "Add Products")
 
-### Design Reference
-See mock showing + icon next to gear icon with "Add Products" tooltip
+**✅ Completed** - Git commit: `0b913eb`
 
 ---
 
