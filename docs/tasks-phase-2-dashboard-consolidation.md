@@ -596,14 +596,20 @@ Reorganize the billing configuration modal to move "School Code" field into the 
 - Logical grouping of organization-related fields
 
 ### Acceptance Criteria
-- [ ] "School Code" field moved to Organization section
-- [ ] Field order and layout follows logical structure
-- [ ] Form validation still works correctly
-- [ ] Save functionality unaffected
-- [ ] Modal styling remains consistent
+- [x] "School Code" field moved to Organization section
+- [x] Field order and layout follows logical structure
+- [x] Form validation still works correctly
+- [x] Save functionality unaffected
+- [x] Modal styling remains consistent
 
-### Files to Modify
-- Modify: `src/components/BillingDetailsModal.tsx`
+### Files Modified
+- Modified: `src/components/BillingDetailsModal.tsx`
+  - Moved School Code field to Organization Details section (after contact email)
+  - Changed from 2-column grid to full-width placement
+  - Custom Payment Terms now full-width (removed from grid layout)
+  - All validation, save logic, and invoice number regeneration unchanged
+
+**✅ Completed** - Git commit: `0b0d8b6`
 
 ---
 
