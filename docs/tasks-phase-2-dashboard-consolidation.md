@@ -493,7 +493,7 @@ See https://e307a748-7b82-4b91-a212-f83a34666d44-preview.magicpatterns.app/ show
 **Priority**: High | **Estimated Effort**: Medium
 
 ### Description
-Create an invoice preview modal that displays the full invoice PDF preview with actions, replacing the separate invoices page navigation.
+Create an invoice preview modal that displays the full invoice PDF preview with actions, replacing the separate invoices page navigation but leveraging the existing functionality for generating and downloading invoices
 
 ### Current State
 - "View Invoice" navigates to `/invoices/:invoiceId` route ([src/components/OpportunityCard.tsx](../src/components/OpportunityCard.tsx):346)
@@ -502,7 +502,7 @@ Create an invoice preview modal that displays the full invoice PDF preview with 
 ### Target State
 - Clicking "View Invoice" action opens a modal overlay
 - Modal displays full invoice PDF preview (using existing InvoiceTemplate component)
-- Action buttons at top: "Download PDF", "Mark as Sent"
+- Action buttons at top: "Download PDF", "Mark as Sent" for Draft invoices, "Mark as Paid" for sent and overdue invoices
 - Close button (X) in top right corner
 - Modal dismissible by clicking outside or pressing Escape
 - Returns user to same position on dashboard when closed
@@ -511,14 +511,15 @@ Create an invoice preview modal that displays the full invoice PDF preview with 
 - [ ] Invoice preview modal component created
 - [ ] Modal triggered by "View Invoice" action on line items
 - [ ] Uses existing InvoiceTemplate component for preview
-- [ ] "Download PDF" button generates and downloads PDF
-- [ ] "Mark as Sent" button updates invoice status (only shown for Draft invoices)
+- [ ] "Download PDF" button generates and downloads PDF using existing functionality as much as possible for invoice downloads
+- [ ] "Mark as Sent" button updates invoice status (only shown for Draft invoices) and triggers same toast and updates that marking as sent from invoice line item action button does
+- [ ] "Mark as Paid" button updates invoice status (only shown for Sent and Overdue invoices) and triggers same toast and updates that marking as paid from invoice line item action button does
 - [ ] Close button (X) dismisses modal
 - [ ] Click outside modal to dismiss
 - [ ] Escape key dismisses modal
 - [ ] Scroll position preserved when modal closes
-- [ ] Modal styling matches mock design
-- [ ] Smooth fade/scale animation on open/close
+- [ ] Modal styling matches mock design (but in mock ignore the changes to the actual invoice template - use what we already have for that)
+- [ ] Smooth fade/scale animation on open/close consistent with other modals triggered from the dashboard page
 - [ ] Invoice data loaded correctly in modal
 
 ### Files to Modify
@@ -528,7 +529,7 @@ Create an invoice preview modal that displays the full invoice PDF preview with 
 - Update: `src/App.tsx` (comment out invoices route)
 
 ### Design Reference
-See mock screenshot showing full invoice modal with header actions
+See https://e307a748-7b82-4b91-a212-f83a34666d44-preview.magicpatterns.app/ showing full invoice modal with header actions
 
 ---
 
