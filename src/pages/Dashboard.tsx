@@ -320,7 +320,8 @@ export default function Dashboard() {
             opportunity_billing_info(payment_terms)
           )
         `)
-        .eq('opportunities.user_id', user?.id);
+        .eq('opportunities.user_id', user?.id)
+        .is('act_deleted_at', null); // Exclude soft deleted items
 
       if (invoiceResult.error) throw new Error(`Failed to fetch invoice data: ${invoiceResult.error.message}`);
       

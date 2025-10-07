@@ -399,7 +399,7 @@ Status: ${item.invoice_status || 'Draft'}`;
   return (
     <TooltipProvider>
       <Card className="w-full transition-all duration-200 hover:shadow-md flex flex-col">
-        <CardHeader className="pb-3 bg-gray-50">
+        <CardHeader className="pb-3 bg-gray-50 rounded-t-lg">
           {/* Top row: Company name, contract value, gear icon, + icon */}
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
@@ -408,7 +408,7 @@ Status: ${item.invoice_status || 'Draft'}`;
                 <p className="text-sm text-muted-foreground mt-1">
                   Est. Close: {(() => {
                     const [year, month, day] = opportunity.estimated_close_date.split('-');
-                    return `${month}/${day}/${year}`;
+                    return `${parseInt(month)}/${parseInt(day)}/${year}`;
                   })()}
                 </p>
               )}
