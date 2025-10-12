@@ -1058,12 +1058,30 @@ Simple addition of existing logic to Dashboard/OpportunityCard:
 4. Update status counts to include calculated overdue items
 5. Consistent with how `/invoices` page already works
 
-### Files to Modify
+#### Fix 4: Generate Invoice Numbers on Line Item Creation
+Add invoice number generation to contract upload flow:
+
+1. Port invoice numbering logic to edge function (Deno)
+2. Generate invoice numbers when line items created with billed_at date
+3. Fetch custom school code from opportunity_billing_info
+4. Use same date-based format and collision detection
+5. Set invoice_status to 'draft' when number generated
+
+### Files Modified
 - ✅ Modify: `src/hooks/useLineItemCrud.ts` (add auto-invoice number assignment logic) - Commit: 87cd279
 - ✅ Modify: `src/components/OpportunityCard.tsx` (add sent_date to markAsSentMutation) - Commit: dc55ca6
 - ✅ Modify: `src/components/InvoicePreviewModal.tsx` (add sent_date to handleMarkAsSent) - Commit: dc55ca6
-- Modify: `src/components/OpportunityCard.tsx` (add overdue calculation for status display)
-- Modify: `src/utils/dashboardCalculations.ts` (ensure overdue detection in metrics)
+- ✅ Modify: `src/components/OpportunityCard.tsx` (add overdue calculation for status display) - Commit: e698b71
+- ✅ Modify: `src/pages/Dashboard.tsx` (add overdue detection to filters) - Commit: e698b71
+- ✅ Modify: `supabase/functions/contract-upload/database-sync.ts` (add invoice number generation) - Commit: a372e85
+
+### Completion
+**Status**: ✅ Completed
+**Commits**:
+- 87cd279 - Fix 1: Auto-generate invoice numbers when billed_at is set
+- dc55ca6 - Fix 2: Populate sent_date when marking invoices as sent
+- e698b71 - Fix 3: Implement real-time overdue detection
+- a372e85 - Fix 4: Generate invoice numbers on line item creation
 
 ### Testing Plan
 
