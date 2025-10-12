@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useInvoiceNumbering } from './useInvoiceNumbering';
 
 interface LineItem {
   id: string;
@@ -22,6 +23,7 @@ interface UpdateLineItemParams {
     description?: string;
     billed_at?: string | null;
     unit_rate?: number;
+    invoice_number?: string;
   };
 }
 
@@ -38,6 +40,7 @@ interface DeleteLineItemParams {
 export const useLineItemCrud = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { generateNewInvoiceNumber } = useInvoiceNumbering();
 
   /**
    * Update a line item with Act! API sync
@@ -47,7 +50,7 @@ export const useLineItemCrud = () => {
       // First, get the current item and its Act! opportunity ID
       const { data: currentItem, error: fetchError } = await supabase
         .from('invoice_line_items')
-        .select('act_reference, opportunity_id, details, unit_rate')
+        .select('act_reference, opportunity_id, details, unit_rate, invoice_number, billed_at')
         .eq('id', itemId)
         .single();
 
@@ -55,26 +58,46 @@ export const useLineItemCrud = () => {
         throw new Error(`Failed to fetch current item: ${fetchError.message}`);
       }
 
-      // Get the Act! opportunity ID separately
+      // Get the Act! opportunity ID and company name for invoice numbering
       let actOpportunityId = opportunityId;
-      if (currentItem.act_reference) {
+      let companyName = '';
+      if (currentItem.act_reference || currentItem.opportunity_id) {
         const { data: opportunityData, error: oppError } = await supabase
           .from('opportunities')
-          .select('act_opportunity_id')
+          .select('act_opportunity_id, company_name')
           .eq('id', currentItem.opportunity_id)
           .single();
-        
+
         if (oppError) {
-          console.warn('Could not fetch Act! opportunity ID:', oppError);
+          console.warn('Could not fetch opportunity data:', oppError);
         } else {
           actOpportunityId = opportunityData.act_opportunity_id || opportunityId;
+          companyName = opportunityData.company_name || '';
+        }
+      }
+
+      // Generate invoice number if billed_at is being set and invoice_number doesn't exist
+      let finalUpdates = { ...updates };
+      if (updates.billed_at && !currentItem.invoice_number && companyName) {
+        console.log('Generating new invoice number for line item:', itemId);
+        const invoiceNumber = await generateNewInvoiceNumber(
+          companyName,
+          currentItem.opportunity_id,
+          updates.billed_at
+        );
+
+        if (invoiceNumber) {
+          finalUpdates = { ...finalUpdates, invoice_number: invoiceNumber };
+          console.log('Generated invoice number:', invoiceNumber);
+        } else {
+          console.warn('Failed to generate invoice number, proceeding without it');
         }
       }
 
       // Update the database record
       const { error: updateError } = await supabase
         .from('invoice_line_items')
-        .update(updates)
+        .update(finalUpdates)
         .eq('id', itemId);
 
       if (updateError) {
