@@ -1,8 +1,8 @@
 // Tab visibility handler to prevent unwanted refreshes
 // This runs outside React's lifecycle to avoid framework conflicts
 
-// Enable debug logging for troubleshooting
-const DEBUG_TAB_VISIBILITY = true;
+// Enable debug logging only in development mode
+const DEBUG_TAB_VISIBILITY = import.meta.env.DEV;
 
 let isTabActive = true;
 let lastActiveTime = Date.now();

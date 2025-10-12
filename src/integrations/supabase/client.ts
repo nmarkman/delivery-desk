@@ -8,8 +8,8 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Enable debug logging for troubleshooting
-const DEBUG_SUPABASE = true;
+// Enable debug logging only in development mode (important-comment)
+const DEBUG_SUPABASE = import.meta.env.DEV;
 
 function logSupabaseEvent(event: string, details?: unknown) {
   if (DEBUG_SUPABASE) {
