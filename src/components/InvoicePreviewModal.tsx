@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, Download, Send, CheckCircle, Loader2 } from 'lucide-react';
+import { X, Download, Send, CheckCircle, Loader2, DollarSign } from 'lucide-react';
 import { InvoiceTemplate, type InvoiceData } from '@/components/invoices/InvoiceTemplate';
 import { downloadInvoicePDF } from '@/utils/pdfGenerator';
 import { parseInvoiceNumber, extractClientShortform } from '@/utils/invoiceHelpers';
@@ -183,7 +183,7 @@ export default function InvoicePreviewModal({
                 {isUpdating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <CheckCircle className="h-4 w-4" />
+                  <DollarSign className="h-4 w-4" />
                 )}
                 Mark as Paid
               </Button>

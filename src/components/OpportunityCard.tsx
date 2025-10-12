@@ -9,7 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Settings, Calendar, Edit3, Check, X, AlertCircle, Loader2, Trash2, FileText, ChevronDown, ChevronUp, Plus, Send, Copy, CheckCircle } from 'lucide-react';
+import { Settings, Calendar, Edit3, Check, X, AlertCircle, Loader2, Trash2, FileText, ChevronDown, ChevronUp, Plus, Send, Copy, CheckCircle, Eye, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLineItems } from '@/hooks/useLineItems';
 import { useOpportunityBilling } from '@/hooks/useOpportunityBilling';
@@ -628,8 +628,8 @@ Status: ${item.invoice_status || 'Draft'}`;
                           )}
                         </div>
 
-                        {/* Right side container - slides left on hover to make room for action buttons */}
-                        <div className="flex items-center gap-4 transition-all duration-200 group-hover:mr-40">
+                        {/* Right side container */}
+                        <div className="flex items-center gap-4 mr-40">
                           {/* Date */}
                           <div className="flex items-center gap-1 text-xs text-gray-600 w-36 justify-end flex-shrink-0">
                             {editingItemId === item.id ? (
@@ -691,8 +691,8 @@ Status: ${item.invoice_status || 'Draft'}`;
                           </div>
                         </div>
 
-                        {/* Action Buttons - absolute positioned on the right, appear on hover */}
-                        <div className="absolute right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        {/* Action Buttons - absolute positioned on the right, always visible */}
+                        <div className="absolute right-2 flex gap-1.5">
                           {editingItemId === item.id ? (
                             <>
                               <Tooltip>
@@ -730,63 +730,7 @@ Status: ${item.invoice_status || 'Draft'}`;
                             </>
                           ) : (
                             <>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={() => startEditingItem(item)}
-                                    disabled={updatingItemId === item.id || deletingItemId === item.id || updatingStatusItemId === item.id}
-                                  >
-                                    <Edit3 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Edit</p></TooltipContent>
-                              </Tooltip>
-
-                              {item.billed_at && billingInfo && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={() => handleViewInvoice(item)}
-                                      disabled={updatingItemId === item.id || deletingItemId === item.id || updatingStatusItemId === item.id}
-                                    >
-                                      <FileText className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent><p>View Invoice</p></TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={() => {
-                                      if (confirm('Are you sure you want to delete this line item? This will also remove it from Act! CRM.')) {
-                                        setDeletingItemId(item.id);
-                                        deleteLineItem(item.id, item.act_reference);
-                                      }
-                                    }}
-                                    disabled={updatingItemId === item.id || deletingItemId === item.id || updatingStatusItemId === item.id}
-                                  >
-                                    {deletingItemId === item.id ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Trash2 className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Delete</p></TooltipContent>
-                              </Tooltip>
-
-                              {/* Status-based action buttons - only show if billing info is set AND billing date is set */}
+                              {/* Status-based action buttons - always leftmost, only show if billing info is set AND billing date is set */}
                               {billingInfo && item.billed_at && item.invoice_status === 'draft' && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -821,13 +765,69 @@ Status: ${item.invoice_status || 'Draft'}`;
                                       {updatingStatusItemId === item.id ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                       ) : (
-                                        <CheckCircle className="h-4 w-4" />
+                                        <DollarSign className="h-4 w-4" />
                                       )}
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent><p>Mark as Paid</p></TooltipContent>
                                 </Tooltip>
                               )}
+
+                              {item.billed_at && billingInfo && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => handleViewInvoice(item)}
+                                      disabled={updatingItemId === item.id || deletingItemId === item.id || updatingStatusItemId === item.id}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>View Invoice</p></TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => startEditingItem(item)}
+                                    disabled={updatingItemId === item.id || deletingItemId === item.id || updatingStatusItemId === item.id}
+                                  >
+                                    <Edit3 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Edit</p></TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => {
+                                      if (confirm('Are you sure you want to delete this line item? This will also remove it from Act! CRM.')) {
+                                        setDeletingItemId(item.id);
+                                        deleteLineItem(item.id, item.act_reference);
+                                      }
+                                    }}
+                                    disabled={updatingItemId === item.id || deletingItemId === item.id || updatingStatusItemId === item.id}
+                                  >
+                                    {deletingItemId === item.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Delete</p></TooltipContent>
+                              </Tooltip>
                             </>
                           )}
                         </div>
