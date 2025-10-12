@@ -14,8 +14,8 @@ import { formatCurrency, calculateOverdueStatus } from '@/utils/invoiceHelpers';
 import { calculateDashboardMetrics } from '@/utils/dashboardCalculations';
 import { useQueryClient } from '@tanstack/react-query';
 
-// Enable debug logging for troubleshooting
-const DEBUG_DASHBOARD = true;
+// Enable debug logging only in development mode
+const DEBUG_DASHBOARD = import.meta.env.DEV;
 
 function logDashboardEvent(event: string, details?: unknown) {
   if (DEBUG_DASHBOARD) {

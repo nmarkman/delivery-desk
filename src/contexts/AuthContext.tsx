@@ -3,8 +3,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-// Enable debug logging for troubleshooting
-const DEBUG_AUTH = true;
+// Enable debug logging only in development mode (important-comment)
+const DEBUG_AUTH = import.meta.env.DEV;
 
 function logAuthEvent(event: string, details?: unknown) {
   if (DEBUG_AUTH) {

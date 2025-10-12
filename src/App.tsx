@@ -7,8 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { initTabVisibilityHandler, cleanupTabVisibilityHandler } from "@/utils/tabVisibilityHandler";
 
-// Enable debug logging for troubleshooting
-const DEBUG_APP = true;
+// Enable debug logging only in development mode
+const DEBUG_APP = import.meta.env.DEV;
 
 function logAppEvent(event: string, details?: unknown) {
   if (DEBUG_APP) {
