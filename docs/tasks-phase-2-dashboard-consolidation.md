@@ -1049,10 +1049,21 @@ Simple one-line addition to both locations:
 2. InvoicePreviewModal.tsx handleMarkAsSent (line 81)
 3. Add `sent_date: new Date().toISOString().split('T')[0]` to update object
 
+#### Fix 3: Add Overdue Detection to Dashboard
+Simple addition of existing logic to Dashboard/OpportunityCard:
+
+1. Import `calculateOverdueStatus` from invoiceHelpers
+2. Calculate overdue status on-the-fly when rendering status badges
+3. Display "Overdue" badge when calculation returns true
+4. Update status counts to include calculated overdue items
+5. Consistent with how `/invoices` page already works
+
 ### Files to Modify
-- Modify: `src/hooks/useLineItemCrud.ts` (add auto-invoice number assignment logic)
-- Modify: `src/components/OpportunityCard.tsx` (add sent_date to markAsSentMutation)
-- Modify: `src/components/InvoicePreviewModal.tsx` (add sent_date to handleMarkAsSent)
+- ✅ Modify: `src/hooks/useLineItemCrud.ts` (add auto-invoice number assignment logic) - Commit: 87cd279
+- ✅ Modify: `src/components/OpportunityCard.tsx` (add sent_date to markAsSentMutation) - Commit: dc55ca6
+- ✅ Modify: `src/components/InvoicePreviewModal.tsx` (add sent_date to handleMarkAsSent) - Commit: dc55ca6
+- Modify: `src/components/OpportunityCard.tsx` (add overdue calculation for status display)
+- Modify: `src/utils/dashboardCalculations.ts` (ensure overdue detection in metrics)
 
 ### Testing Plan
 

@@ -213,9 +213,28 @@ export default function Dashboard() {
     // Apply status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter((opp) => {
-        const oppInvoices = invoiceLineItems.filter(item =>
-          item.opportunity_id === opp.id && item.invoice_status === statusFilter
-        );
+        const oppInvoices = invoiceLineItems.filter(item => {
+          if (item.opportunity_id !== opp.id) return false;
+
+          const status = item.invoice_status || 'draft';
+
+          // Get payment terms for overdue calculation
+          const billingInfo = item.opportunities?.opportunity_billing_info;
+          const paymentTerms = Array.isArray(billingInfo) && billingInfo.length > 0 ? billingInfo[0].payment_terms || 30 : 30;
+          const isOverdue = calculateOverdueStatus(status, item.billed_at, item.payment_date, paymentTerms);
+
+          // Handle different filter values
+          if (statusFilter === 'sent') {
+            // "Sent" filter shows both sent and overdue (overdue are technically sent invoices)
+            return status === 'sent' || isOverdue;
+          } else if (statusFilter === 'overdue') {
+            // "Overdue" filter shows only calculated overdue
+            return isOverdue;
+          } else {
+            // Other filters (draft, paid) match exactly
+            return status === statusFilter;
+          }
+        });
         return oppInvoices.length > 0;
       });
     }

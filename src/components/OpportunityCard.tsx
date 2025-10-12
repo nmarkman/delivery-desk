@@ -20,6 +20,7 @@ import type { InvoiceData } from '@/components/invoices/InvoiceTemplate';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { calculateOverdueStatus } from '@/utils/invoiceHelpers';
 
 interface LineItem {
   id: string;
@@ -361,6 +362,21 @@ Status: ${item.invoice_status || 'Draft'}`;
     }
   };
 
+  // Calculate effective invoice status (including overdue detection)
+  const getEffectiveStatus = (item: LineItem): 'draft' | 'sent' | 'paid' | 'overdue' => {
+    const status = item.invoice_status || 'draft';
+    const paymentTerms = billingInfo?.payment_terms || 30;
+
+    // Check if invoice should be marked as overdue
+    const isOverdue = calculateOverdueStatus(status, item.billed_at, null, paymentTerms);
+
+    if (isOverdue) {
+      return 'overdue';
+    }
+
+    return status as 'draft' | 'sent' | 'paid' | 'overdue';
+  };
+
   const isDeliverable = (item: LineItem): boolean => {
     return item.details?.toLowerCase() === 'deliverable';
   };
@@ -383,7 +399,16 @@ Status: ${item.invoice_status || 'Draft'}`;
     // First filter by status if a specific status is selected
     .filter(item => {
       if (statusFilter === 'all') return true;
-      return item.invoice_status === statusFilter;
+
+      const effectiveStatus = getEffectiveStatus(item);
+
+      // "Sent" filter shows both sent and overdue (overdue are technically sent)
+      if (statusFilter === 'sent') {
+        return effectiveStatus === 'sent' || effectiveStatus === 'overdue';
+      }
+
+      // Other filters match the effective status exactly
+      return effectiveStatus === statusFilter;
     })
     // Then sort chronologically by billing date
     .sort((a, b) => {
@@ -403,20 +428,20 @@ Status: ${item.invoice_status || 'Draft'}`;
     return sum + (item.unit_rate || 0);
   }, 0);
 
-  // Calculate actual invoice status counts from displayed line items
+  // Calculate actual invoice status counts from displayed line items (using effective status)
   const actualInvoiceStatusCounts = {
-    draft: lineItems.filter(item => item.invoice_status === 'draft').length,
-    sent: lineItems.filter(item => item.invoice_status === 'sent').length,
-    paid: lineItems.filter(item => item.invoice_status === 'paid').length,
-    overdue: lineItems.filter(item => item.invoice_status === 'overdue').length,
+    draft: lineItems.filter(item => getEffectiveStatus(item) === 'draft').length,
+    sent: lineItems.filter(item => getEffectiveStatus(item) === 'sent').length,
+    paid: lineItems.filter(item => getEffectiveStatus(item) === 'paid').length,
+    overdue: lineItems.filter(item => getEffectiveStatus(item) === 'overdue').length,
   };
 
-  // Calculate total dollar amounts by status
+  // Calculate total dollar amounts by status (using effective status)
   const statusTotals = {
-    draft: lineItems.filter(item => item.invoice_status === 'draft').reduce((sum, item) => sum + (item.unit_rate || 0), 0),
-    sent: lineItems.filter(item => item.invoice_status === 'sent').reduce((sum, item) => sum + (item.unit_rate || 0), 0),
-    paid: lineItems.filter(item => item.invoice_status === 'paid').reduce((sum, item) => sum + (item.unit_rate || 0), 0),
-    overdue: lineItems.filter(item => item.invoice_status === 'overdue').reduce((sum, item) => sum + (item.unit_rate || 0), 0),
+    draft: lineItems.filter(item => getEffectiveStatus(item) === 'draft').reduce((sum, item) => sum + (item.unit_rate || 0), 0),
+    sent: lineItems.filter(item => getEffectiveStatus(item) === 'sent').reduce((sum, item) => sum + (item.unit_rate || 0), 0),
+    paid: lineItems.filter(item => getEffectiveStatus(item) === 'paid').reduce((sum, item) => sum + (item.unit_rate || 0), 0),
+    overdue: lineItems.filter(item => getEffectiveStatus(item) === 'overdue').reduce((sum, item) => sum + (item.unit_rate || 0), 0),
   };
 
   // Use actual counts if available, otherwise fall back to passed counts
@@ -526,7 +551,7 @@ Status: ${item.invoice_status || 'Draft'}`;
                 </TooltipContent>
               </Tooltip>
             )}
-            {displayStatusCounts.overdue > 0 && (statusFilter === 'all' || statusFilter === 'overdue') && (
+            {displayStatusCounts.overdue > 0 && (statusFilter === 'all' || statusFilter === 'overdue' || statusFilter === 'sent') && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="inline-flex">
@@ -672,23 +697,26 @@ Status: ${item.invoice_status || 'Draft'}`;
                                 <span className="text-sm font-medium">
                                   ${item.unit_rate?.toLocaleString() || '0'}
                                 </span>
-                                {item.invoice_status && (
-                                  <Badge
-                                    variant={
-                                      item.invoice_status === 'draft' ? 'secondary' :
-                                      item.invoice_status === 'sent' ? 'default' :
-                                      item.invoice_status === 'paid' ? 'default' :
-                                      'destructive'
-                                    }
-                                    className={`text-xs pointer-events-none ${
-                                      item.invoice_status === 'sent' ? 'bg-blue-500 hover:bg-blue-500' :
-                                      item.invoice_status === 'paid' ? 'bg-green-500 hover:bg-green-500' :
-                                      item.invoice_status === 'overdue' ? 'hover:bg-destructive' : ''
-                                    }`}
-                                  >
-                                    {item.invoice_status.charAt(0).toUpperCase() + item.invoice_status.slice(1)}
-                                  </Badge>
-                                )}
+                                {item.invoice_status && (() => {
+                                  const effectiveStatus = getEffectiveStatus(item);
+                                  return (
+                                    <Badge
+                                      variant={
+                                        effectiveStatus === 'draft' ? 'secondary' :
+                                        effectiveStatus === 'sent' ? 'default' :
+                                        effectiveStatus === 'paid' ? 'default' :
+                                        'destructive'
+                                      }
+                                      className={`text-xs pointer-events-none ${
+                                        effectiveStatus === 'sent' ? 'bg-blue-500 hover:bg-blue-500' :
+                                        effectiveStatus === 'paid' ? 'bg-green-500 hover:bg-green-500' :
+                                        effectiveStatus === 'overdue' ? 'bg-red-600 hover:bg-red-700 animate-pulse' : ''
+                                      }`}
+                                    >
+                                      {effectiveStatus.charAt(0).toUpperCase() + effectiveStatus.slice(1)}
+                                    </Badge>
+                                  );
+                                })()}
                               </>
                             )}
                           </div>
