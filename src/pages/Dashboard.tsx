@@ -472,8 +472,12 @@ export default function Dashboard() {
           state: event.query.state.status
         });
 
-        // Refresh invoice data in background when line items change
-        refreshInvoiceDataInBackground();
+        // Delay the background refresh to avoid interfering with ongoing mutations
+        // This prevents race conditions where the refresh tries to fetch data
+        // while a mutation is still in progress
+        setTimeout(() => {
+          refreshInvoiceDataInBackground();
+        }, 1000);
       }
     });
 

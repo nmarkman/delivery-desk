@@ -268,6 +268,9 @@ export const useLineItemCrud = () => {
         actReference
       });
 
+      // Wait a moment to ensure database transaction completes
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // If item has Act! reference, delete from Act! CRM
       let actSyncResult = null;
       if (actReference) {
@@ -280,7 +283,7 @@ export const useLineItemCrud = () => {
 
           // Call Act! delete endpoint - pass DeliveryDesk opportunity ID
           // Edge function will look up the Act! opportunity ID
-          const { data: syncResponse, error: syncError } = await supabase.functions.invoke(
+          const { data: syncResponse, error: syncError} = await supabase.functions.invoke(
             'act-sync',
             {
               body: {

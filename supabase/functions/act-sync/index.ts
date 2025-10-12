@@ -1,6 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { ActClient } from './act-client.ts';
 import { UserActConnection, ActApiResponse } from './types.ts';
+
+// Initialize Supabase admin client
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // Initialize Act! client
 const actClient = new ActClient();
@@ -19,20 +25,41 @@ serve(async (req) => {
   }
 
   console.log("Edge Function called for Act! API sync with user-specific authentication");
-  
+
   try {
     // Parse request body to get user_id and operation parameters
-    const { 
-      user_id, 
-      operation_type = 'analysis', 
-      test_credentials, 
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log("📦 Request body received:", JSON.stringify(requestBody, null, 2));
+    } catch (jsonError) {
+      console.error("Failed to parse request JSON:", jsonError);
+      return new Response(
+        JSON.stringify({
+          error: "Invalid JSON in request body",
+          details: jsonError instanceof Error ? jsonError.message : 'Unknown error'
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    }
+
+    const {
+      user_id,
+      operation_type = 'analysis',
+      test_credentials,
       test_opportunity_id,
       // Product operation parameters
       action,
       opportunityId,
       productId,
-      productData
-    } = await req.json();
+      productData,
+      deliveryDeskOpportunityId
+    } = requestBody;
+
+    console.log("🔍 Parsed parameters:", { user_id, action, deliveryDeskOpportunityId, productId });
     
     if (!user_id) {
       return new Response(
@@ -211,8 +238,6 @@ serve(async (req) => {
     }
 
     if (action === 'deleteProduct') {
-      const deliveryDeskOpportunityId = requestBody.deliveryDeskOpportunityId;
-
       if (!deliveryDeskOpportunityId && !opportunityId) {
         return new Response(
           JSON.stringify({
