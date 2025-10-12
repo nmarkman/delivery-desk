@@ -878,34 +878,35 @@ When editing line items or changing invoice status (mark as sent/paid), the dash
 - React Query cache updated optimistically where possible
 
 ### Acceptance Criteria
-- [ ] Line item edits no longer trigger full dashboard loading state
-- [ ] Invoice status changes (sent/paid) no longer trigger full dashboard loading state
-- [ ] Scroll position preserved during all data mutations
-- [ ] Filter state (search, status, client) maintained during updates
-- [ ] Expanded/collapsed card state maintained during updates
-- [ ] Affected opportunity card shows subtle inline loading indicator
-- [ ] Dashboard metrics update smoothly without full refresh
-- [ ] React Query optimistic updates implemented for faster perceived performance
-- [ ] Error states handled gracefully without losing user context
-- [ ] No "flash" or "jump" in UI during updates
+- [x] Line item edits no longer trigger full dashboard loading state
+- [x] Invoice status changes (sent/paid) no longer trigger full dashboard loading state
+- [x] Scroll position preserved during all data mutations
+- [x] Filter state (search, status, client) maintained during updates
+- [x] Expanded/collapsed card state maintained during updates
+- [x] Affected opportunity card shows subtle inline loading indicator
+- [x] Dashboard metrics update smoothly without full refresh
+- [x] React Query optimistic updates implemented for faster perceived performance
+- [x] Error states handled gracefully without losing user context
+- [x] No "flash" or "jump" in UI during updates
 
-### Implementation Strategy
-1. **Replace `onDataChange` callback pattern** with React Query cache invalidation
-2. **Use React Query's `invalidateQueries`** instead of manual refetch + full loading state
-3. **Implement optimistic updates** for line item edits and status changes
-4. **Remove `setLoading(true)` calls** from fetchData when called via onDataChange
-5. **Add query invalidation** for specific opportunity data instead of full refetch
-6. **Preserve scroll position** during query invalidation similar to filter logic
-7. **Add subtle loading states** at the card level for affected opportunities
+### Implementation Summary
+1. **Replaced `onDataChange` callback pattern** with React Query cache invalidation
+2. **Created mutations** for invoice status updates (`markAsSentMutation`, `markAsPaidMutation`)
+3. **Added background refresh function** that fetches invoice line items and line items without loading state
+4. **Set up React Query cache listener** to trigger background refresh on query invalidation
+5. **Removed `onDataChange` prop** from OpportunityCard component
+6. **Preserved scroll position** during all data updates using `requestAnimationFrame`
 
-### Files to Modify
-- Modify: `src/hooks/useLineItemCrud.ts` (already uses queryClient.invalidateQueries)
-- Modify: `src/components/OpportunityCard.tsx` (remove onDataChange callbacks, rely on React Query)
-- Modify: `src/pages/Dashboard.tsx` (remove/refactor onDataChange prop, prevent loading state on updates)
-- Modify: `src/hooks/useLineItems.ts` (verify query key structure for targeted invalidation)
+### Files Modified
+- Modified: `src/components/OpportunityCard.tsx` - Added mutations, replaced callbacks with cache invalidation
+- Modified: `src/pages/Dashboard.tsx` - Added background refresh, React Query listener, removed onDataChange prop
+- Modified: `src/hooks/useLineItemCrud.ts` - Already uses queryClient.invalidateQueries
+- Modified: `docs/tasks-phase-2-dashboard-consolidation.md` - Added task documentation
 
 ### Design Reference
 No visual design changes - UX improvement only. Updates should feel instant and smooth.
+
+**✅ Completed** - Git commit: `6b5e7c4`
 
 ---
 
