@@ -12,6 +12,7 @@ import InvoiceStatusFilter from '@/components/InvoiceStatusFilter';
 import ClientFilter from '@/components/ClientFilter';
 import { formatCurrency, calculateOverdueStatus } from '@/utils/invoiceHelpers';
 import { calculateDashboardMetrics } from '@/utils/dashboardCalculations';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Enable debug logging for troubleshooting
 const DEBUG_DASHBOARD = true;
@@ -79,6 +80,7 @@ interface LineItem {
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [clients, setClients] = useState<Client[]>([]);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [filteredOpportunities, setFilteredOpportunities] = useState<Opportunity[]>([]);
@@ -361,6 +363,104 @@ export default function Dashboard() {
     }
   };
 
+  // Background refresh for invoice data when line items change
+  // This preserves scroll position and filters while updating metrics
+  const refreshInvoiceDataInBackground = useCallback(async () => {
+    if (!user?.id) return;
+
+    logDashboardEvent('BACKGROUND_REFRESH_START', { userId: user.id });
+
+    // Save current scroll position
+    const scrollY = window.scrollY;
+
+    try {
+      // Fetch updated invoice line items (for metrics and status)
+      const invoiceResult = await supabase
+        .from('invoice_line_items')
+        .select(`
+          id,
+          opportunity_id,
+          invoice_number,
+          invoice_status,
+          line_total,
+          billed_at,
+          payment_date,
+          opportunities!inner(
+            user_id,
+            opportunity_billing_info(payment_terms)
+          )
+        `)
+        .eq('opportunities.user_id', user.id)
+        .is('act_deleted_at', null);
+
+      if (invoiceResult.error) {
+        console.warn('Background refresh error (invoices):', invoiceResult.error);
+        return;
+      }
+
+      // Fetch updated line items (for contract value calculations)
+      const lineItemsResult = await supabase
+        .from('invoice_line_items')
+        .select(`
+          id,
+          opportunity_id,
+          description,
+          unit_rate,
+          act_deleted_at,
+          opportunities!inner(user_id)
+        `)
+        .eq('opportunities.user_id', user.id)
+        .is('act_deleted_at', null);
+
+      if (lineItemsResult.error) {
+        console.warn('Background refresh error (line items):', lineItemsResult.error);
+        return;
+      }
+
+      // Update both state values to refresh metrics
+      if (invoiceResult.data) {
+        setInvoiceLineItems(invoiceResult.data);
+      }
+
+      if (lineItemsResult.data) {
+        setLineItems(lineItemsResult.data);
+      }
+
+      logDashboardEvent('BACKGROUND_REFRESH_SUCCESS', {
+        invoiceCount: invoiceResult.data?.length || 0,
+        lineItemCount: lineItemsResult.data?.length || 0
+      });
+
+      // Restore scroll position immediately
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollY);
+      });
+    } catch (error) {
+      logDashboardEvent('BACKGROUND_REFRESH_ERROR', { error });
+      console.warn('Background refresh failed:', error);
+    }
+  }, [user?.id]);
+
+  // Listen for React Query cache updates and refresh data in background
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      // When any lineItems query is invalidated, refresh invoice data
+      if (event?.type === 'updated' && event?.query?.queryKey?.[0] === 'lineItems') {
+        logDashboardEvent('QUERY_CACHE_UPDATE', {
+          queryKey: event.query.queryKey,
+          state: event.query.state.status
+        });
+
+        // Refresh invoice data in background when line items change
+        refreshInvoiceDataInBackground();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user?.id, queryClient, refreshInvoiceDataInBackground]);
+
   // Track if this is the first mount
   const isFirstMount = useRef(true);
   const prevUserId = useRef<string | undefined>();
@@ -375,7 +475,7 @@ export default function Dashboard() {
       prevUserId: prevUserId.current,
       willFetch: user && (isFirstMount.current || prevUserId.current !== user.id)
     });
-    
+
     if (user) {
       if (isFirstMount.current || prevUserId.current !== user.id) {
         logDashboardEvent('TRIGGERING_DATA_FETCH', {
@@ -645,7 +745,6 @@ export default function Dashboard() {
                   defaultExpanded={false}
                   isExpanded={expandedCards[opportunity.id] ?? false}
                   onExpandToggle={handleCardExpandToggle}
-                  onDataChange={fetchData}
                   invoiceStatusCounts={getInvoiceStatusCounts(opportunity.id)}
                   statusFilter={statusFilter}
                 />

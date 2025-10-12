@@ -853,7 +853,112 @@ Final pass to ensure all visual details match the mock design and polish the use
 
 ---
 
-## Task 20: Fix Line Item Delete Bug - Act! Sync Not Completing
+## Task 20: Preserve Dashboard State After Data Updates
+
+**Priority**: High | **Estimated Effort**: Medium
+
+### Description
+When editing line items or changing invoice status (mark as sent/paid), the dashboard forces a full refresh that loses user context. The user is taken away from their current scroll position and any applied filters are maintained but the loading state disrupts the experience. We need to handle data updates more gracefully by updating data in the background without showing a full loading state, while preserving scroll position and filter state.
+
+### Current State
+- Editing a line item triggers `refetchLineItems()` ([src/components/OpportunityCard.tsx](../src/components/OpportunityCard.tsx):865, 875)
+- Marking invoices as sent/paid triggers `refetchLineItems()` and `onDataChange()` ([src/components/OpportunityCard.tsx](../src/components/OpportunityCard.tsx):227-228, 252-253)
+- `onDataChange()` calls `fetchData()` which sets `setLoading(true)` ([src/pages/Dashboard.tsx](../src/pages/Dashboard.tsx):648)
+- Full dashboard loading state shown, disrupting user experience
+- Scroll position is preserved for filter changes but not for data updates
+- Filter state is maintained via React state
+
+### Target State
+- Line item edits update data in background without showing full loading state
+- Invoice status changes update data in background without showing full loading state
+- User's scroll position is preserved during all updates
+- Applied filters remain active during updates
+- Expanded/collapsed card state preserved during updates
+- Only the affected opportunity card shows a subtle loading indicator if needed
+- React Query cache updated optimistically where possible
+
+### Acceptance Criteria
+- [ ] Line item edits no longer trigger full dashboard loading state
+- [ ] Invoice status changes (sent/paid) no longer trigger full dashboard loading state
+- [ ] Scroll position preserved during all data mutations
+- [ ] Filter state (search, status, client) maintained during updates
+- [ ] Expanded/collapsed card state maintained during updates
+- [ ] Affected opportunity card shows subtle inline loading indicator
+- [ ] Dashboard metrics update smoothly without full refresh
+- [ ] React Query optimistic updates implemented for faster perceived performance
+- [ ] Error states handled gracefully without losing user context
+- [ ] No "flash" or "jump" in UI during updates
+
+### Implementation Strategy
+1. **Replace `onDataChange` callback pattern** with React Query cache invalidation
+2. **Use React Query's `invalidateQueries`** instead of manual refetch + full loading state
+3. **Implement optimistic updates** for line item edits and status changes
+4. **Remove `setLoading(true)` calls** from fetchData when called via onDataChange
+5. **Add query invalidation** for specific opportunity data instead of full refetch
+6. **Preserve scroll position** during query invalidation similar to filter logic
+7. **Add subtle loading states** at the card level for affected opportunities
+
+### Files to Modify
+- Modify: `src/hooks/useLineItemCrud.ts` (already uses queryClient.invalidateQueries)
+- Modify: `src/components/OpportunityCard.tsx` (remove onDataChange callbacks, rely on React Query)
+- Modify: `src/pages/Dashboard.tsx` (remove/refactor onDataChange prop, prevent loading state on updates)
+- Modify: `src/hooks/useLineItems.ts` (verify query key structure for targeted invalidation)
+
+### Design Reference
+No visual design changes - UX improvement only. Updates should feel instant and smooth.
+
+---
+
+## Task 21: Make Invoice Line Item Action Buttons Always Visible
+
+**Priority**: Medium | **Estimated Effort**: Small
+
+### Description
+Currently, action buttons on invoice line items (Edit, View Invoice, Delete, Mark as Sent/Paid) only appear on hover with a sliding animation. This creates a "bouncy" reveal effect. We want to make these buttons permanently visible while retaining all existing button logic, design, tooltips, and conditional rendering.
+
+### Current State
+- Action buttons are absolutely positioned and hidden by default ([src/components/OpportunityCard.tsx](../src/components/OpportunityCard.tsx):672)
+- CSS class: `opacity-0 group-hover:opacity-100 transition-opacity duration-200`
+- Price and status slide left on hover with class: `group-hover:mr-40`
+- Buttons only visible when hovering over line item row
+- All button logic, tooltips, and conditional rendering work correctly
+
+### Target State
+- Action buttons are always visible on each line item row
+- No hover-based reveal animation
+- Price and status remain in fixed position (no sliding)
+- All existing button functionality preserved:
+  - Edit button with edit mode
+  - View Invoice button (conditional on billing date and billing config)
+  - Delete button with confirmation
+  - Mark as Sent button (conditional on draft status and billing config)
+  - Mark as Paid button (conditional on sent/overdue status and billing config)
+- All tooltips remain functional
+- All loading states remain functional
+- Button styling and spacing maintained
+
+### Acceptance Criteria
+- [ ] Action buttons visible at all times (no hover required)
+- [ ] Remove `opacity-0 group-hover:opacity-100` classes from button container
+- [ ] Remove `group-hover:mr-40` from price/status container
+- [ ] Adjust line item layout to accommodate always-visible buttons
+- [ ] Price and status remain right-aligned without sliding animation
+- [ ] All button logic unchanged (edit, view, delete, mark as sent/paid)
+- [ ] All conditional button rendering unchanged
+- [ ] All tooltips continue to work
+- [ ] All loading states continue to work
+- [ ] Visual spacing and alignment looks clean with always-visible buttons
+- [ ] No layout shift or overlap between price/status and action buttons
+
+### Files to Modify
+- Modify: `src/components/OpportunityCard.tsx` (lines 671-780 - action button container and layout)
+
+### Design Reference
+Retain all existing button styling, icons, tooltips, and behavior. Only change is making buttons always visible instead of hover-reveal.
+
+---
+
+## Task 22: Fix Line Item Delete Bug - Act! Sync Not Completing
 
 **Priority**: Critical | **Estimated Effort**: Medium
 

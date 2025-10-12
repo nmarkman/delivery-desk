@@ -211,12 +211,26 @@ serve(async (req) => {
     }
 
     if (action === 'deleteProduct') {
-      if (!opportunityId || !productId) {
+      const deliveryDeskOpportunityId = requestBody.deliveryDeskOpportunityId;
+
+      if (!deliveryDeskOpportunityId && !opportunityId) {
         return new Response(
           JSON.stringify({
             error: "Missing required parameters for deleteProduct action",
-            required: ["opportunityId", "productId"],
-            received: { opportunityId: !!opportunityId, productId: !!productId }
+            required: ["deliveryDeskOpportunityId or opportunityId", "productId"],
+            received: { deliveryDeskOpportunityId: !!deliveryDeskOpportunityId, opportunityId: !!opportunityId, productId: !!productId }
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+
+      if (!productId) {
+        return new Response(
+          JSON.stringify({
+            error: "Missing productId for deleteProduct action"
           }),
           {
             status: 400,
@@ -226,7 +240,37 @@ serve(async (req) => {
       }
 
       try {
-        const deleteResult = await actClient.deleteProduct(opportunityId, productId, connection);
+        // If we received DeliveryDesk opportunity ID, look up the Act! opportunity ID
+        let actOpportunityId = opportunityId;
+        if (deliveryDeskOpportunityId) {
+          console.log(`Looking up Act! opportunity ID for DeliveryDesk ID: ${deliveryDeskOpportunityId}`);
+
+          const { data: opportunityData, error: oppError } = await supabaseAdmin
+            .from('opportunities')
+            .select('act_opportunity_id')
+            .eq('id', deliveryDeskOpportunityId)
+            .single();
+
+          if (oppError || !opportunityData) {
+            console.error('Failed to look up Act! opportunity ID:', oppError);
+            return new Response(
+              JSON.stringify({
+                error: "Failed to look up Act! opportunity ID",
+                details: oppError?.message,
+                deliveryDeskOpportunityId
+              }),
+              {
+                status: 500,
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+              }
+            );
+          }
+
+          actOpportunityId = opportunityData.act_opportunity_id;
+          console.log(`Found Act! opportunity ID: ${actOpportunityId}`);
+        }
+
+        const deleteResult = await actClient.deleteProduct(actOpportunityId, productId, connection);
         
         return new Response(
           JSON.stringify({

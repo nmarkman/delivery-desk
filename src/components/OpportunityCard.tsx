@@ -19,6 +19,7 @@ import InvoicePreviewModal from './InvoicePreviewModal';
 import type { InvoiceData } from '@/components/invoices/InvoiceTemplate';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface LineItem {
   id: string;
@@ -60,6 +61,7 @@ interface OpportunityCardProps {
   defaultExpanded?: boolean;
   isExpanded?: boolean;
   onExpandToggle?: (opportunityId: string, expanded: boolean) => void;
+  /** @deprecated No longer needed - React Query cache invalidation handles updates */
   onDataChange?: () => void;
   invoiceStatusCounts?: InvoiceStatusCounts;
   statusFilter?: string;
@@ -75,6 +77,7 @@ export default function OpportunityCard({
   statusFilter = 'all'
 }: OpportunityCardProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingDescription, setEditingDescription] = useState<string>('');
   const [editingDate, setEditingDate] = useState<string>('');
@@ -100,11 +103,11 @@ export default function OpportunityCard({
       setLocalExpanded(newExpanded);
     }
   };
-  
+
   // Use React Query hook for optimistic updates
-  const { 
-    lineItems, 
-    isLoading: loadingLineItems, 
+  const {
+    lineItems,
+    isLoading: loadingLineItems,
     hasError,
     updateErrorMessage,
     deleteErrorMessage,
@@ -114,6 +117,53 @@ export default function OpportunityCard({
     deleteLineItem,
     refetch: refetchLineItems
   } = useLineItems(opportunity.id);
+
+  // Mutation for marking invoice as sent
+  const markAsSentMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      const { error } = await supabase
+        .from('invoice_line_items')
+        .update({ invoice_status: 'sent' })
+        .eq('id', itemId);
+
+      if (error) throw error;
+      return itemId;
+    },
+    onSuccess: () => {
+      toast.success('Invoice marked as sent');
+      // Invalidate queries to refresh data in background
+      queryClient.invalidateQueries({ queryKey: ['lineItems', opportunity.id] });
+    },
+    onError: (error) => {
+      console.error('Error marking invoice as sent:', error);
+      toast.error('Failed to mark invoice as sent');
+    },
+  });
+
+  // Mutation for marking invoice as paid
+  const markAsPaidMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      const { error } = await supabase
+        .from('invoice_line_items')
+        .update({
+          invoice_status: 'paid',
+          payment_date: new Date().toISOString().split('T')[0]
+        })
+        .eq('id', itemId);
+
+      if (error) throw error;
+      return itemId;
+    },
+    onSuccess: () => {
+      toast.success('Invoice marked as paid');
+      // Invalidate queries to refresh data in background
+      queryClient.invalidateQueries({ queryKey: ['lineItems', opportunity.id] });
+    },
+    onError: (error) => {
+      console.error('Error marking invoice as paid:', error);
+      toast.error('Failed to mark invoice as paid');
+    },
+  });
 
   // Use billing hook to fetch billing information
   const { 
@@ -216,19 +266,7 @@ export default function OpportunityCard({
   const markAsSent = async (itemId: string) => {
     setUpdatingStatusItemId(itemId);
     try {
-      const { error } = await supabase
-        .from('invoice_line_items')
-        .update({ invoice_status: 'sent' })
-        .eq('id', itemId);
-
-      if (error) throw error;
-
-      toast.success('Invoice marked as sent');
-      refetchLineItems();
-      if (onDataChange) onDataChange();
-    } catch (error) {
-      console.error('Error marking invoice as sent:', error);
-      toast.error('Failed to mark invoice as sent');
+      await markAsSentMutation.mutateAsync(itemId);
     } finally {
       setUpdatingStatusItemId(null);
     }
@@ -238,22 +276,7 @@ export default function OpportunityCard({
   const markAsPaid = async (itemId: string) => {
     setUpdatingStatusItemId(itemId);
     try {
-      const { error } = await supabase
-        .from('invoice_line_items')
-        .update({
-          invoice_status: 'paid',
-          payment_date: new Date().toISOString().split('T')[0]
-        })
-        .eq('id', itemId);
-
-      if (error) throw error;
-
-      toast.success('Invoice marked as paid');
-      refetchLineItems();
-      if (onDataChange) onDataChange();
-    } catch (error) {
-      console.error('Error marking invoice as paid:', error);
-      toast.error('Failed to mark invoice as paid');
+      await markAsPaidMutation.mutateAsync(itemId);
     } finally {
       setUpdatingStatusItemId(null);
     }
@@ -862,7 +885,10 @@ Status: ${item.invoice_status || 'Draft'}`;
         opportunityId={opportunity.id}
         opportunityName={opportunity.name}
         companyName={opportunity.company_name}
-        onUploadSuccess={() => refetchLineItems()}
+        onUploadSuccess={() => {
+          // Invalidate line items query to refresh data in background
+          queryClient.invalidateQueries({ queryKey: ['lineItems', opportunity.id] });
+        }}
       />
 
       {/* Invoice Preview Modal */}
@@ -872,8 +898,8 @@ Status: ${item.invoice_status || 'Draft'}`;
         invoiceData={selectedInvoiceData}
         lineItemId={selectedLineItemId}
         onStatusChange={() => {
-          refetchLineItems();
-          if (onDataChange) onDataChange();
+          // Invalidate line items query to refresh data in background
+          queryClient.invalidateQueries({ queryKey: ['lineItems', opportunity.id] });
         }}
       />
       </Card>

@@ -220,73 +220,77 @@ export const useLineItemCrud = () => {
    */
   const deleteLineItemMutation = useMutation({
     mutationFn: async ({ itemId, opportunityId, actReference }: DeleteLineItemParams) => {
-      // First, get the Act! opportunity ID if we need to sync
-      let actOpportunityId = opportunityId;
-      if (actReference) {
-        const { data: opportunityData, error: oppError } = await supabase
-          .from('opportunities')
-          .select('act_opportunity_id')
-          .eq('id', opportunityId)
-          .single();
-        
-        if (oppError) {
-          console.warn('Could not fetch Act! opportunity ID:', oppError);
-        } else {
-          actOpportunityId = opportunityData.act_opportunity_id || opportunityId;
-        }
-      }
-
       // Soft delete by setting act_deleted_at timestamp
       const deletedAt = new Date().toISOString();
-      
-      // CRITICAL LOGGING: Track deletion request
-      console.warn('🔴 DELETION REQUEST:', {
-        timestamp: deletedAt,
-        itemId,
-        opportunityId,
-        actReference,
-        actOpportunityId,
-        stack: new Error().stack?.split('\n').slice(1, 5).join('\n')
-      });
-      
+
+      console.log(`Soft deleting line item ${itemId}...`);
+
       const { error: updateError } = await supabase
         .from('invoice_line_items')
         .update({ act_deleted_at: deletedAt })
         .eq('id', itemId);
 
       if (updateError) {
+        console.error('Soft delete error:', updateError);
         throw new Error(`Failed to soft delete line item: ${updateError.message}`);
       }
+
+      console.log(`Soft delete successful for item ${itemId}`);
+
+      // CRITICAL LOGGING: Track deletion request
+      console.warn('🔴 DELETION REQUEST:', {
+        timestamp: deletedAt,
+        itemId,
+        deliveryDeskOpportunityId: opportunityId,
+        actReference
+      });
 
       // If item has Act! reference, delete from Act! CRM
       let actSyncResult = null;
       if (actReference) {
         try {
-          console.log('Act! API call data:', {
+          console.log('Act! API call data (Note: opportunityId is DeliveryDesk ID, edge function will convert):', {
             action: 'deleteProduct',
-            opportunityId: actOpportunityId,
+            deliveryDeskOpportunityId: opportunityId,
             productId: actReference
           });
 
-          // Call Act! delete endpoint with user_id and Act! opportunity ID
+          // Call Act! delete endpoint - pass DeliveryDesk opportunity ID
+          // Edge function will look up the Act! opportunity ID
           const { data: syncResponse, error: syncError } = await supabase.functions.invoke(
             'act-sync',
             {
               body: {
                 user_id: user?.id,
                 action: 'deleteProduct',
-                opportunityId: actOpportunityId,
+                deliveryDeskOpportunityId: opportunityId,
                 productId: actReference
               }
             }
           );
 
           if (syncError) {
-            console.warn('Act! delete failed, but soft delete succeeded:', syncError);
+            console.error('🔴 Act! delete FAILED:', {
+              error: syncError,
+              errorMessage: syncError.message,
+              errorDetails: JSON.stringify(syncError, null, 2)
+            });
             // Don't fail the entire operation if Act! delete fails
           } else {
-            actSyncResult = syncResponse;
-            console.log('Successfully deleted line item from Act!');
+            console.log('✅ Act! delete response received:', {
+              response: syncResponse,
+              success: syncResponse?.success,
+              error: syncResponse?.error,
+              fullResponse: JSON.stringify(syncResponse, null, 2)
+            });
+
+            // Check if the Act! API call actually succeeded
+            if (syncResponse?.success === false) {
+              console.error('🔴 Act! delete returned success=false:', syncResponse.error);
+            } else {
+              actSyncResult = syncResponse;
+              console.log('✅ Successfully deleted line item from Act!');
+            }
           }
         } catch (syncError) {
           console.warn('Act! delete encountered an error:', syncError);
