@@ -65,13 +65,15 @@ export async function syncContractProductsToDatabase(
       return results;
     }
 
+    const companyName = opportunityValidation.companyName || 'Unknown';
+
     // Step 2: Process line items in batches
     for (let i = 0; i < lineItems.length; i += batchSize) {
       const batch = lineItems.slice(i, i + batchSize);
       console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(lineItems.length/batchSize)}...`);
-      
+
       const batchResults = await Promise.all(
-        batch.map(item => processContractLineItem(item, opportunityId, userId, connection))
+        batch.map(item => processContractLineItem(item, opportunityId, userId, connection, companyName))
       );
 
       // Aggregate batch results
@@ -126,13 +128,13 @@ export async function syncContractProductsToDatabase(
  * Validate that the opportunity exists and is accessible to the user
  */
 async function validateOpportunityAccess(
-  opportunityId: string, 
+  opportunityId: string,
   userId: string
-): Promise<{ valid: boolean; error?: string }> {
+): Promise<{ valid: boolean; error?: string; companyName?: string }> {
   try {
     const { data, error } = await supabase
       .from('opportunities')
-      .select('id, user_id, status')
+      .select('id, user_id, status, company_name')
       .eq('id', opportunityId)
       .eq('user_id', userId)
       .single();
@@ -153,7 +155,7 @@ async function validateOpportunityAccess(
       return { valid: false, error: 'Cannot add products to closed opportunity' };
     }
 
-    return { valid: true };
+    return { valid: true, companyName: data.company_name };
 
   } catch (error) {
     return { valid: false, error: `Validation error: ${error instanceof Error ? error.message : 'Unknown error'}` };
@@ -167,7 +169,8 @@ async function processContractLineItem(
   lineItem: ParsedLineItem,
   opportunityId: string,
   userId: string,
-  connection: UserActConnection
+  connection: UserActConnection,
+  companyName: string
 ): Promise<{
   success: boolean;
   created?: boolean;
@@ -176,7 +179,7 @@ async function processContractLineItem(
 }> {
   try {
     // Step 1: Map contract line item to database record
-    const dbRecord = mapContractLineItemToDb(lineItem, opportunityId, userId);
+    const dbRecord = await mapContractLineItemToDb(lineItem, opportunityId, userId, companyName);
     
     // Step 2: Check for existing record to prevent duplicates
     const existingRecord = await getExistingContractLineItem(
@@ -236,39 +239,156 @@ async function processContractLineItem(
 }
 
 /**
+ * Generate invoice number for contract line item (if billed_at exists)
+ */
+async function generateInvoiceNumberForLineItem(
+  companyName: string,
+  opportunityId: string,
+  billedAt: string
+): Promise<string | null> {
+  try {
+    // Get custom school code from opportunity_billing_info
+    const { data: billingData } = await supabase
+      .from('opportunity_billing_info')
+      .select('custom_school_code')
+      .eq('opportunity_id', opportunityId)
+      .single();
+
+    const customSchoolCode = billingData?.custom_school_code;
+
+    // Extract or use custom school code
+    const shortform = customSchoolCode?.trim().toUpperCase() ||
+      extractShortformFromCompanyName(companyName);
+
+    // Format date as MMDDYY
+    const dateObj = new Date(billedAt + 'T00:00:00');
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const year = String(dateObj.getFullYear()).slice(-2);
+    const dateFormatted = `${month}${day}${year}`;
+
+    // Query existing invoice numbers for this client
+    const { data: existingData } = await supabase
+      .from('invoice_line_items')
+      .select('invoice_number')
+      .not('invoice_number', 'is', null)
+      .like('invoice_number', `${shortform}-%`);
+
+    const existingNumbers = (existingData?.map(item => item.invoice_number).filter(Boolean) as string[]) || [];
+    const baseNumber = `${shortform}-${dateFormatted}`;
+
+    // Find all existing invoice numbers with the same date prefix
+    const sameDate = existingNumbers.filter(num => num.startsWith(baseNumber));
+
+    if (sameDate.length === 0) {
+      return `${baseNumber}-01`;
+    }
+
+    // Extract sequence numbers and find the highest
+    const sequenceNumbers = sameDate
+      .map(num => {
+        const match = num.match(/-(\d{2})$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(num => num > 0);
+
+    const highestSequence = sequenceNumbers.length > 0 ? Math.max(...sequenceNumbers) : 0;
+    const nextSequence = highestSequence + 1;
+
+    // Format with leading zero (2 digits)
+    const paddedSequence = nextSequence.toString().padStart(2, '0');
+    return `${baseNumber}-${paddedSequence}`;
+  } catch (error) {
+    console.error('Error generating invoice number:', error);
+    return null;
+  }
+}
+
+/**
+ * Extract shortform from company name
+ */
+function extractShortformFromCompanyName(organizationName: string): string {
+  if (!organizationName || organizationName.trim().length === 0) {
+    return 'UNK';
+  }
+
+  const name = organizationName.trim().toUpperCase();
+
+  // Remove common business suffixes and words
+  const cleanName = name
+    .replace(/\b(LLC|INC|CORP|CORPORATION|COMPANY|CO|LTD|LIMITED|UNIVERSITY|UNIV|COLLEGE)\b/g, '')
+    .replace(/[^A-Z0-9\s]/g, '') // Remove special characters
+    .trim();
+
+  // Split into words and filter out empty strings
+  const words = cleanName.split(/\s+/).filter(word => word.length > 0);
+
+  if (words.length === 0) {
+    return name.slice(0, 3);
+  }
+
+  if (words.length === 1) {
+    const word = words[0];
+    return word.length >= 4 ? word.slice(0, 4) : word.slice(0, 3);
+  }
+
+  if (words.length === 2) {
+    return words[0].slice(0, 2) + words[1].slice(0, 2);
+  }
+
+  // Three or more words: take first char of first 3-4 words
+  if (words.length >= 4) {
+    return words.slice(0, 4).map(word => word[0]).join('');
+  } else {
+    return words.slice(0, 3).map(word => word[0]).join('');
+  }
+}
+
+/**
  * Map contract line item to database invoice_line_item record
  */
-function mapContractLineItemToDb(
+async function mapContractLineItemToDb(
   lineItem: ParsedLineItem,
   opportunityId: string,
-  userId: string
-): any {
+  userId: string,
+  companyName: string
+): Promise<any> {
+  // Generate invoice number if billed_at exists
+  let invoiceNumber = null;
+  if (lineItem.date) {
+    invoiceNumber = await generateInvoiceNumberForLineItem(companyName, opportunityId, lineItem.date);
+  }
+
   return {
     // Core line item information
     description: lineItem.name,
     quantity: 1, // Default to 1 for contract items
     unit_rate: lineItem.amount,
     // line_total: auto-calculated by database as (quantity * unit_rate)
-    
+
     // Billing information
     billed_at: lineItem.date,
     service_period_start: lineItem.date,
     service_period_end: lineItem.date,
-    
+
+    // Invoice information
+    invoice_number: invoiceNumber,
+    invoice_status: invoiceNumber ? 'draft' : null,
+
     // Item classification - use 'fee' for contract upload items to avoid constraint issues
     item_type: lineItem.type === 'deliverable' ? 'fee' : lineItem.type,
     line_number: 1, // Will be set during invoice generation
-    
+
     // Relationships
     opportunity_id: opportunityId,
     user_id: userId,
-    
+
     // Source tracking
     source: SOURCE_TYPES.CONTRACT_UPLOAD,
-    
+
     // Optional fields
     details: lineItem.original_text,
-    
+
     // Timestamps (will be set by database)
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
