@@ -78,7 +78,10 @@ export default function InvoicePreviewModal({
     try {
       const { error } = await supabase
         .from('invoice_line_items')
-        .update({ invoice_status: 'sent' })
+        .update({
+          invoice_status: 'sent',
+          sent_date: new Date().toISOString().split('T')[0]
+        })
         .eq('id', lineItemId);
 
       if (error) throw error;
