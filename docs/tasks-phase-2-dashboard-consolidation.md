@@ -973,7 +973,120 @@ Retain all existing button styling, icons, tooltips, and behavior. Only change i
 
 ---
 
-## Task 22: Fix Line Item Delete Bug - Act! Sync Not Completing
+## Task 22: Fix Invoice Number Generation and Sent Date Issues
+
+**Priority**: High | **Estimated Effort**: Medium
+
+### Description
+Two critical data integrity issues with invoice line items: (1) Invoice numbers are not being automatically assigned when billing dates are set, causing UI to show "#DRAFT", and (2) sent_date field is not being populated when marking invoices as sent, breaking overdue calculation logic.
+
+### Current State
+
+#### Issue 1: Invoice Numbers Not Assigned
+- Line items with `billed_at` dates have `null` invoice_number field
+- Example: Opportunity `07bb98fe-a210-48cf-ab50-1b1121e67e21` has 5 line items with billing dates but no invoice numbers
+- UI displays "#DRAFT" instead of proper invoice numbers (e.g., "WSU-251101-001")
+- Invoice number generation logic exists ([src/hooks/useInvoiceNumbering.ts](../src/hooks/useInvoiceNumbering.ts)) but only runs on `/invoices` page load
+- Assignment function exists ([src/pages/Invoices.tsx](../src/pages/Invoices.tsx):300-390) but not integrated into normal workflow
+- No automatic assignment when users set `billed_at` via OpportunityCard
+
+#### Issue 2: Sent Date Not Saved
+- Marking invoice as sent updates `invoice_status` to 'sent' but doesn't set `sent_date`
+- Database column exists but not populated by application code
+- Affects OpportunityCard markAsSent ([src/components/OpportunityCard.tsx](../src/components/OpportunityCard.tsx):122-141)
+- Affects InvoicePreviewModal handleMarkAsSent ([src/components/InvoicePreviewModal.tsx](../src/components/InvoicePreviewModal.tsx):74-95)
+- Mark as paid correctly sets both `invoice_status` and `payment_date` (implemented correctly)
+- Missing `sent_date` breaks overdue detection and reporting
+
+### Target State
+- Invoice numbers automatically assigned when billing date is set on line item
+- Invoice status defaults to 'draft' when invoice number is assigned
+- Sent date automatically populated when invoice marked as sent
+- All timestamp fields (sent_date, payment_date) consistently populated
+- Overdue calculation works correctly with sent_date
+
+### Acceptance Criteria
+
+#### Invoice Number Assignment:
+- [ ] When user sets `billed_at` on line item, invoice number automatically generated and assigned
+- [ ] Invoice number generation uses existing logic (client shortform + date + sequence)
+- [ ] Invoice status defaults to 'draft' when invoice number first assigned
+- [ ] UI displays proper invoice number instead of "#DRAFT"
+- [ ] Works for both manual date entry and contract upload flows
+- [ ] Handles race conditions (multiple items getting billing dates simultaneously)
+- [ ] No duplicate invoice numbers generated
+
+#### Sent Date Fix:
+- [ ] Mark as sent updates both `invoice_status` and `sent_date` fields
+- [ ] Sent date uses format: `new Date().toISOString().split('T')[0]`
+- [ ] Applied to OpportunityCard markAsSentMutation
+- [ ] Applied to InvoicePreviewModal handleMarkAsSent
+- [ ] Consistent with how mark as paid handles `payment_date`
+- [ ] Overdue detection logic works correctly with sent_date
+- [ ] Audit trail complete for when invoices were sent
+
+### Implementation Strategy
+
+#### Fix 1: Auto-assign Invoice Numbers
+Modify `updateLineItem()` mutation in [src/hooks/useLineItemCrud.ts](../src/hooks/useLineItemCrud.ts):
+
+1. After database update succeeds, check if `billed_at` was set and invoice_number is null
+2. If so, fetch opportunity company name
+3. Call invoice numbering logic to generate unique number
+4. Update line item with invoice_number and default invoice_status to 'draft'
+5. Handle errors gracefully without failing the entire operation
+6. Log results for debugging
+
+**Key Decision:** Keep logic in application layer (not database trigger) for:
+- Easier testing and debugging
+- Access to existing invoice numbering utilities
+- Consistent with other business logic patterns
+
+#### Fix 2: Add sent_date to Mark As Sent
+Simple one-line addition to both locations:
+
+1. OpportunityCard.tsx markAsSentMutation (line 126)
+2. InvoicePreviewModal.tsx handleMarkAsSent (line 81)
+3. Add `sent_date: new Date().toISOString().split('T')[0]` to update object
+
+### Files to Modify
+- Modify: `src/hooks/useLineItemCrud.ts` (add auto-invoice number assignment logic)
+- Modify: `src/components/OpportunityCard.tsx` (add sent_date to markAsSentMutation)
+- Modify: `src/components/InvoicePreviewModal.tsx` (add sent_date to handleMarkAsSent)
+
+### Testing Plan
+
+#### Invoice Number Testing:
+1. Create new line item without billing date
+2. Set billing date via OpportunityCard edit
+3. Verify invoice_number auto-assigned (check DB and UI)
+4. Verify invoice_status set to 'draft'
+5. Verify UI shows proper invoice number (not "#DRAFT")
+6. Test with contract upload flow (multiple items at once)
+7. Test editing existing items with billing dates
+
+#### Sent Date Testing:
+1. Create line item with billing date and invoice number (draft status)
+2. Click "Mark as Sent" from OpportunityCard action button
+3. Query database to verify `sent_date` populated
+4. Verify `invoice_status` also updated to 'sent'
+5. Repeat test from InvoicePreviewModal
+6. Verify overdue calculation works with sent_date
+7. Test mark as paid flow still works correctly
+
+#### Integration Testing:
+1. Full workflow: Create → Set billing date → Mark as sent → Mark as paid
+2. Verify all fields populated: invoice_number, invoice_status, sent_date, payment_date
+3. Test PDF generation with proper invoice numbers
+4. Test dashboard metrics with complete data
+5. Test overdue detection with sent invoices
+
+### Design Reference
+No UI changes - data integrity fixes only.
+
+---
+
+## Task 23: Fix Line Item Delete Bug - Act! Sync Not Completing
 
 **Priority**: Critical | **Estimated Effort**: Medium
 
