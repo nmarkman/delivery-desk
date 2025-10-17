@@ -660,7 +660,18 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* 4. Billed & Unpaid */}
+        {/* 4. Total Outstanding */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrencyNoDecimals(totalOutstanding)}</div>
+          </CardContent>
+        </Card>
+
+        {/* 5. Billed & Unpaid */}
         <Card
           className="cursor-pointer transition-all duration-200 hover:shadow-md hover:ring-4 hover:ring-purple-300 hover:ring-opacity-80"
           onClick={handleBilledUnpaidClick}
@@ -674,17 +685,6 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">
               {billedUnpaidCount} invoice{billedUnpaidCount !== 1 ? 's' : ''}
             </p>
-          </CardContent>
-        </Card>
-
-        {/* 5. Total Outstanding */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrencyNoDecimals(totalOutstanding)}</div>
           </CardContent>
         </Card>
       </div>
